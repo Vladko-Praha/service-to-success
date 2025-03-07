@@ -5,8 +5,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Shield, ChevronRight, CheckCircle, XCircle, Clock, DollarSign } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import AuthProviders from "../components/AuthProviders";
+import TwoFactorSetup from "../components/TwoFactorSetup";
 
 const Register = () => {
+  const [authStep, setAuthStep] = useState(0); // 0: auth options, 1: form step 1, 2: form step 2, 3: 2FA setup
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -18,8 +21,8 @@ const Register = () => {
     timeCommitment: "",
     investmentReady: false,
     heardFrom: "",
+    twoFactorEnabled: false,
   });
-  const [step, setStep] = useState(1);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -47,7 +50,40 @@ const Register = () => {
       return;
     }
 
+    // If 2FA should be set up
+    if (formData.twoFactorEnabled) {
+      setAuthStep(3); // Move to 2FA setup
+      return;
+    }
+
     // Form submission would go here - integrate with backend later
+    toast({
+      title: "Application Received",
+      description: "Thank you for your interest. We'll review your application and contact you soon.",
+    });
+    
+    // Redirect to home after successful submission
+    setTimeout(() => {
+      navigate("/");
+    }, 3000);
+  };
+
+  const handleTwoFactorComplete = () => {
+    setFormData(prev => ({ ...prev, twoFactorEnabled: true }));
+    
+    toast({
+      title: "Application Received",
+      description: "Your application with enhanced security has been submitted.",
+    });
+    
+    // Redirect to home after successful submission
+    setTimeout(() => {
+      navigate("/");
+    }, 3000);
+  };
+
+  const handleTwoFactorSkip = () => {
+    setFormData(prev => ({ ...prev, twoFactorEnabled: false }));
     
     toast({
       title: "Application Received",
@@ -164,214 +200,253 @@ const Register = () => {
                 Complete the following form to be considered for our next cohort
               </p>
 
-              <form onSubmit={handleSubmit} className="mt-12 space-y-8 bg-white p-8 rounded-lg shadow-md border border-military-tan">
-                {step === 1 && (
-                  <div className="space-y-6">
-                    <h3 className="font-heading text-xl font-bold text-military-navy border-b border-military-tan pb-2">
-                      Personal Information
-                    </h3>
-                    
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                      <div>
-                        <label htmlFor="fullName" className="block text-sm font-medium text-military-navy">
-                          Full Name *
-                        </label>
-                        <input
-                          type="text"
-                          id="fullName"
-                          name="fullName"
-                          value={formData.fullName}
-                          onChange={handleChange}
-                          className="mt-1 block w-full rounded-md border border-military-tan bg-military-sand p-2 shadow-sm focus:border-military-olive focus:outline-none focus:ring-1 focus:ring-military-olive"
-                          required
-                        />
-                      </div>
-                      
-                      <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-military-navy">
-                          Email Address *
-                        </label>
-                        <input
-                          type="email"
-                          id="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleChange}
-                          className="mt-1 block w-full rounded-md border border-military-tan bg-military-sand p-2 shadow-sm focus:border-military-olive focus:outline-none focus:ring-1 focus:ring-military-olive"
-                          required
-                        />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="phone" className="block text-sm font-medium text-military-navy">
-                        Phone Number
-                      </label>
-                      <input
-                        type="tel"
-                        id="phone"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        className="mt-1 block w-full rounded-md border border-military-tan bg-military-sand p-2 shadow-sm focus:border-military-olive focus:outline-none focus:ring-1 focus:ring-military-olive"
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                      <div>
-                        <label htmlFor="militaryBranch" className="block text-sm font-medium text-military-navy">
-                          Military Branch *
-                        </label>
-                        <select
-                          id="militaryBranch"
-                          name="militaryBranch"
-                          value={formData.militaryBranch}
-                          onChange={handleChange}
-                          className="mt-1 block w-full rounded-md border border-military-tan bg-military-sand p-2 shadow-sm focus:border-military-olive focus:outline-none focus:ring-1 focus:ring-military-olive"
-                          required
-                        >
-                          <option value="">Select branch</option>
-                          <option value="Army">Army</option>
-                          <option value="Navy">Navy</option>
-                          <option value="Air Force">Air Force</option>
-                          <option value="Marines">Marines</option>
-                          <option value="Coast Guard">Coast Guard</option>
-                          <option value="Space Force">Space Force</option>
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label htmlFor="yearsOfService" className="block text-sm font-medium text-military-navy">
-                          Years of Service
-                        </label>
-                        <input
-                          type="text"
-                          id="yearsOfService"
-                          name="yearsOfService"
-                          value={formData.yearsOfService}
-                          onChange={handleChange}
-                          className="mt-1 block w-full rounded-md border border-military-tan bg-military-sand p-2 shadow-sm focus:border-military-olive focus:outline-none focus:ring-1 focus:ring-military-olive"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="pt-4 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => setStep(2)}
-                        className="flex items-center gap-2 rounded-md bg-military-navy px-6 py-2 text-sm font-medium text-military-sand shadow-sm transition-all hover:bg-military-navy/90"
-                      >
-                        <span>Next</span>
-                        <ChevronRight className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
+              <div className="mt-12 bg-white p-8 rounded-lg shadow-md border border-military-tan">
+                {authStep === 0 && (
+                  <AuthProviders 
+                    onEmailSignup={() => setAuthStep(1)}
+                    currentStep={authStep}
+                  />
                 )}
 
-                {step === 2 && (
-                  <div className="space-y-6">
-                    <h3 className="font-heading text-xl font-bold text-military-navy border-b border-military-tan pb-2">
-                      Mission Details
-                    </h3>
-                    
-                    <div>
-                      <label htmlFor="skillsets" className="block text-sm font-medium text-military-navy">
-                        What skills or experience do you bring from your military service?
-                      </label>
-                      <textarea
-                        id="skillsets"
-                        name="skillsets"
-                        value={formData.skillsets}
-                        onChange={handleChange}
-                        rows={3}
-                        className="mt-1 block w-full rounded-md border border-military-tan bg-military-sand p-2 shadow-sm focus:border-military-olive focus:outline-none focus:ring-1 focus:ring-military-olive"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="businessGoals" className="block text-sm font-medium text-military-navy">
-                        What type of online business are you interested in building?
-                      </label>
-                      <textarea
-                        id="businessGoals"
-                        name="businessGoals"
-                        value={formData.businessGoals}
-                        onChange={handleChange}
-                        rows={3}
-                        className="mt-1 block w-full rounded-md border border-military-tan bg-military-sand p-2 shadow-sm focus:border-military-olive focus:outline-none focus:ring-1 focus:ring-military-olive"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="timeCommitment" className="block text-sm font-medium text-military-navy">
-                        How many hours per week can you commit to building your business?
-                      </label>
-                      <select
-                        id="timeCommitment"
-                        name="timeCommitment"
-                        value={formData.timeCommitment}
-                        onChange={handleChange}
-                        className="mt-1 block w-full rounded-md border border-military-tan bg-military-sand p-2 shadow-sm focus:border-military-olive focus:outline-none focus:ring-1 focus:ring-military-olive"
-                      >
-                        <option value="">Select time commitment</option>
-                        <option value="5-10 hours">5-10 hours</option>
-                        <option value="10-15 hours">10-15 hours</option>
-                        <option value="15-20 hours">15-20 hours</option>
-                        <option value="20+ hours">20+ hours</option>
-                      </select>
-                    </div>
-                    
-                    <div className="flex items-start">
-                      <div className="flex h-5 items-center">
-                        <input
-                          id="investmentReady"
-                          name="investmentReady"
-                          type="checkbox"
-                          checked={formData.investmentReady}
-                          onChange={handleChange}
-                          className="h-4 w-4 rounded border-military-tan text-military-olive focus:ring-military-olive"
-                        />
-                      </div>
-                      <div className="ml-3 text-sm">
-                        <label htmlFor="investmentReady" className="font-medium text-military-navy">
-                          I understand that this program requires a minimum investment of $500 in business tools
-                        </label>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="heardFrom" className="block text-sm font-medium text-military-navy">
-                        How did you hear about this program?
-                      </label>
-                      <input
-                        type="text"
-                        id="heardFrom"
-                        name="heardFrom"
-                        value={formData.heardFrom}
-                        onChange={handleChange}
-                        className="mt-1 block w-full rounded-md border border-military-tan bg-military-sand p-2 shadow-sm focus:border-military-olive focus:outline-none focus:ring-1 focus:ring-military-olive"
-                      />
-                    </div>
+                {(authStep === 1 || authStep === 2) && (
+                  <form onSubmit={handleSubmit} className="space-y-8">
+                    {authStep === 1 && (
+                      <div className="space-y-6">
+                        <h3 className="font-heading text-xl font-bold text-military-navy border-b border-military-tan pb-2">
+                          Personal Information
+                        </h3>
+                        
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                          <div>
+                            <label htmlFor="fullName" className="block text-sm font-medium text-military-navy">
+                              Full Name *
+                            </label>
+                            <input
+                              type="text"
+                              id="fullName"
+                              name="fullName"
+                              value={formData.fullName}
+                              onChange={handleChange}
+                              className="mt-1 block w-full rounded-md border border-military-tan bg-military-sand p-2 shadow-sm focus:border-military-olive focus:outline-none focus:ring-1 focus:ring-military-olive"
+                              required
+                            />
+                          </div>
+                          
+                          <div>
+                            <label htmlFor="email" className="block text-sm font-medium text-military-navy">
+                              Email Address *
+                            </label>
+                            <input
+                              type="email"
+                              id="email"
+                              name="email"
+                              value={formData.email}
+                              onChange={handleChange}
+                              className="mt-1 block w-full rounded-md border border-military-tan bg-military-sand p-2 shadow-sm focus:border-military-olive focus:outline-none focus:ring-1 focus:ring-military-olive"
+                              required
+                            />
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label htmlFor="phone" className="block text-sm font-medium text-military-navy">
+                            Phone Number
+                          </label>
+                          <input
+                            type="tel"
+                            id="phone"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            className="mt-1 block w-full rounded-md border border-military-tan bg-military-sand p-2 shadow-sm focus:border-military-olive focus:outline-none focus:ring-1 focus:ring-military-olive"
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                          <div>
+                            <label htmlFor="militaryBranch" className="block text-sm font-medium text-military-navy">
+                              Military Branch *
+                            </label>
+                            <select
+                              id="militaryBranch"
+                              name="militaryBranch"
+                              value={formData.militaryBranch}
+                              onChange={handleChange}
+                              className="mt-1 block w-full rounded-md border border-military-tan bg-military-sand p-2 shadow-sm focus:border-military-olive focus:outline-none focus:ring-1 focus:ring-military-olive"
+                              required
+                            >
+                              <option value="">Select branch</option>
+                              <option value="Army">Army</option>
+                              <option value="Navy">Navy</option>
+                              <option value="Air Force">Air Force</option>
+                              <option value="Marines">Marines</option>
+                              <option value="Coast Guard">Coast Guard</option>
+                              <option value="Space Force">Space Force</option>
+                            </select>
+                          </div>
+                          
+                          <div>
+                            <label htmlFor="yearsOfService" className="block text-sm font-medium text-military-navy">
+                              Years of Service
+                            </label>
+                            <input
+                              type="text"
+                              id="yearsOfService"
+                              name="yearsOfService"
+                              value={formData.yearsOfService}
+                              onChange={handleChange}
+                              className="mt-1 block w-full rounded-md border border-military-tan bg-military-sand p-2 shadow-sm focus:border-military-olive focus:outline-none focus:ring-1 focus:ring-military-olive"
+                            />
+                          </div>
+                        </div>
 
-                    <div className="pt-4 flex justify-between">
-                      <button
-                        type="button"
-                        onClick={() => setStep(1)}
-                        className="flex items-center gap-2 rounded-md border border-military-navy bg-transparent px-6 py-2 text-sm font-medium text-military-navy shadow-sm transition-all hover:bg-military-navy/10"
-                      >
-                        Back
-                      </button>
-                      <button
-                        type="submit"
-                        className="flex items-center gap-2 rounded-md bg-military-olive px-6 py-2 text-sm font-medium text-military-sand shadow-sm transition-all hover:bg-military-olive/90"
-                      >
-                        <Shield className="h-4 w-4" />
-                        <span>Submit Application</span>
-                      </button>
-                    </div>
-                  </div>
+                        <div className="flex items-start pt-2">
+                          <div className="flex h-5 items-center">
+                            <input
+                              id="twoFactorEnabled"
+                              name="twoFactorEnabled"
+                              type="checkbox"
+                              checked={formData.twoFactorEnabled}
+                              onChange={handleChange}
+                              className="h-4 w-4 rounded border-military-tan text-military-olive focus:ring-military-olive"
+                            />
+                          </div>
+                          <div className="ml-3 text-sm">
+                            <label htmlFor="twoFactorEnabled" className="font-medium text-military-navy">
+                              Enable two-factor authentication for my account
+                            </label>
+                            <p className="text-military-navy/70">
+                              Recommended for extra security
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="pt-4 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => setAuthStep(2)}
+                            className="flex items-center gap-2 rounded-md bg-military-navy px-6 py-2 text-sm font-medium text-military-sand shadow-sm transition-all hover:bg-military-navy/90"
+                          >
+                            <span>Next</span>
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {authStep === 2 && (
+                      <div className="space-y-6">
+                        <h3 className="font-heading text-xl font-bold text-military-navy border-b border-military-tan pb-2">
+                          Mission Details
+                        </h3>
+                        
+                        <div>
+                          <label htmlFor="skillsets" className="block text-sm font-medium text-military-navy">
+                            What skills or experience do you bring from your military service?
+                          </label>
+                          <textarea
+                            id="skillsets"
+                            name="skillsets"
+                            value={formData.skillsets}
+                            onChange={handleChange}
+                            rows={3}
+                            className="mt-1 block w-full rounded-md border border-military-tan bg-military-sand p-2 shadow-sm focus:border-military-olive focus:outline-none focus:ring-1 focus:ring-military-olive"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label htmlFor="businessGoals" className="block text-sm font-medium text-military-navy">
+                            What type of online business are you interested in building?
+                          </label>
+                          <textarea
+                            id="businessGoals"
+                            name="businessGoals"
+                            value={formData.businessGoals}
+                            onChange={handleChange}
+                            rows={3}
+                            className="mt-1 block w-full rounded-md border border-military-tan bg-military-sand p-2 shadow-sm focus:border-military-olive focus:outline-none focus:ring-1 focus:ring-military-olive"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label htmlFor="timeCommitment" className="block text-sm font-medium text-military-navy">
+                            How many hours per week can you commit to building your business?
+                          </label>
+                          <select
+                            id="timeCommitment"
+                            name="timeCommitment"
+                            value={formData.timeCommitment}
+                            onChange={handleChange}
+                            className="mt-1 block w-full rounded-md border border-military-tan bg-military-sand p-2 shadow-sm focus:border-military-olive focus:outline-none focus:ring-1 focus:ring-military-olive"
+                          >
+                            <option value="">Select time commitment</option>
+                            <option value="5-10 hours">5-10 hours</option>
+                            <option value="10-15 hours">10-15 hours</option>
+                            <option value="15-20 hours">15-20 hours</option>
+                            <option value="20+ hours">20+ hours</option>
+                          </select>
+                        </div>
+                        
+                        <div className="flex items-start">
+                          <div className="flex h-5 items-center">
+                            <input
+                              id="investmentReady"
+                              name="investmentReady"
+                              type="checkbox"
+                              checked={formData.investmentReady}
+                              onChange={handleChange}
+                              className="h-4 w-4 rounded border-military-tan text-military-olive focus:ring-military-olive"
+                            />
+                          </div>
+                          <div className="ml-3 text-sm">
+                            <label htmlFor="investmentReady" className="font-medium text-military-navy">
+                              I understand that this program requires a minimum investment of $500 in business tools
+                            </label>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label htmlFor="heardFrom" className="block text-sm font-medium text-military-navy">
+                            How did you hear about this program?
+                          </label>
+                          <input
+                            type="text"
+                            id="heardFrom"
+                            name="heardFrom"
+                            value={formData.heardFrom}
+                            onChange={handleChange}
+                            className="mt-1 block w-full rounded-md border border-military-tan bg-military-sand p-2 shadow-sm focus:border-military-olive focus:outline-none focus:ring-1 focus:ring-military-olive"
+                          />
+                        </div>
+
+                        <div className="pt-4 flex justify-between">
+                          <button
+                            type="button"
+                            onClick={() => setAuthStep(1)}
+                            className="flex items-center gap-2 rounded-md border border-military-navy bg-transparent px-6 py-2 text-sm font-medium text-military-navy shadow-sm transition-all hover:bg-military-navy/10"
+                          >
+                            Back
+                          </button>
+                          <button
+                            type="submit"
+                            className="flex items-center gap-2 rounded-md bg-military-olive px-6 py-2 text-sm font-medium text-military-sand shadow-sm transition-all hover:bg-military-olive/90"
+                          >
+                            <Shield className="h-4 w-4" />
+                            <span>Submit Application</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </form>
                 )}
-              </form>
+
+                {authStep === 3 && (
+                  <TwoFactorSetup 
+                    onComplete={handleTwoFactorComplete} 
+                    onSkip={handleTwoFactorSkip} 
+                  />
+                )}
+              </div>
             </div>
           </div>
         </section>
