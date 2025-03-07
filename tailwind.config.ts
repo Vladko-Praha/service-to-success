@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,14 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				military: {
+					navy: '#0A1E40',
+					olive: '#5D6C3C',
+					sand: '#F4F1E4',
+					beige: '#E5E1CC',
+					tan: '#C8B896',
+					red: '#A13232'
 				}
 			},
 			borderRadius: {
@@ -70,25 +79,40 @@ export default {
 			},
 			keyframes: {
 				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' },
 				},
 				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' },
+				},
+				'fade-in': {
+					'0%': { opacity: '0' },
+					'100%': { opacity: '1' },
+				},
+				'fade-in-up': {
+					'0%': { opacity: '0', transform: 'translateY(20px)' },
+					'100%': { opacity: '1', transform: 'translateY(0)' },
+				},
+				'counter': {
+					'0%': { opacity: '0' },
+					'100%': { opacity: '1' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.7s ease-out',
+				'fade-in-up': 'fade-in-up 0.7s ease-out',
+				'counter': 'counter 1s ease-out forwards'
+			},
+			backgroundImage: {
+				'digital-camo': "url('/digital-camo.png')",
+				'tactical-pattern': "linear-gradient(rgba(10, 30, 64, 0.9), rgba(10, 30, 64, 0.9)), url('/tactical-pattern.png')"
+			},
+			fontFamily: {
+				'military': ['Roboto Condensed', 'sans-serif'],
+				'heading': ['Oswald', 'sans-serif']
 			}
 		}
 	},
