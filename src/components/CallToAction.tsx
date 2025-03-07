@@ -1,5 +1,6 @@
 
 import { ArrowRight, Shield, Target, Users, Award } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import AnimatedCounter from './AnimatedCounter';
 
 const CallToAction = () => {
@@ -97,13 +98,13 @@ const CallToAction = () => {
           </div>
 
           <div className="mt-16">
-            <a
-              href="#deployment"
+            <Link
+              to="/register"
               className="group inline-flex items-center gap-2 rounded-md bg-military-olive px-8 py-4 font-medium text-military-sand shadow-md transition-all hover:bg-military-olive/90 hover:shadow-lg"
             >
               <span className="text-lg">BEGIN YOUR MISSION</span>
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-            </a>
+            </Link>
             <p className="mt-4 text-sm text-military-sand/60">
               Next cohort starting soon — Limited spots available
             </p>
