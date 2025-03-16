@@ -1,9 +1,69 @@
 
 import React from "react";
-import { Activity, AlertTriangle, CheckCircle, Clock, Medal, Users } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { 
+  Activity, 
+  AlertTriangle, 
+  BookOpen, 
+  Calendar, 
+  CheckCircle2, 
+  ClipboardCheck, 
+  Clock, 
+  Users
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
+
+const data = [
+  {
+    name: "Week 1",
+    total: 98,
+  },
+  {
+    name: "Week 2",
+    total: 92,
+  },
+  {
+    name: "Week 3",
+    total: 87,
+  },
+  {
+    name: "Week 4",
+    total: 89,
+  },
+  {
+    name: "Week 5",
+    total: 84,
+  },
+  {
+    name: "Week 6",
+    total: 88,
+  },
+  {
+    name: "Week 7",
+    total: 92,
+  },
+  {
+    name: "Week 8",
+    total: 95,
+  },
+  {
+    name: "Week 9",
+    total: 90,
+  },
+  {
+    name: "Week 10",
+    total: 93,
+  },
+  {
+    name: "Week 11",
+    total: 89,
+  },
+  {
+    name: "Week 12",
+    total: 92,
+  },
+];
 
 const CommandCenterOverview = () => {
   return (
@@ -12,52 +72,41 @@ const CommandCenterOverview = () => {
         <h2 className="text-3xl font-bold tracking-tight text-military-navy">
           Command Center Overview
         </h2>
-        <div className="flex items-center gap-2 bg-military-navy/10 px-4 py-2 rounded-md">
-          <Clock className="h-5 w-5 text-military-navy" />
-          <span className="text-sm font-medium">Current Operation: <span className="font-bold">Cohort #8 - Week 6</span></span>
-        </div>
       </div>
-
-      {/* Program Stats */}
+      
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Participants</CardTitle>
-            <Users className="h-4 w-4 text-military-olive" />
+            <CardTitle className="text-sm font-medium">
+              Active Participants
+            </CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">248</div>
-            <p className="text-xs text-muted-foreground">Across 8 cohorts</p>
-            <div className="mt-4 flex items-center text-xs text-military-olive">
-              <span className="font-medium">↑ 12%</span>
-              <span className="ml-1">from previous cohort</span>
+            <div className="text-2xl font-bold">87</div>
+            <p className="text-xs text-muted-foreground">
+              +2.5% from last month
+            </p>
+            <div className="mt-4 h-1 w-full bg-military-olive/20">
+              <div className="h-1 w-[75%] bg-military-olive"></div>
             </div>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Program Completion</CardTitle>
-            <Activity className="h-4 w-4 text-military-olive" />
+            <CardTitle className="text-sm font-medium">
+              Program Completion
+            </CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">86%</div>
-            <p className="text-xs text-muted-foreground">Average across all cohorts</p>
-            <Progress value={86} className="mt-3" />
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Businesses Launched</CardTitle>
-            <Medal className="h-4 w-4 text-military-olive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">127</div>
-            <p className="text-xs text-muted-foreground">Success rate: 76%</p>
-            <div className="mt-4 flex items-center text-xs text-military-olive">
-              <span className="font-medium">↑ 8%</span>
-              <span className="ml-1">from last quarter</span>
+            <div className="text-2xl font-bold">68%</div>
+            <p className="text-xs text-muted-foreground">
+              +4% from last cohort
+            </p>
+            <div className="mt-4 h-1 w-full bg-military-olive/20">
+              <div className="h-1 w-[68%] bg-military-olive"></div>
             </div>
           </CardContent>
         </Card>
@@ -65,132 +114,254 @@ const CommandCenterOverview = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">At-Risk Participants</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-military-red" />
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">Require intervention</p>
-            <div className="mt-4 flex items-center text-xs text-military-red">
-              <span className="font-medium">Action required</span>
+            <div className="text-2xl font-bold">7</div>
+            <p className="text-xs text-muted-foreground">
+              -2 from last week
+            </p>
+            <div className="mt-4 h-1 w-full bg-military-red/20">
+              <div className="h-1 w-[8%] bg-military-red"></div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">
+              Business Launch Rate
+            </CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">92%</div>
+            <p className="text-xs text-muted-foreground">
+              +5% from last cohort
+            </p>
+            <div className="mt-4 h-1 w-full bg-military-olive/20">
+              <div className="h-1 w-[92%] bg-military-olive"></div>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Program Milestone Timeline */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Program Milestone Timeline</CardTitle>
-          <CardDescription>Current and upcoming program milestones</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-start">
-              <div className="mr-4 flex h-10 w-10 items-center justify-center rounded bg-military-olive text-military-sand">
-                <CheckCircle className="h-5 w-5" />
-              </div>
-              <div className="flex-1 space-y-1">
-                <p className="text-sm font-medium leading-none">Module 3: Market Research</p>
-                <p className="text-sm text-muted-foreground">Completed on June 8, 2023</p>
-                <p className="text-xs text-military-olive">98% completion rate</p>
-              </div>
-              <div className="text-sm font-medium text-military-olive">COMPLETE</div>
-            </div>
-            
-            <Separator />
-            
-            <div className="flex items-start">
-              <div className="mr-4 flex h-10 w-10 items-center justify-center rounded bg-military-navy text-military-sand">
-                <Activity className="h-5 w-5" />
-              </div>
-              <div className="flex-1 space-y-1">
-                <p className="text-sm font-medium leading-none">Module 4: Business Model Development</p>
-                <p className="text-sm text-muted-foreground">In progress (Week 2 of 3)</p>
-                <div className="mt-2 h-2 w-full rounded-full bg-slate-200">
-                  <div className="h-full w-[65%] rounded-full bg-military-olive"></div>
-                </div>
-              </div>
-              <div className="text-sm font-medium text-military-navy">IN PROGRESS</div>
-            </div>
-            
-            <Separator />
-            
-            <div className="flex items-start">
-              <div className="mr-4 flex h-10 w-10 items-center justify-center rounded bg-slate-200 text-slate-500">
-                <Clock className="h-5 w-5" />
-              </div>
-              <div className="flex-1 space-y-1">
-                <p className="text-sm font-medium leading-none">Module 5: Financial Planning</p>
-                <p className="text-sm text-muted-foreground">Starts June 29, 2023</p>
-                <p className="text-xs">Resources prepared: 92%</p>
-              </div>
-              <div className="text-sm font-medium text-slate-500">UPCOMING</div>
-            </div>
-            
-            <Separator />
-            
-            <div className="flex items-start">
-              <div className="mr-4 flex h-10 w-10 items-center justify-center rounded bg-slate-200 text-slate-500">
-                <Medal className="h-5 w-5" />
-              </div>
-              <div className="flex-1 space-y-1">
-                <p className="text-sm font-medium leading-none">Midpoint Business Plan Review</p>
-                <p className="text-sm text-muted-foreground">July 15, 2023</p>
-                <p className="text-xs">Reviewers assigned: 80%</p>
-              </div>
-              <div className="text-sm font-medium text-slate-500">UPCOMING</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Critical Alerts */}
-      <Card className="border-military-red/30">
-        <CardHeader className="bg-military-red/10 border-b border-military-red/20">
-          <CardTitle className="flex items-center gap-2 text-military-red">
-            <AlertTriangle className="h-5 w-5" />
-            Critical Alerts
-          </CardTitle>
-          <CardDescription>Issues requiring immediate attention</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="divide-y">
-            <div className="p-4 hover:bg-slate-50">
-              <div className="flex items-center justify-between">
+      
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="lg:col-span-4">
+          <CardHeader>
+            <CardTitle>Program Engagement (Weekly)</CardTitle>
+          </CardHeader>
+          <CardContent className="pl-2">
+            <ResponsiveContainer width="100%" height={350}>
+              <BarChart data={data}>
+                <XAxis
+                  dataKey="name"
+                  stroke="#888888"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  stroke="#888888"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `${value}%`}
+                />
+                <Bar
+                  dataKey="total"
+                  fill="#4a5c2f"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle>Critical Alerts</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-start gap-4 rounded-lg border p-3">
+                <AlertTriangle className="mt-1 h-5 w-5 text-amber-500" />
                 <div>
-                  <p className="font-medium">5 participants at risk of falling behind</p>
-                  <p className="text-sm text-muted-foreground">Module completion rate below 60%</p>
+                  <p className="font-medium">5 participants haven't logged in for 7+ days</p>
+                  <p className="text-sm text-muted-foreground">Requires intervention</p>
                 </div>
-                <button className="text-sm font-medium text-military-navy hover:underline">
-                  View Details
-                </button>
               </div>
-            </div>
-            <div className="p-4 hover:bg-slate-50">
-              <div className="flex items-center justify-between">
+              
+              <div className="flex items-start gap-4 rounded-lg border p-3">
+                <Clock className="mt-1 h-5 w-5 text-military-red" />
                 <div>
-                  <p className="font-medium">3 assignments past due for review</p>
-                  <p className="text-sm text-muted-foreground">Feedback pending for more than 48 hours</p>
+                  <p className="font-medium">3 assignments past deadline in Module 4</p>
+                  <p className="text-sm text-muted-foreground">Requires follow-up</p>
                 </div>
-                <button className="text-sm font-medium text-military-navy hover:underline">
-                  Review Now
-                </button>
               </div>
-            </div>
-            <div className="p-4 hover:bg-slate-50">
-              <div className="flex items-center justify-between">
+              
+              <div className="flex items-start gap-4 rounded-lg border p-3">
+                <ClipboardCheck className="mt-1 h-5 w-5 text-blue-500" />
                 <div>
-                  <p className="font-medium">Resource approval bottleneck</p>
-                  <p className="text-sm text-muted-foreground">8 materials awaiting review for Module 5</p>
+                  <p className="font-medium">Module 6 grading pending for 12 participants</p>
+                  <p className="text-sm text-muted-foreground">Due in 2 days</p>
                 </div>
-                <button className="text-sm font-medium text-military-navy hover:underline">
-                  Process Queue
-                </button>
+              </div>
+              
+              <div className="flex items-start gap-4 rounded-lg border p-3">
+                <Calendar className="mt-1 h-5 w-5 text-military-olive" />
+                <div>
+                  <p className="font-medium">Upcoming: Group mentoring session</p>
+                  <p className="text-sm text-muted-foreground">Tomorrow, 1500 hours</p>
+                </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle>Program Milestone Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Module Completion</span>
+                  <span className="text-sm text-muted-foreground">68%</span>
+                </div>
+                <Progress value={68} className="h-2" />
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Assignment Submissions</span>
+                  <span className="text-sm text-muted-foreground">82%</span>
+                </div>
+                <Progress value={82} className="h-2" />
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Business Model Development</span>
+                  <span className="text-sm text-muted-foreground">59%</span>
+                </div>
+                <Progress value={59} className="h-2" />
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Final Project Progress</span>
+                  <span className="text-sm text-muted-foreground">41%</span>
+                </div>
+                <Progress value={41} className="h-2" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Content Engagement</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <BookOpen className="h-6 w-6 text-military-navy" />
+                <div className="flex-1 space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    Business Model Canvas Tutorial
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    92% completion rate
+                  </p>
+                  <Progress value={92} className="h-2" />
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <BookOpen className="h-6 w-6 text-military-navy" />
+                <div className="flex-1 space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    Financial Projections Workshop
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    78% completion rate
+                  </p>
+                  <Progress value={78} className="h-2" />
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <BookOpen className="h-6 w-6 text-military-navy" />
+                <div className="flex-1 space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    Marketing Strategy Session
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    86% completion rate
+                  </p>
+                  <Progress value={86} className="h-2" />
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <BookOpen className="h-6 w-6 text-military-navy" />
+                <div className="flex-1 space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    Leadership Transition Module
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    95% completion rate
+                  </p>
+                  <Progress value={95} className="h-2" />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-lg border p-3 text-center">
+                <Users className="mx-auto h-6 w-6 text-military-navy" />
+                <p className="mt-1 text-xs font-medium">Participant Directory</p>
+              </div>
+              
+              <div className="rounded-lg border p-3 text-center">
+                <MessageSquare className="mx-auto h-6 w-6 text-military-navy" />
+                <p className="mt-1 text-xs font-medium">Send Announcement</p>
+              </div>
+              
+              <div className="rounded-lg border p-3 text-center">
+                <Calendar className="mx-auto h-6 w-6 text-military-navy" />
+                <p className="mt-1 text-xs font-medium">Schedule Event</p>
+              </div>
+              
+              <div className="rounded-lg border p-3 text-center">
+                <BookOpen className="mx-auto h-6 w-6 text-military-navy" />
+                <p className="mt-1 text-xs font-medium">Deploy Module</p>
+              </div>
+              
+              <div className="rounded-lg border p-3 text-center">
+                <ClipboardCheck className="mx-auto h-6 w-6 text-military-navy" />
+                <p className="mt-1 text-xs font-medium">Create Assignment</p>
+              </div>
+              
+              <div className="rounded-lg border p-3 text-center">
+                <Activity className="mx-auto h-6 w-6 text-military-navy" />
+                <p className="mt-1 text-xs font-medium">View Reports</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

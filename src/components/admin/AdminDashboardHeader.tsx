@@ -1,85 +1,47 @@
 
-import { Bell, Settings, User } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import React from "react";
+import { Bell, Mail, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const AdminDashboardHeader = () => {
-  const navigate = useNavigate();
-
   return (
-    <header className="border-b border-military-olive/20 bg-military-sand p-4">
+    <header className="sticky top-0 z-10 border-b border-military-olive/20 bg-military-beige px-6 py-3">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <SidebarTrigger />
-          <h1 className="text-xl font-bold text-military-navy">ADMIN COMMAND CENTER</h1>
+        <div className="flex items-center gap-4 md:w-64">
+          <div className="relative hidden md:flex">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
+            <Input
+              type="search"
+              placeholder="Search..."
+              className="pl-8 bg-white/80"
+            />
+          </div>
         </div>
         <div className="flex items-center gap-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="rounded-full p-2 hover:bg-military-navy/10">
-                <Bell className="h-5 w-5 text-military-navy" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-              <DropdownMenuItem>
-                <span className="text-military-olive font-semibold">5 participants require intervention</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <span>Cohort #7 graduation approaching</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <span>New resource approvals pending</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="rounded-full p-2 hover:bg-military-navy/10">
-                <Settings className="h-5 w-5 text-military-navy" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Admin Settings</DropdownMenuLabel>
-              <DropdownMenuItem>System Configuration</DropdownMenuItem>
-              <DropdownMenuItem>User Permissions</DropdownMenuItem>
-              <DropdownMenuItem>Notification Preferences</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Help & Support</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 rounded-full py-1 px-3 hover:bg-military-navy/10">
-                <div className="h-8 w-8 rounded-full bg-military-navy flex items-center justify-center">
-                  <User className="h-5 w-5 text-military-sand" />
-                </div>
-                <span className="text-sm font-semibold text-military-navy">COL Anderson</span>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>COL James Anderson</DropdownMenuLabel>
-              <DropdownMenuLabel className="text-xs text-muted-foreground">Program Administrator</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Profile Settings</DropdownMenuItem>
-              <DropdownMenuItem>Security</DropdownMenuItem>
-              <DropdownMenuItem>Admin Tools</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/")}>
-                Sign Out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button variant="ghost" size="icon" className="relative">
+            <Bell className="h-5 w-5" />
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-military-red text-[10px] font-medium text-white">
+              3
+            </span>
+          </Button>
+          <Button variant="ghost" size="icon" className="relative">
+            <Mail className="h-5 w-5" />
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-military-olive text-[10px] font-medium text-white">
+              5
+            </span>
+          </Button>
+          <div className="flex items-center gap-2">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src="/placeholder.svg" alt="Admin" />
+              <AvatarFallback>AD</AvatarFallback>
+            </Avatar>
+            <div className="hidden md:block">
+              <p className="text-sm font-medium leading-none">Admin User</p>
+              <p className="text-xs text-muted-foreground">Program Director</p>
+            </div>
+          </div>
         </div>
       </div>
     </header>
