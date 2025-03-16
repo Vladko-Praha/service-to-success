@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Cpu, MessageSquare, BarChart2, Zap, BrainCircuit, Sparkles } from "lucide-react";
+import { Cpu, MessageSquare, BarChart2, Zap, BrainCircuit, Sparkles, Upload, Database, FileText, FolderPlus, Search, RefreshCw, Trash2, Plus, Edit, Check, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const AICoachManagement = () => {
   const [apiKey, setApiKey] = useState("");
@@ -19,6 +20,26 @@ const AICoachManagement = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState("gpt-4o-mini");
   const { toast } = useToast();
+
+  // Training data state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [uploadFileName, setUploadFileName] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedDataItem, setSelectedDataItem] = useState<number | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+
+  // Mock training data
+  const [trainingData, setTrainingData] = useState([
+    { id: 1, name: "Business Plan Templates", category: "Business Planning", records: 234, lastUpdated: "2023-11-05", description: "Templates for creating business plans for different industries" },
+    { id: 2, name: "Financial Forecasting Examples", category: "Financial Planning", records: 156, lastUpdated: "2023-12-10", description: "Example financial forecasts for startup businesses" },
+    { id: 3, name: "Veteran Entrepreneur FAQs", category: "General Support", records: 427, lastUpdated: "2024-01-15", description: "Frequently asked questions from veteran entrepreneurs" },
+    { id: 4, name: "Market Research Techniques", category: "Market Analysis", records: 189, lastUpdated: "2024-02-20", description: "Methods and approaches for conducting market research" },
+    { id: 5, name: "Funding Options Dataset", category: "Financial Planning", records: 78, lastUpdated: "2024-03-01", description: "Overview of funding options available to veteran entrepreneurs" }
+  ]);
 
   const handleGenerateResponse = async () => {
     if (!apiKey) {
@@ -57,6 +78,100 @@ const AICoachManagement = () => {
       setIsLoading(false);
     }
   };
+
+  const handleFileUpload = () => {
+    if (!uploadFileName) {
+      toast({
+        title: "Upload Error",
+        description: "Please enter a file name for the training data.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    
+    // Simulate upload process
+    setTimeout(() => {
+      const newId = Math.max(...trainingData.map(item => item.id)) + 1;
+      const newDataset = {
+        id: newId,
+        name: uploadFileName,
+        category: "New Dataset",
+        records: Math.floor(Math.random() * 200) + 50,
+        lastUpdated: new Date().toISOString().split('T')[0],
+        description: "Newly uploaded dataset"
+      };
+      
+      setTrainingData([...trainingData, newDataset]);
+      setUploadFileName("");
+      setIsUploading(false);
+      
+      toast({
+        title: "Upload Complete",
+        description: "Training data has been uploaded successfully.",
+      });
+    }, 1500);
+  };
+
+  const handleDeleteDataset = (id: number) => {
+    setTrainingData(trainingData.filter(item => item.id !== id));
+    setSelectedDataItem(null);
+    
+    toast({
+      title: "Dataset Removed",
+      description: "The training dataset has been removed.",
+    });
+  };
+
+  const handleEditDataset = (id: number) => {
+    const dataset = trainingData.find(item => item.id === id);
+    if (dataset) {
+      setEditName(dataset.name);
+      setEditCategory(dataset.category);
+      setEditDescription(dataset.description);
+      setSelectedDataItem(id);
+      setIsEditing(true);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    if (!selectedDataItem) return;
+    
+    setTrainingData(trainingData.map(item => 
+      item.id === selectedDataItem 
+        ? { 
+            ...item, 
+            name: editName, 
+            category: editCategory, 
+            description: editDescription,
+            lastUpdated: new Date().toISOString().split('T')[0]
+          } 
+        : item
+    ));
+    
+    setIsEditing(false);
+    setSelectedDataItem(null);
+    
+    toast({
+      title: "Changes Saved",
+      description: "Training dataset has been updated successfully.",
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setSelectedDataItem(null);
+  };
+
+  const filteredData = trainingData.filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         item.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const categories = ["all", ...new Set(trainingData.map(item => item.category))];
 
   return (
     <div className="space-y-6">
@@ -281,12 +396,214 @@ const AICoachManagement = () => {
         <TabsContent value="training">
           <Card>
             <CardHeader>
-              <CardTitle>Training Data Management</CardTitle>
-              <CardDescription>Update and improve AI coach training data</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5 text-military-olive" />
+                Training Data Management
+              </CardTitle>
+              <CardDescription>Upload, organize, and manage training datasets for the AI coach</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-10">
-                <p className="text-muted-foreground">Training data management interface would be displayed here</p>
+              <div className="space-y-6">
+                {/* Search and Filter Controls */}
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search datasets..."
+                      className="pl-8"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="w-full md:w-[200px]">
+                      <SelectValue placeholder="Filter by category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category === "all" ? "All Categories" : category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSelectedCategory("all");
+                    }}
+                    className="md:w-auto"
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Reset
+                  </Button>
+                </div>
+                
+                {/* Upload Section */}
+                <div className="rounded-lg border p-4 bg-slate-50">
+                  <h3 className="text-sm font-medium mb-2">Upload New Training Data</h3>
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Enter dataset name"
+                        value={uploadFileName}
+                        onChange={(e) => setUploadFileName(e.target.value)}
+                        className="mb-0"
+                      />
+                    </div>
+                    <Button
+                      onClick={handleFileUpload}
+                      disabled={isUploading}
+                      className="bg-military-olive hover:bg-military-olive/90"
+                    >
+                      {isUploading ? (
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="mr-2 h-4 w-4" />
+                          Upload Dataset
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Training Data Table */}
+                <div className="rounded-lg border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Dataset Name</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead className="text-right">Records</TableHead>
+                        <TableHead>Last Updated</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredData.length > 0 ? (
+                        filteredData.map((item) => (
+                          <TableRow key={item.id} className={selectedDataItem === item.id ? "bg-slate-100" : ""}>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-military-navy" />
+                                {item.name}
+                              </div>
+                            </TableCell>
+                            <TableCell>{item.category}</TableCell>
+                            <TableCell className="text-right">{item.records.toLocaleString()}</TableCell>
+                            <TableCell>{item.lastUpdated}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button variant="ghost" size="sm" onClick={() => handleEditDataset(item.id)}>
+                                  <Edit className="h-4 w-4" />
+                                  <span className="sr-only">Edit</span>
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => handleDeleteDataset(item.id)}>
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                  <span className="sr-only">Delete</span>
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                            No datasets found.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+                
+                {/* Edit Section */}
+                {isEditing && selectedDataItem && (
+                  <div className="rounded-lg border p-4 bg-slate-50 space-y-4">
+                    <h3 className="text-sm font-medium">Edit Dataset</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="edit-name">Dataset Name</Label>
+                        <Input
+                          id="edit-name"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-category">Category</Label>
+                        <Input
+                          id="edit-category"
+                          value={editCategory}
+                          onChange={(e) => setEditCategory(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-description">Description</Label>
+                        <Textarea
+                          id="edit-description"
+                          value={editDescription}
+                          onChange={(e) => setEditDescription(e.target.value)}
+                          className="mt-1"
+                          rows={3}
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={handleCancelEdit}>
+                          <X className="mr-2 h-4 w-4" />
+                          Cancel
+                        </Button>
+                        <Button onClick={handleSaveEdit} className="bg-military-olive hover:bg-military-olive/90">
+                          <Check className="mr-2 h-4 w-4" />
+                          Save Changes
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Dataset Details */}
+                {selectedDataItem && !isEditing && (
+                  <div className="rounded-lg border p-4 bg-slate-50">
+                    <h3 className="text-sm font-medium mb-2">Dataset Details</h3>
+                    <div className="space-y-2">
+                      {trainingData.filter(item => item.id === selectedDataItem).map(item => (
+                        <div key={item.id} className="space-y-2">
+                          <p className="text-sm"><span className="font-medium">Name:</span> {item.name}</p>
+                          <p className="text-sm"><span className="font-medium">Category:</span> {item.category}</p>
+                          <p className="text-sm"><span className="font-medium">Records:</span> {item.records.toLocaleString()}</p>
+                          <p className="text-sm"><span className="font-medium">Last Updated:</span> {item.lastUpdated}</p>
+                          <p className="text-sm"><span className="font-medium">Description:</span> {item.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Quick Actions */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Button variant="outline" className="w-full justify-start text-left">
+                    <Plus className="mr-2 h-4 w-4 text-military-olive" />
+                    Create Empty Dataset
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start text-left">
+                    <FolderPlus className="mr-2 h-4 w-4 text-military-olive" />
+                    Create New Category
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start text-left">
+                    <Database className="mr-2 h-4 w-4 text-military-olive" />
+                    Download All Data
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
