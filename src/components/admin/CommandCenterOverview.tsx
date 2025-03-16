@@ -9,7 +9,8 @@ import {
   CheckCircle2, 
   ClipboardCheck, 
   Clock, 
-  Users
+  Users,
+  MessageSquare
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
