@@ -821,7 +821,7 @@ const EmailCampaignHQ = () => {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle>Email Templates</CardTitle>
-              <CardDescription>Manage and create reusable email templates</CardDescription>
+              <CardDescription>Create and manage reusable email templates</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="mb-4 flex justify-between">
@@ -835,23 +835,26 @@ const EmailCampaignHQ = () => {
                 </Button>
               </div>
               
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {templates.map((template) => (
-                  <Card key={template.id}>
+                  <Card key={template.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                    <div className="h-40 bg-military-beige/20 flex items-center justify-center">
+                      <FileText className="h-12 w-12 text-military-navy/30" />
+                    </div>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-base">{template.name}</CardTitle>
-                      <CardDescription>{template.category}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="mb-4 h-32 rounded bg-gray-100 flex items-center justify-center">
-                        <FileText className="h-10 w-10 text-gray-400" />
+                      <CardTitle className="text-lg">{template.name}</CardTitle>
+                      <div className="flex justify-between">
+                        <CardDescription>{template.category}</CardDescription>
+                        <CardDescription>Last used: {template.lastUsed}</CardDescription>
                       </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Last used: {template.lastUsed}</span>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                    </CardHeader>
+                    <CardContent className="pb-4">
+                      <div className="flex items-center justify-between">
+                        <Button variant="outline" size="sm">
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit
+                        </Button>
+                        <div className="flex gap-2">
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                             <Copy className="h-4 w-4" />
                           </Button>
@@ -864,14 +867,14 @@ const EmailCampaignHQ = () => {
                   </Card>
                 ))}
                 
-                {/* Create New Template Card */}
+                {/* Create new template card */}
                 <Card className="flex h-full flex-col items-center justify-center border-2 border-dashed p-6">
-                  <Plus className="mb-2 h-8 w-8 text-muted-foreground" />
+                  <Plus className="mb-2 h-10 w-10 text-muted-foreground" />
                   <p className="text-center font-medium">Create New Template</p>
-                  <p className="text-center text-sm text-muted-foreground">Design reusable email templates</p>
-                  <Button className="mt-4" variant="outline">
+                  <p className="text-center text-sm text-muted-foreground mt-2 mb-4">Design reusable email templates</p>
+                  <Button>
                     <Plus className="mr-2 h-4 w-4" />
-                    Get Started
+                    New Template
                   </Button>
                 </Card>
               </div>
