@@ -9,17 +9,21 @@ import { useToast } from "@/hooks/use-toast";
 import CampaignList from "./email-campaign/CampaignList";
 import CampaignForm from "./email-campaign/CampaignForm";
 import TemplateList from "./email-campaign/TemplateList";
+import TemplateForm from "./email-campaign/TemplateForm";
 import AutomationList from "./email-campaign/AutomationList";
 import AudienceList from "./email-campaign/AudienceList";
 
 // Import data and types
 import { campaigns, segments, templates } from "./email-campaign/data";
-import { Campaign, EmailFormValues } from "./email-campaign/types";
+import { Campaign, EmailFormValues, EmailTemplate, TemplateFormValues } from "./email-campaign/types";
 
 const EmailCampaignHQ = () => {
   const [activeView, setActiveView] = useState("campaigns");
   const [showNewCampaign, setShowNewCampaign] = useState(false);
   const [campaignData, setCampaignData] = useState<Campaign[]>(campaigns);
+  const [templateData, setTemplateData] = useState<EmailTemplate[]>(templates);
+  const [showTemplateForm, setShowTemplateForm] = useState(false);
+  const [currentTemplate, setCurrentTemplate] = useState<EmailTemplate | undefined>(undefined);
   const { toast } = useToast();
 
   // Campaign handlers
@@ -109,30 +113,86 @@ const EmailCampaignHQ = () => {
 
   // Template handlers
   const handleCreateTemplate = () => {
-    toast({
-      title: "Create Template",
-      description: "Template creation feature will be available in the next update.",
-    });
+    setCurrentTemplate(undefined);
+    setShowTemplateForm(true);
   };
 
   const handleEditTemplate = (id: number) => {
-    toast({
-      title: "Edit Template",
-      description: `Opening editor for template ${id}`,
-    });
+    const templateToEdit = templateData.find(template => template.id === id);
+    if (templateToEdit) {
+      setCurrentTemplate(templateToEdit);
+      setShowTemplateForm(true);
+    }
+  };
+
+  const handleTemplateFormSubmit = (data: TemplateFormValues) => {
+    if (currentTemplate) {
+      // Update existing template
+      const updatedTemplates = templateData.map(template => 
+        template.id === currentTemplate.id 
+          ? { ...template, ...data, lastUsed: new Date().toISOString().split('T')[0] }
+          : template
+      );
+      setTemplateData(updatedTemplates);
+      
+      toast({
+        title: "Template updated",
+        description: `${data.name} has been updated successfully.`,
+      });
+    } else {
+      // Create new template
+      const newTemplate: EmailTemplate = {
+        id: Math.max(...templateData.map(t => t.id)) + 1,
+        name: data.name,
+        category: data.category,
+        lastUsed: "Never",
+        content: data.content
+      };
+      
+      setTemplateData([...templateData, newTemplate]);
+      
+      toast({
+        title: "Template created",
+        description: `${data.name} has been created successfully.`,
+      });
+    }
+    
+    setShowTemplateForm(false);
+    setCurrentTemplate(undefined);
+  };
+
+  const handleCancelTemplateForm = () => {
+    setShowTemplateForm(false);
+    setCurrentTemplate(undefined);
   };
 
   const handleCopyTemplate = (id: number) => {
-    toast({
-      title: "Template Duplicated",
-      description: `Template ${id} has been duplicated.`,
-    });
+    const templateToCopy = templateData.find(template => template.id === id);
+    
+    if (templateToCopy) {
+      const newTemplate: EmailTemplate = {
+        ...templateToCopy,
+        id: Math.max(...templateData.map(t => t.id)) + 1,
+        name: `${templateToCopy.name} (Copy)`,
+        lastUsed: "Never"
+      };
+      
+      setTemplateData([...templateData, newTemplate]);
+      
+      toast({
+        title: "Template duplicated",
+        description: `${templateToCopy.name} has been duplicated.`,
+      });
+    }
   };
 
   const handleDeleteTemplate = (id: number) => {
+    const updatedTemplates = templateData.filter(template => template.id !== id);
+    setTemplateData(updatedTemplates);
+    
     toast({
-      title: "Template Deleted",
-      description: `Template ${id} has been deleted.`,
+      title: "Template deleted",
+      description: "The template has been deleted successfully.",
     });
   };
 
@@ -184,7 +244,7 @@ const EmailCampaignHQ = () => {
             />
           ) : (
             <CampaignForm
-              templates={templates}
+              templates={templateData}
               segments={segments}
               onSubmit={handleCampaignSubmit}
               onCancel={handleCancelCampaign}
@@ -204,13 +264,21 @@ const EmailCampaignHQ = () => {
 
         {/* Templates Tab */}
         <TabsContent value="templates">
-          <TemplateList
-            templates={templates}
-            onCreateTemplate={handleCreateTemplate}
-            onEditTemplate={handleEditTemplate}
-            onCopyTemplate={handleCopyTemplate}
-            onDeleteTemplate={handleDeleteTemplate}
-          />
+          {!showTemplateForm ? (
+            <TemplateList
+              templates={templateData}
+              onCreateTemplate={handleCreateTemplate}
+              onEditTemplate={handleEditTemplate}
+              onCopyTemplate={handleCopyTemplate}
+              onDeleteTemplate={handleDeleteTemplate}
+            />
+          ) : (
+            <TemplateForm
+              template={currentTemplate}
+              onSubmit={handleTemplateFormSubmit}
+              onCancel={handleCancelTemplateForm}
+            />
+          )}
         </TabsContent>
       </Tabs>
     </div>

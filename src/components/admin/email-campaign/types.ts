@@ -22,6 +22,7 @@ export type EmailTemplate = {
   name: string;
   category: string;
   lastUsed: string;
+  content?: string;
 };
 
 export type EmailFormValues = {
@@ -33,4 +34,10 @@ export type EmailFormValues = {
   content?: string;
   scheduledDate?: string;
   templateId?: string;
+};
+
+export type TemplateFormValues = {
+  name: string;
+  category: string;
+  content: string;
 };
