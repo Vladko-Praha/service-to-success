@@ -9,6 +9,7 @@ import CurriculumCommandPost from "@/components/admin/CurriculumCommandPost";
 import BusinessVentureIntelligence from "@/components/admin/BusinessVentureIntelligence";
 import AICoachManagement from "@/components/admin/AICoachManagement";
 import CommunicationHeadquarters from "@/components/admin/CommunicationHeadquarters";
+import EmailCampaignHQ from "@/components/admin/EmailCampaignHQ";
 import ResourceOperations from "@/components/admin/ResourceOperations";
 import ProgramAnalytics from "@/components/admin/ProgramAnalytics";
 import AdministrativeFunctions from "@/components/admin/AdministrativeFunctions";
@@ -43,6 +44,9 @@ const AdminDashboard = () => {
               </TabsContent>
               <TabsContent value="communication">
                 <CommunicationHeadquarters />
+              </TabsContent>
+              <TabsContent value="email">
+                <EmailCampaignHQ />
               </TabsContent>
               <TabsContent value="resources">
                 <ResourceOperations />

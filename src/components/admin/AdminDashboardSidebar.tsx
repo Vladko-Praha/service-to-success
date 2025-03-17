@@ -12,7 +12,8 @@ import {
   MessageSquare, 
   Settings, 
   Star, 
-  Users 
+  Users,
+  Mail
 } from "lucide-react";
 import {
   Sidebar,
@@ -61,6 +62,11 @@ const AdminDashboardSidebar = ({ activeTab, setActiveTab }: AdminDashboardSideba
       id: "communication",
       title: "Communication HQ",
       icon: MessageSquare,
+    },
+    {
+      id: "email",
+      title: "Email Campaign HQ",
+      icon: Mail,
     },
     {
       id: "resources",
