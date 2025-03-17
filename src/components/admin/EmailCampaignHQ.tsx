@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -742,7 +743,7 @@ const EmailCampaignHQ = () => {
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
-                          <span>Progress > 75%</span>
+                          <span>Progress &gt; 75%</span>
                           <span>186 participants</span>
                         </div>
                         <div className="flex justify-between text-sm">
@@ -750,7 +751,7 @@ const EmailCampaignHQ = () => {
                           <span>142 participants</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span>Inactive > 14 Days</span>
+                          <span>Inactive &gt; 14 Days</span>
                           <span>28 participants</span>
                         </div>
                       </div>
@@ -797,3 +798,89 @@ const EmailCampaignHQ = () => {
                           <div className="flex gap-1">
                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                               <Mail className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Templates Tab */}
+        <TabsContent value="templates">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle>Email Templates</CardTitle>
+              <CardDescription>Manage and create reusable email templates</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4 flex justify-between">
+                <div className="relative w-72">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="Search templates..." className="pl-8" />
+                </div>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Template
+                </Button>
+              </div>
+              
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {templates.map((template) => (
+                  <Card key={template.id}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">{template.name}</CardTitle>
+                      <CardDescription>{template.category}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="mb-4 h-32 rounded bg-gray-100 flex items-center justify-center">
+                        <FileText className="h-10 w-10 text-gray-400" />
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Last used: {template.lastUsed}</span>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+                
+                {/* Create New Template Card */}
+                <Card className="flex h-full flex-col items-center justify-center border-2 border-dashed p-6">
+                  <Plus className="mb-2 h-8 w-8 text-muted-foreground" />
+                  <p className="text-center font-medium">Create New Template</p>
+                  <p className="text-center text-sm text-muted-foreground">Design reusable email templates</p>
+                  <Button className="mt-4" variant="outline">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Get Started
+                  </Button>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default EmailCampaignHQ;
