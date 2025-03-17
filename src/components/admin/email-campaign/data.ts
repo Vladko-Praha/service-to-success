@@ -1,5 +1,4 @@
-
-import { Campaign, EmailTemplate, Segment } from "./types";
+import { Automation, Campaign, EmailTemplate, Segment } from "./types";
 
 // Mock data for campaigns
 export const campaigns: Campaign[] = [
@@ -101,4 +100,56 @@ export const templates: EmailTemplate[] = [
     lastUsed: "2023-08-05",
     content: "<p>We value your feedback!</p><p>Please take a moment to share your thoughts on your experience with the program so far.</p><p>Thank you,<br>Veteran Ops Team</p>"
   },
+];
+
+// Mock data for automations
+export const automations: Automation[] = [
+  {
+    id: 1,
+    name: "Welcome Sequence",
+    status: "active",
+    trigger: "New participant registration",
+    emailCount: 4,
+    duration: 14,
+    sent: 320,
+    opened: 258,
+    clicked: 186,
+    steps: [
+      { id: 1, order: 1, delayDays: 0, emailName: "Welcome Email" },
+      { id: 2, order: 2, delayDays: 3, emailName: "Getting Started Guide" },
+      { id: 3, order: 3, delayDays: 7, emailName: "First Check-in" },
+      { id: 4, order: 4, delayDays: 14, emailName: "Resources Overview" }
+    ]
+  },
+  {
+    id: 2,
+    name: "Graduation Countdown",
+    status: "active",
+    trigger: "30 days before graduation",
+    emailCount: 5,
+    duration: 30,
+    sent: 64,
+    opened: 58,
+    clicked: 42,
+    steps: [
+      { id: 1, order: 1, delayDays: 0, emailName: "Graduation Announcement" },
+      { id: 2, order: 2, delayDays: 7, emailName: "Preparation Guidelines" },
+      { id: 3, order: 3, delayDays: 14, emailName: "Final Requirements" },
+      { id: 4, order: 4, delayDays: 21, emailName: "Ceremony Details" },
+      { id: 5, order: 5, delayDays: 30, emailName: "Congratulations" }
+    ]
+  },
+  {
+    id: 3,
+    name: "Inactive Recovery",
+    status: "draft",
+    trigger: "No login for 14 days",
+    emailCount: 3,
+    duration: 10,
+    steps: [
+      { id: 1, order: 1, delayDays: 0, emailName: "We Miss You" },
+      { id: 2, order: 2, delayDays: 5, emailName: "Re-engagement Offer" },
+      { id: 3, order: 3, delayDays: 10, emailName: "Final Check-in" }
+    ]
+  }
 ];

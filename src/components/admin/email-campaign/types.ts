@@ -41,3 +41,35 @@ export type TemplateFormValues = {
   category: string;
   content: string;
 };
+
+export type Automation = {
+  id: number;
+  name: string;
+  status: "active" | "draft";
+  trigger: string;
+  emailCount: number;
+  duration: number;
+  sent?: number;
+  opened?: number;
+  clicked?: number;
+  steps: AutomationStep[];
+};
+
+export type AutomationStep = {
+  id: number;
+  order: number;
+  delayDays: number;
+  emailName: string;
+};
+
+export type AutomationFormValues = {
+  name: string;
+  trigger: string;
+  status: "active" | "draft";
+  steps: AutomationStepInput[];
+};
+
+export type AutomationStepInput = {
+  delayDays: number;
+  emailName: string;
+};
