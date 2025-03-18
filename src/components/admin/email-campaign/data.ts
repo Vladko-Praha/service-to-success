@@ -1,4 +1,4 @@
-import { Automation, Campaign, EmailTemplate, Segment } from "./types";
+import { Automation, Campaign, EmailTemplate, Segment, Attachment, SOPLink } from "./types";
 
 // Mock data for campaigns
 export const campaigns: Campaign[] = [
@@ -63,6 +63,21 @@ export const segments: Segment[] = [
   { id: 5, name: "Inactive > 14 Days", count: 28, description: "Participants inactive for more than 14 days" },
 ];
 
+// Mock attachments for templates
+const mockAttachments: Attachment[] = [
+  { id: 1, name: "welcome-guide.pdf", fileSize: "1.2 MB", fileType: "PDF", url: "/documents/welcome-guide.pdf" },
+  { id: 2, name: "business-plan-template.docx", fileSize: "450 KB", fileType: "DOCX", url: "/documents/business-plan-template.docx" },
+  { id: 3, name: "resource-handbook.pdf", fileSize: "3.5 MB", fileType: "PDF", url: "/documents/resource-handbook.pdf" },
+  { id: 4, name: "checklist.pdf", fileSize: "280 KB", fileType: "PDF", url: "/documents/checklist.pdf" },
+];
+
+// Mock SOP links
+const mockSOPLinks: SOPLink[] = [
+  { id: 1, title: "Onboarding Procedures", description: "Standard operating procedures for onboarding new participants", url: "/sop/onboarding" },
+  { id: 2, title: "Business Plan Template", description: "Official template for creating a business plan", url: "/sop/business-plan" },
+  { id: 3, title: "Graduation Requirements", description: "Checklist of graduation requirements", url: "/sop/graduation" },
+];
+
 // Mock data for templates
 export const templates: EmailTemplate[] = [
   { 
@@ -70,28 +85,34 @@ export const templates: EmailTemplate[] = [
     name: "Mission Briefing", 
     category: "Newsletter", 
     lastUsed: "2023-08-12",
-    content: "<p>Dear Veteran,</p><p>Here's your weekly mission briefing with updates on what's happening in the program.</p><p>Regards,<br>Veteran Ops Command</p>"
+    content: "<p>Dear Veteran,</p><p>Here's your weekly mission briefing with updates on what's happening in the program.</p><p>Regards,<br>Veteran Ops Command</p>",
+    attachments: [mockAttachments[2]]
   },
   { 
     id: 2, 
     name: "Welcome Sequence", 
     category: "Automation", 
     lastUsed: "2023-08-15",
-    content: "<p>Welcome to Veteran Ops!</p><p>We're excited to have you join our program. Here's what you need to know to get started...</p><p>Stay strong,<br>Veteran Ops Team</p>"
+    content: "<p>Welcome to Veteran Ops!</p><p>We're excited to have you join our program. Here's what you need to know to get started...</p><p>Stay strong,<br>Veteran Ops Team</p>",
+    attachments: [mockAttachments[0]],
+    sopLinks: [mockSOPLinks[0], mockSOPLinks[1]]
   },
   { 
     id: 3, 
     name: "Resource Announcement", 
     category: "Announcement", 
     lastUsed: "2023-07-28",
-    content: "<p>New resources available!</p><p>We've just added new training materials to help you on your journey. Check them out in your dashboard.</p><p>Best,<br>Veteran Ops Resource Team</p>"
+    content: "<p>New resources available!</p><p>We've just added new training materials to help you on your journey. Check them out in your dashboard.</p><p>Best,<br>Veteran Ops Resource Team</p>",
+    sopLinks: [mockSOPLinks[2]]
   },
   { 
     id: 4, 
     name: "Graduation Countdown", 
     category: "Automation", 
     lastUsed: "2023-08-14",
-    content: "<p>Graduation is approaching!</p><p>You're almost at the finish line. Here's what you need to prepare for your graduation.</p><p>Congratulations,<br>Veteran Ops Graduation Committee</p>"
+    content: "<p>Graduation is approaching!</p><p>You're almost at the finish line. Here's what you need to prepare for your graduation.</p><p>Congratulations,<br>Veteran Ops Graduation Committee</p>",
+    attachments: [mockAttachments[3]],
+    sopLinks: [mockSOPLinks[2]]
   },
   { 
     id: 5, 

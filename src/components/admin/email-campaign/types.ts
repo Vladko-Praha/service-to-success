@@ -23,6 +23,23 @@ export type EmailTemplate = {
   category: string;
   lastUsed: string;
   content?: string;
+  attachments?: Attachment[];
+  sopLinks?: SOPLink[];
+};
+
+export type Attachment = {
+  id: number;
+  name: string;
+  fileSize: string;
+  fileType: string;
+  url: string;
+};
+
+export type SOPLink = {
+  id: number;
+  title: string;
+  description: string;
+  url: string;
 };
 
 export type EmailFormValues = {
@@ -34,12 +51,16 @@ export type EmailFormValues = {
   content?: string;
   scheduledDate?: string;
   templateId?: string;
+  attachments?: Attachment[];
+  sopLinks?: SOPLink[];
 };
 
 export type TemplateFormValues = {
   name: string;
   category: string;
   content: string;
+  attachments?: Attachment[];
+  sopLinks?: SOPLink[];
 };
 
 export type Automation = {
