@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { 
   Activity, 
@@ -10,10 +10,21 @@ import {
   ClipboardCheck, 
   Clock, 
   Users,
-  MessageSquare
+  MessageSquare,
+  Mail,
+  Send,
+  FileText,
+  Bell
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 const data = [
   {
@@ -67,6 +78,37 @@ const data = [
 ];
 
 const CommandCenterOverview = () => {
+  const { toast } = useToast();
+  
+  // Alert action handlers
+  const handleSendReminder = (alertText: string) => {
+    toast({
+      title: "Reminder Sent",
+      description: `Reminder sent for: ${alertText}`,
+    });
+  };
+  
+  const handleSendEmail = (alertText: string) => {
+    toast({
+      title: "Email Sent",
+      description: `Email notification sent regarding: ${alertText}`,
+    });
+  };
+  
+  const handleAddToCalendar = (alertText: string) => {
+    toast({
+      title: "Added to Calendar",
+      description: `${alertText} has been added to participants' calendars`,
+    });
+  };
+  
+  const handleRequestReport = (alertText: string) => {
+    toast({
+      title: "Report Requested",
+      description: `Report requested concerning: ${alertText}`,
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -187,34 +229,169 @@ const CommandCenterOverview = () => {
             <div className="space-y-4">
               <div className="flex items-start gap-4 rounded-lg border p-3">
                 <AlertTriangle className="mt-1 h-5 w-5 text-amber-500" />
-                <div>
+                <div className="flex-1">
                   <p className="font-medium">5 participants haven't logged in for 7+ days</p>
                   <p className="text-sm text-muted-foreground">Requires intervention</p>
                 </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm">Action</Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-2" align="end">
+                    <div className="grid gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="justify-start" 
+                        onClick={() => handleSendReminder("5 participants haven't logged in for 7+ days")}
+                      >
+                        <Mail className="mr-2 h-4 w-4" />
+                        Send reminder
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="justify-start"
+                        onClick={() => handleSendEmail("5 participants haven't logged in for 7+ days")}
+                      >
+                        <Send className="mr-2 h-4 w-4" />
+                        Send email
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="justify-start"
+                        onClick={() => handleRequestReport("5 participants haven't logged in for 7+ days")}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        Request report
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
               
               <div className="flex items-start gap-4 rounded-lg border p-3">
                 <Clock className="mt-1 h-5 w-5 text-military-red" />
-                <div>
+                <div className="flex-1">
                   <p className="font-medium">3 assignments past deadline in Module 4</p>
                   <p className="text-sm text-muted-foreground">Requires follow-up</p>
                 </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm">Action</Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-2" align="end">
+                    <div className="grid gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="justify-start"
+                        onClick={() => handleSendReminder("3 assignments past deadline in Module 4")}
+                      >
+                        <Mail className="mr-2 h-4 w-4" />
+                        Send reminder
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="justify-start"
+                        onClick={() => handleSendEmail("3 assignments past deadline in Module 4")}
+                      >
+                        <Send className="mr-2 h-4 w-4" />
+                        Send email
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="justify-start"
+                        onClick={() => handleRequestReport("3 assignments past deadline in Module 4")}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        Request report
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
               
               <div className="flex items-start gap-4 rounded-lg border p-3">
                 <ClipboardCheck className="mt-1 h-5 w-5 text-blue-500" />
-                <div>
+                <div className="flex-1">
                   <p className="font-medium">Module 6 grading pending for 12 participants</p>
                   <p className="text-sm text-muted-foreground">Due in 2 days</p>
                 </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm">Action</Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-2" align="end">
+                    <div className="grid gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="justify-start"
+                        onClick={() => handleSendReminder("Module 6 grading pending for 12 participants")}
+                      >
+                        <Mail className="mr-2 h-4 w-4" />
+                        Send reminder
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="justify-start"
+                        onClick={() => handleRequestReport("Module 6 grading pending for 12 participants")}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        Request report
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
               
               <div className="flex items-start gap-4 rounded-lg border p-3">
                 <Calendar className="mt-1 h-5 w-5 text-military-olive" />
-                <div>
+                <div className="flex-1">
                   <p className="font-medium">Upcoming: Group mentoring session</p>
                   <p className="text-sm text-muted-foreground">Tomorrow, 1500 hours</p>
                 </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm">Action</Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-2" align="end">
+                    <div className="grid gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="justify-start"
+                        onClick={() => handleSendReminder("Upcoming: Group mentoring session")}
+                      >
+                        <Bell className="mr-2 h-4 w-4" />
+                        Send reminder
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="justify-start"
+                        onClick={() => handleAddToCalendar("Upcoming: Group mentoring session")}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        Add to calendar
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="justify-start"
+                        onClick={() => handleSendEmail("Upcoming: Group mentoring session")}
+                      >
+                        <Send className="mr-2 h-4 w-4" />
+                        Send email
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </CardContent>
