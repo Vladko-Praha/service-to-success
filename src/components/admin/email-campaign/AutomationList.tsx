@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Search, Plus, Edit, Zap, ChevronRight, Mail, MailCheck, Clock, AlertCircle } from "lucide-react";
+import { Search, Plus, Edit, Zap, ChevronRight, Mail, MailCheck, Clock, AlertCircle, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,7 @@ const AutomationList: React.FC<AutomationListProps> = ({ onEditAutomation }) => 
   const [showForm, setShowForm] = useState(false);
   const [currentAutomation, setCurrentAutomation] = useState<Automation | undefined>();
   const [automationData, setAutomationData] = useState<Automation[]>(automations);
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
 
   const handleCreateAutomation = () => {
     setCurrentAutomation(undefined);
@@ -59,6 +60,7 @@ const AutomationList: React.FC<AutomationListProps> = ({ onEditAutomation }) => 
               status: data.status,
               emailCount: data.steps.length,
               duration: Math.max(...data.steps.map(step => step.delayDays)),
+              tags: data.tags,
               steps: data.steps.map((step, index) => ({
                 id: index + 1,
                 order: index + 1,
@@ -83,6 +85,7 @@ const AutomationList: React.FC<AutomationListProps> = ({ onEditAutomation }) => 
         trigger: data.trigger,
         emailCount: data.steps.length,
         duration: Math.max(...data.steps.map(step => step.delayDays)),
+        tags: data.tags,
         steps: data.steps.map((step, index) => ({
           id: index + 1,
           order: index + 1,
@@ -108,6 +111,16 @@ const AutomationList: React.FC<AutomationListProps> = ({ onEditAutomation }) => 
     setCurrentAutomation(undefined);
   };
 
+  // Get all unique tags across all automations
+  const allTags = Array.from(new Set(
+    automationData.flatMap(auto => auto.tags || [])
+  ));
+
+  // Filter automations based on tag filter
+  const filteredAutomations = tagFilter
+    ? automationData.filter(auto => auto.tags?.includes(tagFilter))
+    : automationData;
+
   return (
     <Card>
       {!showForm ? (
@@ -117,10 +130,34 @@ const AutomationList: React.FC<AutomationListProps> = ({ onEditAutomation }) => 
             <CardDescription>Create automated email sequences triggered by subscriber actions</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="mb-4 flex justify-between">
-              <div className="relative w-72">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search automations..." className="pl-8" />
+            <div className="mb-4 flex flex-col md:flex-row gap-4 justify-between">
+              <div className="flex gap-2 items-center">
+                <div className="relative w-72">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="Search automations..." className="pl-8" />
+                </div>
+                
+                {allTags.length > 0 && (
+                  <div className="flex gap-1 flex-wrap">
+                    <Badge 
+                      variant={tagFilter === null ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => setTagFilter(null)}
+                    >
+                      All
+                    </Badge>
+                    {allTags.map(tag => (
+                      <Badge 
+                        key={tag}
+                        variant={tagFilter === tag ? "default" : "outline"}
+                        className="cursor-pointer"
+                        onClick={() => setTagFilter(tag)}
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
               <Button onClick={handleCreateAutomation}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -130,7 +167,7 @@ const AutomationList: React.FC<AutomationListProps> = ({ onEditAutomation }) => 
             
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
               {/* Render automations with new design */}
-              {automationData.map((automation) => (
+              {filteredAutomations.map((automation) => (
                 <Card key={automation.id} className="overflow-hidden border-2 hover:border-military-olive/50 transition-all">
                   <CardHeader className="bg-gray-50 pb-2 pt-4">
                     <div className="flex justify-between items-center">
@@ -189,6 +226,18 @@ const AutomationList: React.FC<AutomationListProps> = ({ onEditAutomation }) => 
                           ))}
                         </div>
                       </div>
+                      
+                      {/* Tags display */}
+                      {automation.tags && automation.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {automation.tags.map(tag => (
+                            <Badge key={tag} variant="outline" className="flex items-center gap-1 text-xs">
+                              <Tag className="h-3 w-3" />
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                       
                       {automation.status === 'active' && (
                         <div className="bg-gray-50 p-3 rounded-lg">

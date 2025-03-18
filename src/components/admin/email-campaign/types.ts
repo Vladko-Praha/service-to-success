@@ -74,6 +74,7 @@ export type Automation = {
   opened?: number;
   clicked?: number;
   steps: AutomationStep[];
+  tags?: string[];
 };
 
 export type AutomationStep = {
@@ -88,6 +89,7 @@ export type AutomationFormValues = {
   trigger: string;
   status: "active" | "draft";
   steps: AutomationStepInput[];
+  tags: string[];
 };
 
 export type AutomationStepInput = {

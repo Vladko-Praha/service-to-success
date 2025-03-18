@@ -5,15 +5,25 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash, PlusCircle, ArrowLeft, Mail, Clock, AlertCircle, ChevronRight } from "lucide-react";
+import { Trash, PlusCircle, ArrowLeft, Mail, Clock, AlertCircle, ChevronRight, Tag, Plus } from "lucide-react";
 import { AutomationFormValues, AutomationStepInput, Automation } from "./types";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 
 interface AutomationFormProps {
   automation?: Automation;
   onSubmit: (data: AutomationFormValues) => void;
   onCancel: () => void;
 }
+
+const triggerOptions = [
+  { value: "New participant signup", label: "New participant signup" },
+  { value: "Course completion", label: "Course completion" },
+  { value: "Form submission", label: "Form submission" },
+  { value: "Website visit", label: "Website visit" },
+  { value: "Resource download", label: "Resource download" },
+  { value: "Tag added", label: "Tag added" },
+];
 
 const AutomationForm: React.FC<AutomationFormProps> = ({ automation, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState<AutomationFormValues>(() => {
@@ -25,16 +35,20 @@ const AutomationForm: React.FC<AutomationFormProps> = ({ automation, onSubmit, o
         steps: automation.steps.map(step => ({
           delayDays: step.delayDays,
           emailName: step.emailName
-        }))
+        })),
+        tags: automation.tags || []
       };
     }
     return {
       name: "",
       trigger: "New participant signup",
       status: "draft",
-      steps: [{ delayDays: 0, emailName: "Welcome Email" }]
+      steps: [{ delayDays: 0, emailName: "Welcome Email" }],
+      tags: []
     };
   });
+
+  const [newTag, setNewTag] = useState("");
 
   const handleInputChange = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });
@@ -60,6 +74,23 @@ const AutomationForm: React.FC<AutomationFormProps> = ({ automation, onSubmit, o
       const updatedSteps = formData.steps.filter((_, i) => i !== index);
       setFormData({ ...formData, steps: updatedSteps });
     }
+  };
+
+  const addTag = () => {
+    if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
+      setFormData({
+        ...formData,
+        tags: [...formData.tags, newTag.trim()]
+      });
+      setNewTag("");
+    }
+  };
+
+  const removeTag = (tag: string) => {
+    setFormData({
+      ...formData,
+      tags: formData.tags.filter(t => t !== tag)
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -95,14 +126,21 @@ const AutomationForm: React.FC<AutomationFormProps> = ({ automation, onSubmit, o
               
               <div>
                 <Label htmlFor="trigger" className="text-base font-medium">Trigger Event</Label>
-                <Input
-                  id="trigger"
+                <Select
                   value={formData.trigger}
-                  onChange={e => handleInputChange("trigger", e.target.value)}
-                  placeholder="e.g., New participant registration"
-                  className="mt-1"
-                  required
-                />
+                  onValueChange={value => handleInputChange("trigger", value)}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select a trigger" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {triggerOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-xs text-muted-foreground mt-1">
                   This event will start the automation sequence for each participant
                 </p>
@@ -126,6 +164,46 @@ const AutomationForm: React.FC<AutomationFormProps> = ({ automation, onSubmit, o
                   {formData.status === "draft" ? 
                     "Draft automations won't send emails until activated" : 
                     "Active automations will immediately start sending emails"}
+                </p>
+              </div>
+
+              <div>
+                <Label className="text-base font-medium mb-2 block">Tags</Label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {formData.tags.map(tag => (
+                    <Badge key={tag} variant="outline" className="flex items-center gap-1">
+                      <Tag className="h-3 w-3" />
+                      {tag}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-4 w-4 p-0 ml-1"
+                        onClick={() => removeTag(tag)}
+                      >
+                        <Trash className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Add a tag"
+                    value={newTag}
+                    onChange={e => setNewTag(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addTag}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Add tags to categorize this automation
                 </p>
               </div>
             </div>
@@ -167,6 +245,25 @@ const AutomationForm: React.FC<AutomationFormProps> = ({ automation, onSubmit, o
                     ))}
                   </div>
                 </div>
+
+                {formData.tags.length > 0 && (
+                  <>
+                    <Separator />
+                    <div>
+                      <div className="flex items-center text-sm mb-2">
+                        <Tag className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <span className="text-muted-foreground">Tags:</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {formData.tags.map(tag => (
+                          <Badge key={tag} variant="outline" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
