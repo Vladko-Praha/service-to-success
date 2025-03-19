@@ -17,19 +17,30 @@ import GraduationTracking from "@/components/admin/GraduationTracking";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("command");
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Modified to only check if userInfo exists - no need to log anything 
-  // since ParticipantManagement handles this
+  // No need to check localStorage anymore since data is stored in Supabase
   useEffect(() => {
-    const userInfo = localStorage.getItem('userInfo');
-    if (userInfo) {
-      // The actual user processing is done in ParticipantManagement
-    }
+    // We could check Supabase auth session here if needed
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        // Optional: Redirect to login if no session
+        // navigate('/login');
+      }
+    };
+    
+    checkSession();
   }, []);
 
   // Handle navigation to other pages
@@ -62,7 +73,7 @@ const AdminDashboard = () => {
                 <CommandCenterOverview />
               </TabsContent>
               <TabsContent value="participants">
-                <ParticipantManagement />
+                <ParticipantManagement supabase={supabase} />
               </TabsContent>
               <TabsContent value="curriculum">
                 <CurriculumCommandPost />

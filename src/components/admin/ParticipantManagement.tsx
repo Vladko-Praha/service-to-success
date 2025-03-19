@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Search, Filter, Download, ChevronDown, Mail, MapPin, Award, GraduationCap, Target, Briefcase, BadgeCheck, User, Phone, Calendar, FileText, MessageSquare, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +31,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { SupabaseClient } from "@supabase/supabase-js";
 import {
   Pagination,
   PaginationContent,
@@ -100,7 +100,11 @@ interface Participant {
   }[];
 }
 
-const ParticipantManagement = () => {
+interface ParticipantManagementProps {
+  supabase: SupabaseClient;
+}
+
+const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
   const { toast } = useToast();
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -109,137 +113,186 @@ const ParticipantManagement = () => {
   const [isClearParticipantsDialogOpen, setIsClearParticipantsDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("profile");
-  const [processedUserEmails, setProcessedUserEmails] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(false);
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const itemsPerPage = 5;
 
-  const [participants, setParticipants] = useState<Participant[]>([
-    {
-      id: "P-001",
-      name: "SSG Michael Johnson",
-      email: "michael.johnson@military.com",
-      phone: "(555) 123-4567",
-      cohort: "Cohort #8",
-      progress: 78,
-      lastActive: "2 hours ago",
-      status: "On Track",
-      businessType: "Cybersecurity Consulting",
-      risk: "low",
-      location: "Fort Bragg, NC",
-      joinDate: "Jan 15, 2023",
-      expectedGraduation: "Dec 15, 2023",
-      badges: ["Leadership", "Technical Excellence", "Teamwork"],
-      skills: ["Cybersecurity", "Network Analysis", "Risk Assessment", "Project Management"],
-      goals: ["Launch security consulting firm", "Obtain CISSP certification", "Develop client acquisition strategy"],
-      reasonToJoin: "Transitioning after 12 years of service, looking to leverage military cybersecurity experience in civilian sector",
-      mentorName: "Col. Robert Stevens (Ret.)",
-      mentorNotes: "Michael shows strong aptitude for technical security concepts. Needs to develop business acumen.",
-      assignments: [
-        { name: "Business Plan Draft", status: "Completed", grade: "A" },
-        { name: "Market Analysis", status: "In Progress", grade: null },
-        { name: "Financial Projections", status: "Not Started", grade: null }
-      ]
-    },
-    {
-      id: "P-002",
-      name: "CPT Sarah Williams",
-      email: "sarah.williams@military.com",
-      phone: "(555) 234-5678",
-      cohort: "Cohort #8",
-      progress: 92,
-      lastActive: "1 day ago",
-      status: "Exceeding",
-      businessType: "Fitness Training",
-      risk: "low",
-      location: "Joint Base Lewis-McChord, WA",
-      joinDate: "Jan 15, 2023",
-      expectedGraduation: "Dec 15, 2023",
-      badges: ["Innovation", "Leadership", "Peer Support", "Excellence"],
-      skills: ["Personal Training", "Nutrition Planning", "Business Development", "Digital Marketing"],
-      goals: ["Open fitness studio", "Develop online coaching program", "Create military-to-civilian transition fitness program"],
-      reasonToJoin: "Passionate about fitness and helping veterans maintain physical and mental wellness after service",
-      mentorName: "Maj. Lisa Thompson (Ret.)",
-      mentorNotes: "Sarah is exceptionally motivated and organized. Already has several potential clients lined up.",
-      assignments: [
-        { name: "Business Plan Draft", status: "Completed", grade: "A+" },
-        { name: "Market Analysis", status: "Completed", grade: "A" },
-        { name: "Financial Projections", status: "Completed", grade: "A-" }
-      ]
-    },
-  ]);
-
+  // Fetch participants from Supabase on component mount
   useEffect(() => {
-    const loadUserFromStorage = () => {
-      const storedUserInfo = localStorage.getItem('userInfo');
+    fetchParticipants();
+  }, []);
+
+  const fetchParticipants = async () => {
+    setIsLoading(true);
+    try {
+      // Get participants from the "participants" table in Supabase
+      const { data, error } = await supabase
+        .from('participants')
+        .select('*');
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        setParticipants(data as Participant[]);
+      } else {
+        // If no data in Supabase yet, load initial example data
+        const initialParticipants = [
+          {
+            id: "P-001",
+            name: "SSG Michael Johnson",
+            email: "michael.johnson@military.com",
+            phone: "(555) 123-4567",
+            cohort: "Cohort #8",
+            progress: 78,
+            lastActive: "2 hours ago",
+            status: "On Track",
+            businessType: "Cybersecurity Consulting",
+            risk: "low",
+            location: "Fort Bragg, NC",
+            joinDate: "Jan 15, 2023",
+            expectedGraduation: "Dec 15, 2023",
+            badges: ["Leadership", "Technical Excellence", "Teamwork"],
+            skills: ["Cybersecurity", "Network Analysis", "Risk Assessment", "Project Management"],
+            goals: ["Launch security consulting firm", "Obtain CISSP certification", "Develop client acquisition strategy"],
+            reasonToJoin: "Transitioning after 12 years of service, looking to leverage military cybersecurity experience in civilian sector",
+            mentorName: "Col. Robert Stevens (Ret.)",
+            mentorNotes: "Michael shows strong aptitude for technical security concepts. Needs to develop business acumen.",
+            assignments: [
+              { name: "Business Plan Draft", status: "Completed", grade: "A" },
+              { name: "Market Analysis", status: "In Progress", grade: null },
+              { name: "Financial Projections", status: "Not Started", grade: null }
+            ]
+          },
+          {
+            id: "P-002",
+            name: "CPT Sarah Williams",
+            email: "sarah.williams@military.com",
+            phone: "(555) 234-5678",
+            cohort: "Cohort #8",
+            progress: 92,
+            lastActive: "1 day ago",
+            status: "Exceeding",
+            businessType: "Fitness Training",
+            risk: "low",
+            location: "Joint Base Lewis-McChord, WA",
+            joinDate: "Jan 15, 2023",
+            expectedGraduation: "Dec 15, 2023",
+            badges: ["Innovation", "Leadership", "Peer Support", "Excellence"],
+            skills: ["Personal Training", "Nutrition Planning", "Business Development", "Digital Marketing"],
+            goals: ["Open fitness studio", "Develop online coaching program", "Create military-to-civilian transition fitness program"],
+            reasonToJoin: "Passionate about fitness and helping veterans maintain physical and mental wellness after service",
+            mentorName: "Maj. Lisa Thompson (Ret.)",
+            mentorNotes: "Sarah is exceptionally motivated and organized. Already has several potential clients lined up.",
+            assignments: [
+              { name: "Business Plan Draft", status: "Completed", grade: "A+" },
+              { name: "Market Analysis", status: "Completed", grade: "A" },
+              { name: "Financial Projections", status: "Completed", grade: "A-" }
+            ]
+          },
+        ];
+        
+        setParticipants(initialParticipants);
+        
+        // Populate Supabase with the initial example data
+        for (const participant of initialParticipants) {
+          await supabase.from('participants').insert(participant);
+        }
+      }
       
-      if (storedUserInfo) {
-        try {
-          const userInfo = JSON.parse(storedUserInfo) as UserInfo;
+      // Check for any new user registrations in Supabase auth
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError) {
+        console.error("Error fetching auth users:", authError);
+      } else if (authUsers) {
+        // Process any new registrations not yet in the participants table
+        for (const user of authUsers.users) {
+          const existingParticipant = participants.find(p => p.email === user.email);
           
-          if (!userInfo.name || !userInfo.email) return;
-          
-          if (processedUserEmails.has(userInfo.email)) {
-            console.log("Already processed this email, skipping:", userInfo.email);
-            return;
-          }
-          
-          const userExists = participants.some(p => p.email === userInfo.email);
-          
-          if (!userExists) {
+          if (!existingParticipant && user.user_metadata) {
+            // Create a new participant entry from the auth user
             const newParticipant: Participant = {
               id: `P-${String(participants.length + 1).padStart(3, '0')}`,
-              name: userInfo.name,
-              email: userInfo.email,
-              phone: userInfo.phone || "(Not provided)",
+              name: user.user_metadata.full_name || user.email?.split('@')[0] || 'New User',
+              email: user.email || '',
+              phone: user.user_metadata.phone || "(Not provided)",
               cohort: "Cohort #8",
               progress: 0,
               lastActive: "Just registered",
               status: "On Track",
-              businessType: userInfo.businessGoals || "(Not specified)",
+              businessType: user.user_metadata.businessGoals || "(Not specified)",
               risk: "low",
-              location: userInfo.militaryBranch ? `${userInfo.militaryBranch} veteran` : "(Not provided)",
-              joinDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+              location: user.user_metadata.militaryBranch ? `${user.user_metadata.militaryBranch} veteran` : "(Not provided)",
+              joinDate: new Date(user.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
               expectedGraduation: "TBD",
               badges: [],
-              skills: userInfo.skillsets ? [userInfo.skillsets] : [],
-              goals: userInfo.businessGoals ? [userInfo.businessGoals] : [],
-              reasonToJoin: userInfo.heardFrom ? `Referred from: ${userInfo.heardFrom}` : "New registration",
+              skills: user.user_metadata.skillsets ? [user.user_metadata.skillsets] : [],
+              goals: user.user_metadata.businessGoals ? [user.user_metadata.businessGoals] : [],
+              reasonToJoin: user.user_metadata.heardFrom ? `Referred from: ${user.user_metadata.heardFrom}` : "New registration",
               mentorName: "Not assigned",
               mentorNotes: "",
               assignments: []
             };
             
-            setProcessedUserEmails(prev => new Set(prev).add(userInfo.email));
+            // Add to Supabase
+            await supabase.from('participants').insert(newParticipant);
             
-            setParticipants(prevParticipants => [...prevParticipants, newParticipant]);
+            // Update local state
+            setParticipants(prev => [...prev, newParticipant]);
             
             toast({
               title: "New Registration Detected",
-              description: `${userInfo.name} has been added to the participants list.`,
+              description: `${newParticipant.name} has been added to the participants list.`,
             });
           }
-        } catch (error) {
-          console.error("Error parsing user info from localStorage:", error);
         }
       }
-    };
+    } catch (error) {
+      console.error("Error fetching participants:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch participants data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    loadUserFromStorage();
-  }, []);
-
-  const handleClearAllParticipants = () => {
-    // Clear participants from state
-    setParticipants([]);
-    setProcessedUserEmails(new Set());
-    
-    // Clear userInfo from localStorage
-    localStorage.removeItem('userInfo');
-    
-    setIsClearParticipantsDialogOpen(false);
-    toast({
-      title: "All Participants Cleared",
-      description: "The participant database has been cleared successfully.",
-      variant: "default",
-    });
+  const handleClearAllParticipants = async () => {
+    setIsLoading(true);
+    try {
+      // Delete all records from the participants table
+      const { error } = await supabase
+        .from('participants')
+        .delete()
+        .neq('id', ''); // This will delete all rows
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Clear participants from state
+      setParticipants([]);
+      
+      setIsClearParticipantsDialogOpen(false);
+      toast({
+        title: "All Participants Cleared",
+        description: "The participant database has been cleared successfully.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error("Error clearing participants:", error);
+      toast({
+        title: "Error",
+        description: "Failed to clear participants data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formSchema = z.object({
@@ -304,41 +357,64 @@ const ParticipantManagement = () => {
     });
   };
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    const newId = `P-${String(participants.length + 1).padStart(3, '0')}`;
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    setIsLoading(true);
     
-    const newParticipant: Participant = {
-      id: newId,
-      name: data.name,
-      email: data.email,
-      phone: data.phone || "(Not provided)",
-      cohort: data.cohort,
-      progress: 0,
-      lastActive: "Just now",
-      status: data.status,
-      businessType: data.businessType,
-      risk: data.status === "At Risk" ? "high" : data.status === "Needs Support" ? "medium" : "low",
-      location: data.location || "(Not provided)",
-      joinDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      expectedGraduation: "TBD",
-      badges: [],
-      skills: [],
-      goals: [],
-      reasonToJoin: data.reasonToJoin || "Not specified",
-      mentorName: "Not assigned",
-      mentorNotes: "",
-      assignments: []
-    };
-    
-    setParticipants([...participants, newParticipant]);
-    
-    toast({
-      title: "Participant Added",
-      description: `${data.name} has been added to ${data.cohort}`,
-    });
-    
-    setIsAddParticipantDialogOpen(false);
-    form.reset();
+    try {
+      const newId = `P-${String(participants.length + 1).padStart(3, '0')}`;
+      
+      const newParticipant: Participant = {
+        id: newId,
+        name: data.name,
+        email: data.email,
+        phone: data.phone || "(Not provided)",
+        cohort: data.cohort,
+        progress: 0,
+        lastActive: "Just now",
+        status: data.status,
+        businessType: data.businessType,
+        risk: data.status === "At Risk" ? "high" : data.status === "Needs Support" ? "medium" : "low",
+        location: data.location || "(Not provided)",
+        joinDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        expectedGraduation: "TBD",
+        badges: [],
+        skills: [],
+        goals: [],
+        reasonToJoin: data.reasonToJoin || "Not specified",
+        mentorName: "Not assigned",
+        mentorNotes: "",
+        assignments: []
+      };
+      
+      // Add to Supabase
+      const { error } = await supabase
+        .from('participants')
+        .insert(newParticipant);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Update local state
+      setParticipants([...participants, newParticipant]);
+      
+      toast({
+        title: "Participant Added",
+        description: `${data.name} has been added to ${data.cohort}`,
+      });
+      
+      setIsAddParticipantDialogOpen(false);
+      form.reset();
+    } catch (error) {
+      console.error("Error adding participant:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add participant. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getPageNumbers = () => {
@@ -377,6 +453,7 @@ const ParticipantManagement = () => {
             variant="destructive"
             onClick={() => setIsClearParticipantsDialogOpen(true)}
             className="flex items-center space-x-1"
+            disabled={isLoading}
           >
             <Trash2 className="h-4 w-4" />
             <span>Clear All</span>
@@ -440,131 +517,140 @@ const ParticipantManagement = () => {
               </div>
             </div>
 
-            <div className="rounded-md border">
-              <div className="grid grid-cols-8 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-500">
-                <div>Participant</div>
-                <div>Email</div>
-                <div>Location</div>
-                <div>Cohort</div>
-                <div>Progress</div>
-                <div>Status</div>
-                <div>Business Focus</div>
-                <div>Actions</div>
+            {isLoading ? (
+              <div className="p-8 text-center">
+                <div className="w-8 h-8 mx-auto mb-4 border-4 border-military-navy/20 border-t-military-navy rounded-full animate-spin"></div>
+                <p>Loading participants...</p>
               </div>
-              <Separator />
-              {currentParticipants.length > 0 ? (
-                currentParticipants.map((participant) => (
-                  <div key={participant.id}>
-                    <div className={`grid grid-cols-8 px-4 py-3 text-sm ${participant.risk === 'high' ? 'bg-military-red/5' : participant.risk === 'medium' ? 'bg-amber-50' : ''}`}>
-                      <div className="font-medium text-military-navy">{participant.name}</div>
-                      <div className="flex items-center">
-                        <Mail className="h-3 w-3 mr-1 text-slate-400" />
-                        <span className="truncate">{participant.email}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <MapPin className="h-3 w-3 mr-1 text-slate-400" />
-                        <span className="truncate">{participant.location}</span>
-                      </div>
-                      <div>{participant.cohort}</div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 h-2 bg-slate-200 rounded-full">
-                            <div 
-                              className={`h-full rounded-full ${
-                                participant.progress >= 80 ? 'bg-emerald-500' : 
-                                participant.progress >= 60 ? 'bg-amber-500' : 
-                                'bg-military-red'
-                              }`} 
-                              style={{ width: `${participant.progress}%` }}
-                            ></div>
-                          </div>
-                          <span>{participant.progress}%</span>
-                        </div>
-                      </div>
-                      <div>
-                        <span 
-                          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                            participant.status === 'Exceeding' ? 'bg-emerald-100 text-emerald-700' : 
-                            participant.status === 'On Track' ? 'bg-blue-100 text-blue-700' : 
-                            participant.status === 'Needs Support' ? 'bg-amber-100 text-amber-700' : 
-                            'bg-military-red/10 text-military-red'
-                          }`}
-                        >
-                          {participant.status}
-                        </span>
-                      </div>
-                      <div className="truncate">{participant.businessType}</div>
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleViewParticipant(participant)}
-                          >
-                            View
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleMessageParticipant(participant)}
-                          >
-                            Message
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                    <Separator />
+            ) : (
+              <>
+                <div className="rounded-md border">
+                  <div className="grid grid-cols-8 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-500">
+                    <div>Participant</div>
+                    <div>Email</div>
+                    <div>Location</div>
+                    <div>Cohort</div>
+                    <div>Progress</div>
+                    <div>Status</div>
+                    <div>Business Focus</div>
+                    <div>Actions</div>
                   </div>
-                ))
-              ) : (
-                <div className="p-4 text-center text-muted-foreground">
-                  No participants found
+                  <Separator />
+                  {currentParticipants.length > 0 ? (
+                    currentParticipants.map((participant) => (
+                      <div key={participant.id}>
+                        <div className={`grid grid-cols-8 px-4 py-3 text-sm ${participant.risk === 'high' ? 'bg-military-red/5' : participant.risk === 'medium' ? 'bg-amber-50' : ''}`}>
+                          <div className="font-medium text-military-navy">{participant.name}</div>
+                          <div className="flex items-center">
+                            <Mail className="h-3 w-3 mr-1 text-slate-400" />
+                            <span className="truncate">{participant.email}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <MapPin className="h-3 w-3 mr-1 text-slate-400" />
+                            <span className="truncate">{participant.location}</span>
+                          </div>
+                          <div>{participant.cohort}</div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-16 h-2 bg-slate-200 rounded-full">
+                                <div 
+                                  className={`h-full rounded-full ${
+                                    participant.progress >= 80 ? 'bg-emerald-500' : 
+                                    participant.progress >= 60 ? 'bg-amber-500' : 
+                                    'bg-military-red'
+                                  }`} 
+                                  style={{ width: `${participant.progress}%` }}
+                                ></div>
+                              </div>
+                              <span>{participant.progress}%</span>
+                            </div>
+                          </div>
+                          <div>
+                            <span 
+                              className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                                participant.status === 'Exceeding' ? 'bg-emerald-100 text-emerald-700' : 
+                                participant.status === 'On Track' ? 'bg-blue-100 text-blue-700' : 
+                                participant.status === 'Needs Support' ? 'bg-amber-100 text-amber-700' : 
+                                'bg-military-red/10 text-military-red'
+                              }`}
+                            >
+                              {participant.status}
+                            </span>
+                          </div>
+                          <div className="truncate">{participant.businessType}</div>
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleViewParticipant(participant)}
+                              >
+                                View
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleMessageParticipant(participant)}
+                              >
+                                Message
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                        <Separator />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-muted-foreground">
+                      No participants found
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                Showing {participants.length > 0 ? indexOfFirstItem + 1 : 0}-{Math.min(indexOfLastItem, participants.length)} of {participants.length} participants
-              </div>
-              
-              {totalPages > 0 && (
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        aria-disabled={currentPage === 1}
-                        className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
-                      />
-                    </PaginationItem>
-                    
-                    {getPageNumbers().map((pageNumber, index) => (
-                      <PaginationItem key={index}>
-                        {pageNumber === null ? (
-                          <span className="px-4 py-2">...</span>
-                        ) : (
-                          <PaginationLink
-                            isActive={currentPage === pageNumber}
-                            onClick={() => handlePageChange(pageNumber)}
-                          >
-                            {pageNumber}
-                          </PaginationLink>
-                        )}
-                      </PaginationItem>
-                    ))}
-                    
-                    <PaginationItem>
-                      <PaginationNext
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        aria-disabled={currentPage === totalPages}
-                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              )}
-            </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {participants.length > 0 ? indexOfFirstItem + 1 : 0}-{Math.min(indexOfLastItem, participants.length)} of {participants.length} participants
+                  </div>
+                  
+                  {totalPages > 0 && (
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            aria-disabled={currentPage === 1}
+                            className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+                        
+                        {getPageNumbers().map((pageNumber, index) => (
+                          <PaginationItem key={index}>
+                            {pageNumber === null ? (
+                              <span className="px-4 py-2">...</span>
+                            ) : (
+                              <PaginationLink
+                                isActive={currentPage === pageNumber}
+                                onClick={() => handlePageChange(pageNumber)}
+                              >
+                                {pageNumber}
+                              </PaginationLink>
+                            )}
+                          </PaginationItem>
+                        ))}
+                        
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            aria-disabled={currentPage === totalPages}
+                            className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -784,254 +870,4 @@ const ParticipantManagement = () => {
                       {selectedParticipant.badges && selectedParticipant.badges.length > 0 ? (
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                           {selectedParticipant.badges.map((badge, index) => (
-                            <div key={index} className="flex flex-col items-center text-center p-3 border rounded-lg">
-                              <Award className="h-10 w-10 mb-2 text-military-navy" />
-                              <span className="text-sm font-medium">{badge}</span>
-                              <span className="text-xs text-muted-foreground mt-1">Earned May 2023</span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-center text-muted-foreground py-6">No badges earned yet.</p>
-                      )}
-                    </div>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="assignments" className="space-y-4">
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium flex items-center">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Assignment Progress
-                    </h4>
-                    <div className="rounded-md border overflow-hidden">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-slate-50">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Assignment</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Grade</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {selectedParticipant.assignments && selectedParticipant.assignments.length > 0 ? (
-                            selectedParticipant.assignments.map((assignment, index) => (
-                              <tr key={index}>
-                                <td className="px-4 py-3 text-sm font-medium text-gray-900">{assignment.name}</td>
-                                <td className="px-4 py-3 text-sm text-gray-500">
-                                  <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                                    assignment.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 
-                                    assignment.status === 'In Progress' ? 'bg-blue-100 text-blue-700' : 
-                                    'bg-slate-100 text-slate-700'
-                                  }`}>
-                                    {assignment.status}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-3 text-sm text-gray-500">{assignment.grade || "—"}</td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td colSpan={3} className="px-4 py-4 text-sm text-center text-gray-500">No assignments recorded yet.</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Message Dialog */}
-      <Dialog open={isMessageDialogOpen} onOpenChange={setIsMessageDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Send Message</DialogTitle>
-            <DialogDescription>
-              Send a direct message to {selectedParticipant?.name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <label htmlFor="message-subject" className="text-sm font-medium">
-                Subject
-              </label>
-              <Input id="message-subject" placeholder="Enter subject..." />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="message-body" className="text-sm font-medium">
-                Message
-              </label>
-              <textarea
-                id="message-body"
-                className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="Type your message here..."
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsMessageDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSendMessage}>
-              Send Message
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Participant Dialog */}
-      <Dialog open={isAddParticipantDialogOpen} onOpenChange={setIsAddParticipantDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Add New Participant</DialogTitle>
-            <DialogDescription>
-              Enter details to add a new participant to the program
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Full name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="email@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone (Optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="(555) 123-4567" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="cohort"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cohort</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="businessType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Business Focus</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Type of business" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="City, State" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="reasonToJoin"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Reason to Join (Optional)</FormLabel>
-                    <FormControl>
-                      <textarea
-                        className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        placeholder="Participant's reason for joining the program"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button type="submit">Add Participant</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Clear All Participants Confirmation Dialog */}
-      <AlertDialog open={isClearParticipantsDialogOpen} onOpenChange={setIsClearParticipantsDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action will permanently delete all participants from the database. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleClearAllParticipants} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Yes, clear all participants
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  );
-};
-
-export default ParticipantManagement;
+                            <div
