@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, Filter, Download, ChevronDown, Mail, MapPin, Award, GraduationCap, Target, Briefcase, BadgeCheck, User, Phone, Calendar, FileText, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -46,9 +46,53 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 
+// Interface for participant data
+interface UserInfo {
+  name: string;
+  email: string;
+  phone?: string;
+  militaryBranch?: string;
+  yearsOfService?: string;
+  skillsets?: string;
+  businessGoals?: string;
+  timeCommitment?: string;
+  investmentReady?: boolean;
+  heardFrom?: string;
+  rank?: string;
+  twoFactorEnabled?: boolean;
+  isLoggedIn?: boolean;
+}
+
+interface Participant {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  cohort: string;
+  progress: number;
+  lastActive: string;
+  status: string;
+  businessType: string;
+  risk: string;
+  location: string;
+  joinDate: string;
+  expectedGraduation: string;
+  badges: string[];
+  skills: string[];
+  goals: string[];
+  reasonToJoin: string;
+  mentorName: string;
+  mentorNotes: string;
+  assignments: {
+    name: string;
+    status: string;
+    grade: string | null;
+  }[];
+}
+
 const ParticipantManagement = () => {
   const { toast } = useToast();
-  const [selectedParticipant, setSelectedParticipant] = useState(null);
+  const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
   const [isAddParticipantDialogOpen, setIsAddParticipantDialogOpen] = useState(false);
@@ -57,7 +101,7 @@ const ParticipantManagement = () => {
   const itemsPerPage = 5;
 
   // Sample participant data with enhanced fields
-  const [participants, setParticipants] = useState([
+  const [participants, setParticipants] = useState<Participant[]>([
     {
       id: "P-001",
       name: "SSG Michael Johnson",
@@ -110,8 +154,57 @@ const ParticipantManagement = () => {
         { name: "Financial Projections", status: "Completed", grade: "A-" }
       ]
     },
-    // ... keep existing code for other participants but add the additional fields
   ]);
+
+  // Load registered users from localStorage
+  useEffect(() => {
+    const storedUserInfo = localStorage.getItem('userInfo');
+    if (storedUserInfo) {
+      try {
+        const userInfo = JSON.parse(storedUserInfo) as UserInfo;
+        
+        // Check if this user already exists in participants list
+        const userExists = participants.some(p => p.email === userInfo.email);
+        
+        if (!userExists && userInfo.name && userInfo.email) {
+          // Create a new participant from the registered user info
+          const newParticipant: Participant = {
+            id: `P-${String(participants.length + 1).padStart(3, '0')}`,
+            name: userInfo.name,
+            email: userInfo.email,
+            phone: userInfo.phone || "(Not provided)",
+            cohort: "Cohort #8",
+            progress: 0,
+            lastActive: "Just registered",
+            status: "On Track",
+            businessType: userInfo.businessGoals || "(Not specified)",
+            risk: "low",
+            location: "(Not provided)",
+            joinDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            expectedGraduation: "TBD",
+            badges: [],
+            skills: userInfo.skillsets ? [userInfo.skillsets] : [],
+            goals: userInfo.businessGoals ? [userInfo.businessGoals] : [],
+            reasonToJoin: "New registration",
+            mentorName: "Not assigned",
+            mentorNotes: "",
+            assignments: []
+          };
+          
+          // Add the new participant to the list
+          setParticipants(prevParticipants => [...prevParticipants, newParticipant]);
+          
+          // Show notification
+          toast({
+            title: "New Registration Detected",
+            description: `${userInfo.name} has been added to the participants list.`,
+          });
+        }
+      } catch (error) {
+        console.error("Error parsing user info from localStorage:", error);
+      }
+    }
+  }, []);
 
   // Form schema for adding a new participant
   const formSchema = z.object({
@@ -152,13 +245,13 @@ const ParticipantManagement = () => {
     }
   };
 
-  const handleViewParticipant = (participant) => {
+  const handleViewParticipant = (participant: Participant) => {
     setSelectedParticipant(participant);
     setIsViewDialogOpen(true);
     setActiveTab("profile");
   };
 
-  const handleMessageParticipant = (participant) => {
+  const handleMessageParticipant = (participant: Participant) => {
     setSelectedParticipant(participant);
     setIsMessageDialogOpen(true);
   };
@@ -183,7 +276,7 @@ const ParticipantManagement = () => {
     const newId = `P-${String(participants.length + 1).padStart(3, '0')}`;
     
     // Create new participant object
-    const newParticipant = {
+    const newParticipant: Participant = {
       id: newId,
       name: data.name,
       email: data.email,
@@ -744,216 +837,4 @@ const ParticipantManagement = () => {
 
       {/* Message Participant Dialog */}
       <Dialog open={isMessageDialogOpen} onOpenChange={setIsMessageDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          {selectedParticipant && (
-            <>
-              <DialogHeader>
-                <DialogTitle>Send Message</DialogTitle>
-                <DialogDescription>
-                  Send a message to {selectedParticipant.name}
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <label htmlFor="message" className="text-sm font-medium">Message</label>
-                  <textarea 
-                    id="message" 
-                    className="w-full h-32 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-military-navy"
-                    placeholder="Type your message here..."
-                  />
-                </div>
-              </div>
-              
-              <DialogFooter>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsMessageDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  className="bg-military-navy hover:bg-military-navy/90"
-                  onClick={handleSendMessage}
-                >
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  Send Message
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Enhanced Add Participant Dialog */}
-      <Dialog open={isAddParticipantDialogOpen} onOpenChange={setIsAddParticipantDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Add New Participant</DialogTitle>
-            <DialogDescription>
-              Enter the details of the new participant
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. SGT John Smith" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email Address</FormLabel>
-                      <FormControl>
-                        <Input placeholder="email@example.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone (Optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="(555) 123-4567" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="cohort"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cohort</FormLabel>
-                      <FormControl>
-                        <select 
-                          className="w-full h-10 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-military-navy"
-                          {...field}
-                        >
-                          <option value="Cohort #8">Cohort #8</option>
-                          <option value="Cohort #7">Cohort #7</option>
-                          <option value="Cohort #6">Cohort #6</option>
-                          <option value="Cohort #5">Cohort #5</option>
-                        </select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Initial Status</FormLabel>
-                      <FormControl>
-                        <select 
-                          className="w-full h-10 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-military-navy"
-                          {...field}
-                        >
-                          <option value="On Track">On Track</option>
-                          <option value="Exceeding">Exceeding</option>
-                          <option value="Needs Support">Needs Support</option>
-                          <option value="At Risk">At Risk</option>
-                        </select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="businessType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Business Focus</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Cybersecurity Consulting" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Fort Bragg, NC" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="reasonToJoin"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Reason to Join (Optional)</FormLabel>
-                    <FormControl>
-                      <textarea 
-                        className="w-full h-20 p-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-military-navy"
-                        placeholder="Why did the participant join the program?"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsAddParticipantDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit"
-                  className="bg-military-navy hover:bg-military-navy/90"
-                >
-                  Add Participant
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-export default ParticipantManagement;
+        <Dialog
