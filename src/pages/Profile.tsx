@@ -248,7 +248,7 @@ const Profile = () => {
             {(userInfo.militaryBranch || userInfo.yearsOfService) && <Separator />}
             
             {/* Business Information */}
-            {(userInfo.skillsets || userInfo.businessGoals || userInfo.timeCommitment || userInfo.investmentReady !== undefined) && (
+            {(userInfo.skillsets || userInfo.businessGoals || userInfo.timeCommitment || userInfo.investmentReady !== undefined || userInfo.heardFrom) && (
               <div>
                 <h3 className="font-heading text-lg font-semibold text-military-navy border-b border-military-tan pb-2 mb-4">
                   Business Information
