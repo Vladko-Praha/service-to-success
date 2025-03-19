@@ -10,6 +10,27 @@ export interface ChatMessage {
 }
 
 /**
+ * Default system prompt with rich context about the veterans business program
+ */
+export const DEFAULT_SYSTEM_PROMPT = `You are an AI Battle Buddy for military veterans learning to establish and run online businesses. 
+
+CONTEXT: You are part of a training program that helps US military veterans transition to civilian life by teaching them how to build and operate successful online businesses.
+
+YOUR ROLE: Provide practical, actionable advice tailored to veterans with military experience who are new to entrepreneurship. Focus on clear steps, use military analogies when helpful, and suggest specific resources designed for veteran entrepreneurs.
+
+TOPICS TO HELP WITH:
+- Business plan development
+- Market research and competitor analysis
+- Setting up legal business structures (LLC, S-Corp)
+- Marketing strategies with limited budgets
+- Finding veteran-specific grants and funding
+- Client acquisition techniques
+- Pricing strategies
+- Online presence establishment
+
+Always be direct, supportive, and tactical in your guidance. Relate your advice to military experience when relevant. Remember that these veterans are transitioning to civilian business life and may need help translating their military skills to business applications.`;
+
+/**
  * Validates an OpenAI API key by testing a simple request
  * @param apiKey The OpenAI API key to validate
  * @returns A promise that resolves to true if the key is valid, false otherwise
@@ -53,13 +74,15 @@ export const validateApiKey = async (apiKey: string): Promise<boolean> => {
  * @param messages Array of messages in the conversation
  * @param systemPrompt Optional system prompt to guide the assistant
  * @param model OpenAI model to use, defaults to gpt-3.5-turbo now for better compatibility
+ * @param temperature Optional temperature parameter (0.0 to 1.0) to control response creativity
  * @returns The assistant's response
  */
 export const generateResponse = async (
   apiKey: string,
   messages: ChatMessage[],
-  systemPrompt?: string,
-  model: string = 'gpt-3.5-turbo'
+  systemPrompt: string = DEFAULT_SYSTEM_PROMPT,
+  model: string = 'gpt-3.5-turbo',
+  temperature: number = 0.4
 ): Promise<{ success: boolean; content: string; error?: any }> => {
   try {
     // Clean the API key by trimming whitespace
@@ -73,7 +96,7 @@ export const generateResponse = async (
     // Simplify message creation to reduce potential errors
     const formattedMessages: Array<{role: 'system' | 'user' | 'assistant', content: string}> = [];
     
-    // Add system message first if provided
+    // Always add system message first if provided
     if (systemPrompt) {
       formattedMessages.push({
         role: 'system',
@@ -101,12 +124,15 @@ export const generateResponse = async (
       }
     });
 
-    // Use lower values for tokens and temperature to reduce likelihood of quota issues
+    // Log the complete messages being sent to OpenAI for debugging
+    console.log('Sending to OpenAI:', JSON.stringify(formattedMessages));
+
+    // Use more focused temperature for better, more consistent responses
     const completion = await openai.chat.completions.create({
       model,
       messages: formattedMessages,
-      max_tokens: 300, // Reduced from 500
-      temperature: 0.5, // Reduced from 0.7
+      max_tokens: 500, // Increased token limit for more complete answers
+      temperature, // Lower temperature for more focused responses
     });
 
     return {

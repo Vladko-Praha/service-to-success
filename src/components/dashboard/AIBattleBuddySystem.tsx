@@ -1,9 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, Clock, Lightbulb, Search, Send, Key, AlertCircle } from "lucide-react";
+import { Bot, Clock, Lightbulb, Search, Send, Key, AlertCircle, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/pages/AdminDashboard";
 import { useToast } from "@/hooks/use-toast";
-import { validateApiKey, generateResponse, ChatMessage } from "@/services/openaiService";
+import { validateApiKey, generateResponse, ChatMessage, DEFAULT_SYSTEM_PROMPT } from "@/services/openaiService";
 
 interface Message {
   id?: number;
@@ -12,7 +12,6 @@ interface Message {
   created_at?: string;
 }
 
-// Helper to convert between our Message type and the ChatMessage type used by the service
 const convertToChatMessages = (messages: Message[]): ChatMessage[] => {
   return messages.map(msg => ({
     role: msg.role === 'ai' ? 'assistant' : 'user',
@@ -34,13 +33,13 @@ const AIBattleBuddySystem = () => {
   const [isApiKeyValid, setIsApiKeyValid] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [showApiSettings, setShowApiSettings] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("gpt-3.5-turbo"); // Changed default to 3.5 for better compatibility
+  const [selectedModel, setSelectedModel] = useState("gpt-3.5-turbo");
   const [debugMode, setDebugMode] = useState(false);
   const [lastErrorDetails, setLastErrorDetails] = useState<any>(null);
+  const [feedbackGiven, setFeedbackGiven] = useState<Record<number, 'positive' | 'negative'>({}));
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check for stored API key
     const storedApiKey = localStorage.getItem("openai_api_key");
     if (storedApiKey) {
       setApiKey(storedApiKey);
@@ -48,7 +47,6 @@ const AIBattleBuddySystem = () => {
       validateStoredApiKey(storedApiKey);
     }
 
-    // Check for stored model preference
     const storedModel = localStorage.getItem("openai_model");
     if (storedModel) {
       setSelectedModel(storedModel);
@@ -170,10 +168,8 @@ const AIBattleBuddySystem = () => {
     try {
       setIsLoading(true);
       
-      // Simple test request with minimal tokens
       const testPrompt = "Hello, this is a test of the OpenAI API. Please respond with 'OK'";
       
-      // Try making a minimal request
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -223,7 +219,6 @@ const AIBattleBuddySystem = () => {
     
     if (!query.trim()) return;
     
-    // Check if API key is available and valid
     if (!isApiKeyValid) {
       toast({
         title: "API Key Required",
@@ -235,7 +230,6 @@ const AIBattleBuddySystem = () => {
     }
     
     const userMessage: Message = { role: 'user', content: query };
-    // Create a new array with all existing messages plus the new user message
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     
@@ -257,21 +251,16 @@ const AIBattleBuddySystem = () => {
         }
       }
 
-      // Create system message for context
-      const systemPrompt = "You are an AI Battle Buddy for military veterans learning to establish and run online businesses. Provide practical, actionable advice tailored to veterans transitioning to entrepreneurship. Focus on clear steps, military analogies when helpful, and specific resources for veteran entrepreneurs. Be direct, supportive, and tactical in your guidance.";
-      
-      // Convert messages to the format expected by the service
-      // Important: Use updatedMessages which includes the new user message
       const chatMessages = convertToChatMessages(updatedMessages);
       
       console.log("Sending messages to OpenAI:", chatMessages);
       
-      // Call the OpenAI service
       const result = await generateResponse(
         apiKey,
         chatMessages,
-        systemPrompt,
-        selectedModel
+        DEFAULT_SYSTEM_PROMPT,
+        selectedModel,
+        0.4
       );
 
       if (result.success) {
@@ -288,7 +277,6 @@ const AIBattleBuddySystem = () => {
           }
         }
       } else {
-        // Handle specific error types
         let errorMessage = result.content;
         setLastErrorDetails(result.error);
         
@@ -313,7 +301,6 @@ const AIBattleBuddySystem = () => {
       console.error('Error in message handling:', error);
       setLastErrorDetails(error);
       
-      // Generic error message if something unexpected happens
       const errorMessage: Message = { 
         role: 'ai', 
         content: "I encountered an unexpected error. Please try again later." 
@@ -321,6 +308,22 @@ const AIBattleBuddySystem = () => {
       setMessages([...messages, userMessage, errorMessage]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleMessageFeedback = (index: number, type: 'positive' | 'negative') => {
+    setFeedbackGiven(prev => ({...prev, [index]: type}));
+    
+    if (type === 'positive') {
+      toast({
+        title: "Thanks for your feedback!",
+        description: "We're glad the response was helpful.",
+      });
+    } else {
+      toast({
+        title: "Thanks for your feedback",
+        description: "Try asking your question differently for a better response.",
+      });
     }
   };
 
@@ -477,10 +480,40 @@ const AIBattleBuddySystem = () => {
                       <div className="h-8 w-8 rounded-full bg-military-navy flex items-center justify-center flex-shrink-0">
                         <Bot className="h-5 w-5 text-military-sand" />
                       </div>
-                      <div className="bg-military-navy/10 rounded-lg p-3 max-w-[80%]">
-                        <p className="text-military-navy whitespace-pre-line">
-                          {message.content}
-                        </p>
+                      <div className="flex flex-col w-full">
+                        <div className="bg-military-navy/10 rounded-lg p-3 max-w-[80%]">
+                          <p className="text-military-navy whitespace-pre-line">
+                            {message.content}
+                          </p>
+                        </div>
+                        {index > 0 && (
+                          <div className="flex mt-1 gap-2">
+                            <button 
+                              onClick={() => handleMessageFeedback(index, 'positive')}
+                              className={`text-xs flex items-center gap-1 p-1 rounded ${
+                                feedbackGiven[index] === 'positive' 
+                                  ? 'bg-green-100 text-green-700' 
+                                  : 'text-gray-500 hover:bg-gray-100'
+                              }`}
+                              disabled={feedbackGiven[index] !== undefined}
+                            >
+                              <ThumbsUp className="h-3 w-3" />
+                              Helpful
+                            </button>
+                            <button 
+                              onClick={() => handleMessageFeedback(index, 'negative')}
+                              className={`text-xs flex items-center gap-1 p-1 rounded ${
+                                feedbackGiven[index] === 'negative' 
+                                  ? 'bg-red-100 text-red-700' 
+                                  : 'text-gray-500 hover:bg-gray-100'
+                              }`}
+                              disabled={feedbackGiven[index] !== undefined}
+                            >
+                              <ThumbsDown className="h-3 w-3" />
+                              Not helpful
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -698,4 +731,3 @@ const AIBattleBuddySystem = () => {
 };
 
 export default AIBattleBuddySystem;
-

@@ -6,7 +6,7 @@ import { Cpu, MessageSquare, BarChart2, Zap, BrainCircuit, Sparkles, Upload, Dat
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { generateResponse, ChatMessage } from "@/services/openaiService";
+import { generateResponse, ChatMessage, DEFAULT_SYSTEM_PROMPT } from "@/services/openaiService";
 import { useToast } from "@/hooks/use-toast";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
@@ -70,7 +70,14 @@ const AICoachManagement = () => {
         }
       ];
 
-      const result = await generateResponse(apiKey, messages, undefined, selectedModel);
+      const result = await generateResponse(
+        apiKey, 
+        messages, 
+        DEFAULT_SYSTEM_PROMPT, // Use the improved system prompt
+        selectedModel,
+        0.5 // Set a moderate temperature for testing
+      );
+      
       setResponse(result.content);
       toast({
         title: "Response Generated",
