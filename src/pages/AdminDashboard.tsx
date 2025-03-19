@@ -29,19 +29,43 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // No need to check localStorage anymore since data is stored in Supabase
   useEffect(() => {
-    // We could check Supabase auth session here if needed
+    // Check Supabase auth session
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
         // Optional: Redirect to login if no session
         // navigate('/login');
+        toast({
+          title: "Session Notice",
+          description: "You're currently browsing in demo mode. Some features may be limited.",
+        });
+      }
+    };
+    
+    // Create participants table if it doesn't exist
+    const setupDatabase = async () => {
+      try {
+        // We can't actually create tables from the client side with Supabase
+        // This would normally be done in a migration or from the Supabase dashboard
+        // For now, we'll just check if we can access the table
+        const { error } = await supabase.from('participants').select('count');
+        
+        if (error && error.code === '42P01') { // Table doesn't exist error
+          toast({
+            title: "Database Setup Required",
+            description: "Please create a 'participants' table in your Supabase dashboard.",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error("Database setup error:", error);
       }
     };
     
     checkSession();
-  }, []);
+    setupDatabase();
+  }, [navigate, toast]);
 
   // Handle navigation to other pages
   const handleNavigation = (path: string) => {
