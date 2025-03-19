@@ -29,9 +29,16 @@ import {
 type AdminDashboardSidebarProps = {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onNavigate?: (path: string) => void;
+  onAction?: (action: string) => void;
 };
 
-const AdminDashboardSidebar = ({ activeTab, setActiveTab }: AdminDashboardSidebarProps) => {
+const AdminDashboardSidebar = ({ 
+  activeTab, 
+  setActiveTab,
+  onNavigate = () => {},
+  onAction = () => {}
+}: AdminDashboardSidebarProps) => {
   const menuItems = [
     {
       id: "command",
@@ -110,7 +117,10 @@ const AdminDashboardSidebar = ({ activeTab, setActiveTab }: AdminDashboardSideba
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton 
-                    onClick={() => setActiveTab(item.id)}
+                    onClick={() => {
+                      setActiveTab(item.id);
+                      onAction(`Navigated to ${item.title}`);
+                    }}
                     className={activeTab === item.id ? "bg-military-olive text-military-sand hover:bg-military-olive/90" : "text-black hover:bg-gray-100"}
                   >
                     <item.icon className={`h-5 w-5 ${activeTab === item.id ? "" : "text-gray-700"}`} />
@@ -127,19 +137,21 @@ const AdminDashboardSidebar = ({ activeTab, setActiveTab }: AdminDashboardSideba
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <a href="/dashboard" className="flex items-center gap-2 text-black hover:bg-gray-100">
-                    <Users className="h-5 w-5 text-gray-700" />
-                    <span>Student View</span>
-                  </a>
+                <SidebarMenuButton 
+                  onClick={() => onNavigate("/dashboard")}
+                  className="flex items-center gap-2 text-black hover:bg-gray-100"
+                >
+                  <Users className="h-5 w-5 text-gray-700" />
+                  <span>Student View</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <a href="/" className="flex items-center gap-2 text-black hover:bg-gray-100">
-                    <Globe className="h-5 w-5 text-gray-700" />
-                    <span>Main Site</span>
-                  </a>
+                <SidebarMenuButton 
+                  onClick={() => onNavigate("/")}
+                  className="flex items-center gap-2 text-black hover:bg-gray-100"
+                >
+                  <Globe className="h-5 w-5 text-gray-700" />
+                  <span>Main Site</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
