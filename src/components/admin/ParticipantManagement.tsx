@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Search, Filter, Download, ChevronDown, Mail, MapPin, Award, GraduationCap, Target, Briefcase, BadgeCheck, User, Phone, Calendar, FileText, MessageSquare, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -877,4 +878,282 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
                         {selectedParticipant.goals && selectedParticipant.goals.length > 0 ? (
                           <ul className="space-y-1.5">
                             {selectedParticipant.goals.map((goal, index) => (
-                              <li key
+                              <li key={index} className="text-sm flex items-start">
+                                <BadgeCheck className="h-4 w-4 mr-2 text-military-navy shrink-0" />
+                                {goal}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No goals set yet.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="badges" className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium flex items-center">
+                      <Award className="h-4 w-4 mr-2" />
+                      Earned Badges
+                    </h4>
+                    <div className="rounded-md border p-3">
+                      {selectedParticipant.badges && selectedParticipant.badges.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {selectedParticipant.badges.map((badge, index) => (
+                            <span key={index} className="inline-flex items-center rounded-full bg-military-navy/10 px-2.5 py-1 text-xs font-medium text-military-navy">
+                              <Award className="h-3.5 w-3.5 mr-1" />
+                              {badge}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No badges earned yet.</p>
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="assignments" className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium flex items-center">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Assignment Progress
+                    </h4>
+                    <div className="rounded-md border">
+                      {selectedParticipant.assignments && selectedParticipant.assignments.length > 0 ? (
+                        <div className="divide-y">
+                          {selectedParticipant.assignments.map((assignment, index) => (
+                            <div key={index} className="p-3 flex justify-between items-center">
+                              <div>
+                                <p className="text-sm font-medium">{assignment.name}</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Status: <span className={
+                                    assignment.status === "Completed" ? "text-emerald-600" :
+                                    assignment.status === "In Progress" ? "text-amber-600" :
+                                    "text-slate-500"
+                                  }>{assignment.status}</span>
+                                </p>
+                              </div>
+                              <div>
+                                {assignment.grade ? (
+                                  <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                                    Grade: {assignment.grade}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">Not graded</span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground p-3">No assignments yet.</p>
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Message Participant Dialog */}
+      <Dialog open={isMessageDialogOpen} onOpenChange={setIsMessageDialogOpen}>
+        <DialogContent>
+          {selectedParticipant && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Message {selectedParticipant.name}</DialogTitle>
+                <DialogDescription>
+                  Send a direct message to this participant.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 rounded-full bg-military-navy flex items-center justify-center text-white text-sm">
+                    {selectedParticipant.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{selectedParticipant.name}</p>
+                    <p className="text-xs text-muted-foreground">{selectedParticipant.email}</p>
+                  </div>
+                </div>
+                <textarea 
+                  className="w-full min-h-[120px] p-3 rounded-md border text-sm"
+                  placeholder={`Type your message to ${selectedParticipant.name}...`}
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsMessageDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleSendMessage}>Send Message</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Participant Dialog */}
+      <Dialog open={isAddParticipantDialogOpen} onOpenChange={setIsAddParticipantDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New Participant</DialogTitle>
+            <DialogDescription>
+              Add a new participant to the program.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="John Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="john.doe@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="(555) 123-4567" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="cohort"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cohort</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="businessType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Business Focus</FormLabel>
+                    <FormControl>
+                      <Input placeholder="E.g., Cybersecurity Consulting" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="E.g., Fort Bragg, NC" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <FormControl>
+                      <select
+                        className="w-full p-2 border rounded-md"
+                        {...field}
+                      >
+                        <option value="On Track">On Track</option>
+                        <option value="Exceeding">Exceeding</option>
+                        <option value="Needs Support">Needs Support</option>
+                        <option value="At Risk">At Risk</option>
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="reasonToJoin"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Reason to Join (Optional)</FormLabel>
+                    <FormControl>
+                      <textarea 
+                        className="w-full min-h-[80px] p-2 border rounded-md"
+                        placeholder="Why they joined the program..."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? "Adding..." : "Add Participant"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm Clear All Dialog */}
+      <AlertDialog open={isClearParticipantsDialogOpen} onOpenChange={setIsClearParticipantsDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete all participant data from the database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleClearAllParticipants}
+              className="bg-destructive text-destructive-foreground"
+            >
+              {isLoading ? "Clearing..." : "Yes, Clear All"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+export default ParticipantManagement;
