@@ -18,21 +18,36 @@ export const getOpenAIInstance = (apiKey: string): OpenAI => {
 export const generateResponse = async (
   apiKey: string,
   prompt: string,
+  systemPrompt: string = '',
+  conversationHistory: Array<{role: string, content: string}> = [],
   model: string = 'gpt-4o-mini',
   temperature: number = 0.7
 ): Promise<string> => {
   try {
     const openai = getOpenAIInstance(apiKey);
     
+    const messages = [
+      ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+      ...conversationHistory,
+      { role: 'user', content: prompt }
+    ];
+    
     const response = await openai.chat.completions.create({
       model,
-      messages: [{ role: 'user', content: prompt }],
+      messages,
       temperature,
+      max_tokens: 500,
     });
     
     return response.choices[0]?.message?.content || 'No response generated';
   } catch (error: any) {
     console.error('Error generating OpenAI response:', error);
+    
+    // Handle quota exceeded error specifically
+    if (error.message?.includes('quota') || error.message?.includes('exceeded') || error.code === 'insufficient_quota') {
+      throw new Error('You have exceeded your OpenAI API quota. Please check your billing details on the OpenAI website.');
+    }
+    
     throw new Error(error.message || 'Failed to generate AI response');
   }
 };

@@ -1,9 +1,9 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bot, Clock, Lightbulb, Search, Send, Key, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/pages/AdminDashboard";
 import { useToast } from "@/hooks/use-toast";
+import { generateResponse } from "@/services/openaiService";
 
 interface Message {
   id?: number;
@@ -101,10 +101,11 @@ const AIBattleBuddySystem = () => {
           variant: "default"
         });
       } else {
+        const errorData = await response.json();
         setIsApiKeyValid(false);
         toast({
           title: "Invalid API Key",
-          description: "The provided OpenAI API key is invalid. Please check and try again.",
+          description: errorData.error?.message || "The provided OpenAI API key is invalid. Please check and try again.",
           variant: "destructive"
         });
       }
@@ -142,7 +143,7 @@ const AIBattleBuddySystem = () => {
     }
     
     const userMessage: Message = { role: 'user', content: query };
-    setMessages([...messages, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     
     try {
       setIsLoading(true);
@@ -165,35 +166,20 @@ const AIBattleBuddySystem = () => {
       // Create system message for context
       const systemPrompt = "You are an AI Battle Buddy for military veterans learning to establish and run online businesses. Provide practical, actionable advice tailored to veterans transitioning to entrepreneurship. Focus on clear steps, military analogies when helpful, and specific resources for veteran entrepreneurs. Be direct, supportive, and tactical in your guidance.";
       
-      // Call OpenAI API
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...messages.map(msg => ({
-              role: msg.role === 'user' ? 'user' : 'assistant',
-              content: msg.content
-            })),
-            { role: "user", content: query }
-          ],
-          max_tokens: 500,
-          temperature: 0.7
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || 'Failed to get response from OpenAI');
-      }
-
-      const data = await response.json();
-      const aiResponseText = data.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response. Please try again.";
+      // Format conversation history for the API
+      const conversationHistory = messages.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      }));
+      
+      // Use our generateResponse function instead of direct API call
+      const aiResponseText = await generateResponse(
+        apiKey,
+        query,
+        systemPrompt,
+        conversationHistory,
+        "gpt-4o-mini" // Using gpt-4o-mini as the default model
+      );
         
       const aiResponse: Message = { role: 'ai', content: aiResponseText };
       
@@ -221,7 +207,9 @@ const AIBattleBuddySystem = () => {
       // Add error message as AI response
       const errorMessage: Message = { 
         role: 'ai', 
-        content: "I encountered an error while processing your request. Please check your API key or try again later." 
+        content: error instanceof Error && error.message.includes('quota') 
+          ? "I encountered an error: You have exceeded your OpenAI API quota. Please check your billing details on the OpenAI website or try a different API key." 
+          : "I encountered an error while processing your request. Please check your API key or try again later." 
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -545,3 +533,4 @@ const AIBattleBuddySystem = () => {
 };
 
 export default AIBattleBuddySystem;
+
