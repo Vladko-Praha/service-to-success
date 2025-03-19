@@ -235,7 +235,9 @@ const AIBattleBuddySystem = () => {
     }
     
     const userMessage: Message = { role: 'user', content: query };
-    setMessages(prev => [...prev, userMessage]);
+    // Create a new array with all existing messages plus the new user message
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     
     try {
       setIsLoading(true);
@@ -259,7 +261,10 @@ const AIBattleBuddySystem = () => {
       const systemPrompt = "You are an AI Battle Buddy for military veterans learning to establish and run online businesses. Provide practical, actionable advice tailored to veterans transitioning to entrepreneurship. Focus on clear steps, military analogies when helpful, and specific resources for veteran entrepreneurs. Be direct, supportive, and tactical in your guidance.";
       
       // Convert messages to the format expected by the service
-      const chatMessages = convertToChatMessages(messages);
+      // Important: Use updatedMessages which includes the new user message
+      const chatMessages = convertToChatMessages(updatedMessages);
+      
+      console.log("Sending messages to OpenAI:", chatMessages);
       
       // Call the OpenAI service
       const result = await generateResponse(
@@ -271,7 +276,7 @@ const AIBattleBuddySystem = () => {
 
       if (result.success) {
         const aiResponse: Message = { role: 'ai', content: result.content };
-        setMessages(prev => [...prev, aiResponse]);
+        setMessages([...updatedMessages, aiResponse]);
         
         if (isSupabaseConnected) {
           const { error: aiError } = await supabase
@@ -300,7 +305,7 @@ const AIBattleBuddySystem = () => {
           content: errorMessage
         };
         
-        setMessages(prev => [...prev, errorResponse]);
+        setMessages([...updatedMessages, errorResponse]);
       }
       
       setQuery("");
@@ -313,7 +318,7 @@ const AIBattleBuddySystem = () => {
         role: 'ai', 
         content: "I encountered an unexpected error. Please try again later." 
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages([...messages, userMessage, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -693,3 +698,4 @@ const AIBattleBuddySystem = () => {
 };
 
 export default AIBattleBuddySystem;
+
