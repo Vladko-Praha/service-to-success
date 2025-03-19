@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Search, Filter, Download, ChevronDown, Mail, MapPin, Award, GraduationCap, Target, Briefcase, BadgeCheck, User, Phone, Calendar, FileText, MessageSquare, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -655,6 +656,7 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
         </CardContent>
       </Card>
 
+      {/* View Participant Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="sm:max-w-[700px]">
           {selectedParticipant && (
@@ -870,4 +872,296 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
                       {selectedParticipant.badges && selectedParticipant.badges.length > 0 ? (
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                           {selectedParticipant.badges.map((badge, index) => (
-                            <div
+                            <div key={index} className="flex items-center p-2 border rounded-md bg-slate-50">
+                              <Award className="h-5 w-5 mr-2 text-military-navy" />
+                              <span className="text-sm font-medium">{badge}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No badges earned yet.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="assignments" className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium flex items-center">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Assignment Progress
+                    </h4>
+                    <div className="rounded-md border">
+                      {selectedParticipant.assignments && selectedParticipant.assignments.length > 0 ? (
+                        <div className="divide-y">
+                          <div className="grid grid-cols-3 px-4 py-2 bg-slate-50 text-sm font-medium text-slate-500">
+                            <div>Assignment</div>
+                            <div>Status</div>
+                            <div>Grade</div>
+                          </div>
+                          {selectedParticipant.assignments.map((assignment, index) => (
+                            <div key={index} className="grid grid-cols-3 px-4 py-3 text-sm">
+                              <div className="font-medium">{assignment.name}</div>
+                              <div>
+                                <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                                  assignment.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 
+                                  assignment.status === 'In Progress' ? 'bg-blue-100 text-blue-700' : 
+                                  'bg-slate-100 text-slate-700'
+                                }`}>
+                                  {assignment.status}
+                                </span>
+                              </div>
+                              <div>{assignment.grade || '—'}</div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No assignments assigned yet.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end">
+                    <Button 
+                      variant="outline" 
+                      className="mr-2"
+                      onClick={handleRequestReport}
+                    >
+                      Request Progress Report
+                    </Button>
+                    <Button onClick={() => handleMessageParticipant(selectedParticipant)}>
+                      Send Message
+                    </Button>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Message Dialog */}
+      <Dialog open={isMessageDialogOpen} onOpenChange={setIsMessageDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Message to {selectedParticipant?.name}</DialogTitle>
+            <DialogDescription>
+              Send a direct message to this participant
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="subject" className="text-sm font-medium">Subject</label>
+              <Input id="subject" placeholder="Message subject" />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="message" className="text-sm font-medium">Message</label>
+              <textarea 
+                id="message" 
+                className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="Type your message here..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsMessageDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSendMessage}>
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Send Message
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Participant Dialog */}
+      <Dialog open={isAddParticipantDialogOpen} onOpenChange={setIsAddParticipantDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New Participant</DialogTitle>
+            <DialogDescription>
+              Enter the details for the new participant
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Full name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Email address" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone (optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Phone number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="cohort"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cohort</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Cohort" 
+                          defaultValue="Cohort #8" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="businessType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Business Type</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Business type or focus" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Status" 
+                          defaultValue="On Track" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location (optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Location" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="reasonToJoin"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Reason to Join (optional)</FormLabel>
+                    <FormControl>
+                      <textarea 
+                        className="flex h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        placeholder="Why did they join the program?"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsAddParticipantDialogOpen(false);
+                    form.reset();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Adding...' : 'Add Participant'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Clear Participants Confirmation Dialog */}
+      <AlertDialog
+        open={isClearParticipantsDialogOpen}
+        onOpenChange={setIsClearParticipantsDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear All Participants?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will permanently delete all participants from the database.
+              This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleClearAllParticipants}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isLoading ? 'Clearing...' : 'Yes, Clear All'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+export default ParticipantManagement;
