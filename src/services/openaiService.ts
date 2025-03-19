@@ -26,11 +26,32 @@ export const generateResponse = async (
   try {
     const openai = getOpenAIInstance(apiKey);
     
-    const messages = [
-      ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-      ...conversationHistory,
-      { role: 'user', content: prompt }
-    ];
+    // Convert message objects to the correct type for the OpenAI API
+    const messages: Array<OpenAI.ChatCompletionMessageParam> = [];
+    
+    // Add system message if present
+    if (systemPrompt) {
+      messages.push({ 
+        role: 'system', 
+        content: systemPrompt 
+      });
+    }
+    
+    // Add conversation history
+    for (const msg of conversationHistory) {
+      if (msg.role === 'user' || msg.role === 'assistant' || msg.role === 'system') {
+        messages.push({
+          role: msg.role as 'user' | 'assistant' | 'system',
+          content: msg.content
+        });
+      }
+    }
+    
+    // Add the current user prompt
+    messages.push({ 
+      role: 'user', 
+      content: prompt 
+    });
     
     const response = await openai.chat.completions.create({
       model,
