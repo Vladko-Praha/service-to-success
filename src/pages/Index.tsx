@@ -9,10 +9,15 @@ import Instructors from "../components/Instructors";
 import FAQ from "../components/FAQ";
 import CallToAction from "../components/CallToAction";
 import Footer from "../components/Footer";
+import Login from "../components/Login";
 
 const Index = () => {
   return (
     <div className="flex min-h-screen flex-col">
+      <div className="flex justify-between items-center bg-military-beige px-4 py-2">
+        <div></div>
+        <Login />
+      </div>
       <Navbar />
       <main>
         <Hero />
