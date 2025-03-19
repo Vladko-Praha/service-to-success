@@ -6,7 +6,7 @@ import { Cpu, MessageSquare, BarChart2, Zap, BrainCircuit, Sparkles, Upload, Dat
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { generateResponse } from "@/services/openaiService";
+import { generateResponse, ChatMessage } from "@/services/openaiService";
 import { useToast } from "@/hooks/use-toast";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
@@ -62,8 +62,16 @@ const AICoachManagement = () => {
 
     setIsLoading(true);
     try {
-      const result = await generateResponse(apiKey, prompt, selectedModel);
-      setResponse(result);
+      // Create a messages array with the user's prompt
+      const messages: ChatMessage[] = [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ];
+
+      const result = await generateResponse(apiKey, messages, undefined, selectedModel);
+      setResponse(result.content);
       toast({
         title: "Response Generated",
         description: "AI response has been generated successfully.",
