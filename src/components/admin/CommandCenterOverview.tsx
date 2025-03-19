@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { 
@@ -623,5 +624,112 @@ const CommandCenterOverview = () => {
         </Card>
       </div>
 
-      <
+      {/* Add the Dialog component for participant profile viewing */}
+      <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+        <DialogContent className="sm:max-w-[625px]">
+          {selectedParticipant && (
+            <>
+              <DialogHeader>
+                <DialogTitle>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl font-semibold">{selectedParticipant.name}</span>
+                    <span className="rounded-full bg-military-red/10 px-2 py-1 text-xs font-medium text-military-red">
+                      {selectedParticipant.risk.toUpperCase()} RISK
+                    </span>
+                  </div>
+                </DialogTitle>
+                <DialogDescription>
+                  <span className="block mt-1">{selectedParticipant.rank} | {selectedParticipant.branch}</span>
+                  <span className="block">{selectedParticipant.cohort}</span>
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">Program Progress</h4>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">{selectedParticipant.progress}%</span>
+                    <span className="text-xs text-muted-foreground">Last active: {selectedParticipant.lastActive}</span>
+                  </div>
+                  <Progress value={selectedParticipant.progress} className="h-2" />
+                </div>
+                
+                <div className="pt-2">
+                  <h4 className="text-sm font-medium mb-2">Risk Factors</h4>
+                  <div className="rounded-md border p-3 bg-military-red/5">
+                    <ul className="list-disc pl-5 space-y-1">
+                      {selectedParticipant.riskReasons.map((reason, index) => (
+                        <li key={index} className="text-sm">{reason}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                
+                <div className="pt-2">
+                  <h4 className="text-sm font-medium mb-2">Business Focus</h4>
+                  <div className="rounded-md border p-3">
+                    <p className="text-sm">{selectedParticipant.businessType}</p>
+                  </div>
+                </div>
+                
+                <div className="pt-2">
+                  <h4 className="text-sm font-medium mb-2">Contact Information</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{selectedParticipant.contact.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{selectedParticipant.contact.phone}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <DialogFooter className="gap-2 sm:gap-0">
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      handleSendReminder(`Follow-up with ${selectedParticipant.name}`);
+                    }}
+                  >
+                    <Mail className="mr-2 h-4 w-4" />
+                    Send Reminder
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      handleRequestReport(`Progress report for ${selectedParticipant.name}`);
+                    }}
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    Request Report
+                  </Button>
+                  <Button 
+                    variant="profile" 
+                    size="sm"
+                    onClick={() => {
+                      toast({
+                        title: "Intervention Plan Created",
+                        description: `Intervention plan created for ${selectedParticipant.name}`,
+                      });
+                      setIsProfileOpen(false);
+                    }}
+                  >
+                    Create Intervention Plan
+                  </Button>
+                </div>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
 
+export default CommandCenterOverview;
