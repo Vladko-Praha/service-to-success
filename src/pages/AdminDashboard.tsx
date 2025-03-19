@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import AdminDashboardHeader from "@/components/admin/AdminDashboardHeader";
 import AdminDashboardSidebar from "@/components/admin/AdminDashboardSidebar";
@@ -22,6 +22,15 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("command");
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Force localStorage check for registration when admin dashboard loads
+  useEffect(() => {
+    // Check if there's any new user registration
+    const userInfo = localStorage.getItem('userInfo');
+    if (userInfo) {
+      console.log("Admin dashboard detected user info in localStorage");
+    }
+  }, []);
 
   // Handle navigation to other pages
   const handleNavigation = (path: string) => {

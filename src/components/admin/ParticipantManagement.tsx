@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Search, Filter, Download, ChevronDown, Mail, MapPin, Award, GraduationCap, Target, Briefcase, BadgeCheck, User, Phone, Calendar, FileText, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -159,53 +158,70 @@ const ParticipantManagement = () => {
 
   // Load registered users from localStorage
   useEffect(() => {
-    const storedUserInfo = localStorage.getItem('userInfo');
-    if (storedUserInfo) {
-      try {
-        const userInfo = JSON.parse(storedUserInfo) as UserInfo;
-        
-        // Check if this user already exists in participants list
-        const userExists = participants.some(p => p.email === userInfo.email);
-        
-        if (!userExists && userInfo.name && userInfo.email) {
-          // Create a new participant from the registered user info
-          const newParticipant: Participant = {
-            id: `P-${String(participants.length + 1).padStart(3, '0')}`,
-            name: userInfo.name,
-            email: userInfo.email,
-            phone: userInfo.phone || "(Not provided)",
-            cohort: "Cohort #8",
-            progress: 0,
-            lastActive: "Just registered",
-            status: "On Track",
-            businessType: userInfo.businessGoals || "(Not specified)",
-            risk: "low",
-            location: "(Not provided)",
-            joinDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            expectedGraduation: "TBD",
-            badges: [],
-            skills: userInfo.skillsets ? [userInfo.skillsets] : [],
-            goals: userInfo.businessGoals ? [userInfo.businessGoals] : [],
-            reasonToJoin: "New registration",
-            mentorName: "Not assigned",
-            mentorNotes: "",
-            assignments: []
-          };
+    const loadUserFromStorage = () => {
+      const storedUserInfo = localStorage.getItem('userInfo');
+      console.log("User info from localStorage:", storedUserInfo);
+      
+      if (storedUserInfo) {
+        try {
+          const userInfo = JSON.parse(storedUserInfo) as UserInfo;
+          console.log("Parsed user info:", userInfo);
           
-          // Add the new participant to the list
-          setParticipants(prevParticipants => [...prevParticipants, newParticipant]);
+          // Check if this user already exists in participants list
+          const userExists = participants.some(p => p.email === userInfo.email);
+          console.log("User exists in participants:", userExists);
           
-          // Show notification
-          toast({
-            title: "New Registration Detected",
-            description: `${userInfo.name} has been added to the participants list.`,
-          });
+          if (!userExists && userInfo.name && userInfo.email) {
+            // Create a new participant from the registered user info
+            const newParticipant: Participant = {
+              id: `P-${String(participants.length + 1).padStart(3, '0')}`,
+              name: userInfo.name,
+              email: userInfo.email,
+              phone: userInfo.phone || "(Not provided)",
+              cohort: "Cohort #8",
+              progress: 0,
+              lastActive: "Just registered",
+              status: "On Track",
+              businessType: userInfo.businessGoals || "(Not specified)",
+              risk: "low",
+              location: userInfo.militaryBranch ? `${userInfo.militaryBranch} veteran` : "(Not provided)",
+              joinDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+              expectedGraduation: "TBD",
+              badges: [],
+              skills: userInfo.skillsets ? [userInfo.skillsets] : [],
+              goals: userInfo.businessGoals ? [userInfo.businessGoals] : [],
+              reasonToJoin: userInfo.heardFrom ? `Referred from: ${userInfo.heardFrom}` : "New registration",
+              mentorName: "Not assigned",
+              mentorNotes: "",
+              assignments: []
+            };
+            
+            console.log("Adding new participant:", newParticipant);
+            
+            // Add the new participant to the list
+            setParticipants(prevParticipants => [...prevParticipants, newParticipant]);
+            
+            // Show notification
+            toast({
+              title: "New Registration Detected",
+              description: `${userInfo.name} has been added to the participants list.`,
+            });
+          }
+        } catch (error) {
+          console.error("Error parsing user info from localStorage:", error);
         }
-      } catch (error) {
-        console.error("Error parsing user info from localStorage:", error);
       }
-    }
-  }, []);
+    };
+
+    // Call immediately on component mount
+    loadUserFromStorage();
+
+    // Also set up an interval to check periodically for new users
+    const intervalId = setInterval(loadUserFromStorage, 3000);
+    
+    // Clean up interval
+    return () => clearInterval(intervalId);
+  }, []); // Empty dependency array to run only on mount
 
   // Form schema for adding a new participant
   const formSchema = z.object({
@@ -418,110 +434,118 @@ const ParticipantManagement = () => {
                 <div>Actions</div>
               </div>
               <Separator />
-              {currentParticipants.map((participant) => (
-                <div key={participant.id}>
-                  <div className={`grid grid-cols-8 px-4 py-3 text-sm ${participant.risk === 'high' ? 'bg-military-red/5' : participant.risk === 'medium' ? 'bg-amber-50' : ''}`}>
-                    <div className="font-medium text-military-navy">{participant.name}</div>
-                    <div className="flex items-center">
-                      <Mail className="h-3 w-3 mr-1 text-slate-400" />
-                      <span className="truncate">{participant.email}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <MapPin className="h-3 w-3 mr-1 text-slate-400" />
-                      <span className="truncate">{participant.location}</span>
-                    </div>
-                    <div>{participant.cohort}</div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 h-2 bg-slate-200 rounded-full">
-                          <div 
-                            className={`h-full rounded-full ${
-                              participant.progress >= 80 ? 'bg-emerald-500' : 
-                              participant.progress >= 60 ? 'bg-amber-500' : 
-                              'bg-military-red'
-                            }`} 
-                            style={{ width: `${participant.progress}%` }}
-                          ></div>
+              {currentParticipants.length > 0 ? (
+                currentParticipants.map((participant) => (
+                  <div key={participant.id}>
+                    <div className={`grid grid-cols-8 px-4 py-3 text-sm ${participant.risk === 'high' ? 'bg-military-red/5' : participant.risk === 'medium' ? 'bg-amber-50' : ''}`}>
+                      <div className="font-medium text-military-navy">{participant.name}</div>
+                      <div className="flex items-center">
+                        <Mail className="h-3 w-3 mr-1 text-slate-400" />
+                        <span className="truncate">{participant.email}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <MapPin className="h-3 w-3 mr-1 text-slate-400" />
+                        <span className="truncate">{participant.location}</span>
+                      </div>
+                      <div>{participant.cohort}</div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-2 bg-slate-200 rounded-full">
+                            <div 
+                              className={`h-full rounded-full ${
+                                participant.progress >= 80 ? 'bg-emerald-500' : 
+                                participant.progress >= 60 ? 'bg-amber-500' : 
+                                'bg-military-red'
+                              }`} 
+                              style={{ width: `${participant.progress}%` }}
+                            ></div>
+                          </div>
+                          <span>{participant.progress}%</span>
                         </div>
-                        <span>{participant.progress}%</span>
+                      </div>
+                      <div>
+                        <span 
+                          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                            participant.status === 'Exceeding' ? 'bg-emerald-100 text-emerald-700' : 
+                            participant.status === 'On Track' ? 'bg-blue-100 text-blue-700' : 
+                            participant.status === 'Needs Support' ? 'bg-amber-100 text-amber-700' : 
+                            'bg-military-red/10 text-military-red'
+                          }`}
+                        >
+                          {participant.status}
+                        </span>
+                      </div>
+                      <div className="truncate">{participant.businessType}</div>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleViewParticipant(participant)}
+                          >
+                            View
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleMessageParticipant(participant)}
+                          >
+                            Message
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <span 
-                        className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                          participant.status === 'Exceeding' ? 'bg-emerald-100 text-emerald-700' : 
-                          participant.status === 'On Track' ? 'bg-blue-100 text-blue-700' : 
-                          participant.status === 'Needs Support' ? 'bg-amber-100 text-amber-700' : 
-                          'bg-military-red/10 text-military-red'
-                        }`}
-                      >
-                        {participant.status}
-                      </span>
-                    </div>
-                    <div className="truncate">{participant.businessType}</div>
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => handleViewParticipant(participant)}
-                        >
-                          View
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleMessageParticipant(participant)}
-                        >
-                          Message
-                        </Button>
-                      </div>
-                    </div>
+                    <Separator />
                   </div>
-                  <Separator />
+                ))
+              ) : (
+                <div className="p-4 text-center text-muted-foreground">
+                  No participants found
                 </div>
-              ))}
+              )}
             </div>
             
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
-                Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, participants.length)} of {participants.length} participants
+                Showing {participants.length > 0 ? indexOfFirstItem + 1 : 0}-{Math.min(indexOfLastItem, participants.length)} of {participants.length} participants
               </div>
               
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      aria-disabled={currentPage === 1}
-                      className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
-                    />
-                  </PaginationItem>
-                  
-                  {getPageNumbers().map((pageNumber, index) => (
-                    <PaginationItem key={index}>
-                      {pageNumber === null ? (
-                        <span className="px-4 py-2">...</span>
-                      ) : (
-                        <PaginationLink
-                          isActive={currentPage === pageNumber}
-                          onClick={() => handlePageChange(pageNumber)}
-                        >
-                          {pageNumber}
-                        </PaginationLink>
-                      )}
+              {totalPages > 0 && (
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        aria-disabled={currentPage === 1}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                      />
                     </PaginationItem>
-                  ))}
-                  
-                  <PaginationItem>
-                    <PaginationNext
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      aria-disabled={currentPage === totalPages}
-                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
+                    
+                    {getPageNumbers().map((pageNumber, index) => (
+                      <PaginationItem key={index}>
+                        {pageNumber === null ? (
+                          <span className="px-4 py-2">...</span>
+                        ) : (
+                          <PaginationLink
+                            isActive={currentPage === pageNumber}
+                            onClick={() => handlePageChange(pageNumber)}
+                          >
+                            {pageNumber}
+                          </PaginationLink>
+                        )}
+                      </PaginationItem>
+                    ))}
+                    
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        aria-disabled={currentPage === totalPages}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
             </div>
           </div>
         </CardContent>
@@ -804,252 +828,4 @@ const ParticipantManagement = () => {
                     </div>
                   </div>
                 </TabsContent>
-              </Tabs>
-              
-              <DialogFooter className="flex flex-wrap gap-2 sm:gap-0 mt-6">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleSendMessage}
-                >
-                  <Mail className="mr-2 h-4 w-4" />
-                  Send Message
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleRequestReport}
-                >
-                  <FileText className="mr-2 h-4 w-4" />
-                  Request Report
-                </Button>
-                <Button 
-                  variant="default" 
-                  className="bg-military-navy hover:bg-military-navy/90"
-                  onClick={() => setIsViewDialogOpen(false)}
-                >
-                  Close
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Message Participant Dialog */}
-      <Dialog open={isMessageDialogOpen} onOpenChange={setIsMessageDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          {selectedParticipant && (
-            <>
-              <DialogHeader>
-                <DialogTitle>Message {selectedParticipant.name}</DialogTitle>
-                <DialogDescription>
-                  Send a direct message to this participant
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <span className="text-sm font-medium mr-2">To:</span>
-                    <div className="flex items-center bg-slate-100 px-3 py-1 rounded-full">
-                      <span className="text-sm">{selectedParticipant.name}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="subject" className="text-sm font-medium">
-                    Subject
-                  </label>
-                  <Input id="subject" placeholder="Message subject" />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="message" className="text-sm font-medium">
-                    Message
-                  </label>
-                  <textarea
-                    id="message"
-                    className="w-full min-h-[120px] p-2 border rounded-md"
-                    placeholder="Type your message here..."
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsMessageDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSendMessage} className="bg-military-navy hover:bg-military-navy/90">
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  Send Message
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Participant Dialog */}
-      <Dialog open={isAddParticipantDialogOpen} onOpenChange={setIsAddParticipantDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Add New Participant</DialogTitle>
-            <DialogDescription>
-              Enter the details for the new program participant
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="John Doe" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="john.doe@example.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone (Optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="(555) 123-4567" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="cohort"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cohort</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Cohort #8" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="businessType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Business Type</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. E-commerce Store" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <FormControl>
-                        <select
-                          className="w-full h-10 px-3 py-2 rounded-md border"
-                          {...field}
-                        >
-                          <option value="On Track">On Track</option>
-                          <option value="Exceeding">Exceeding</option>
-                          <option value="Needs Support">Needs Support</option>
-                          <option value="At Risk">At Risk</option>
-                        </select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="City, State" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="reasonToJoin"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Reason to Join (Optional)</FormLabel>
-                    <FormControl>
-                      <textarea
-                        className="w-full min-h-[80px] p-2 border rounded-md"
-                        placeholder="Brief description of why they joined the program"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <DialogFooter>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsAddParticipantDialogOpen(false)}
-                  type="button"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit"
-                  className="bg-military-navy hover:bg-military-navy/90"
-                >
-                  Add Participant
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-export default ParticipantManagement;
+              </Tabs
