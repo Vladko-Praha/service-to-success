@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bot, Clock, Lightbulb, Search, Send } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -21,10 +20,29 @@ const AIBattleBuddySystem = () => {
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
   const { toast } = useToast();
 
-  // Fetch previous messages from Supabase
   useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('ai_messages')
+          .select('*')
+          .limit(1);
+        
+        if (error) {
+          console.error('Error connecting to Supabase:', error);
+          return;
+        }
+        
+        setIsSupabaseConnected(true);
+        fetchMessages();
+      } catch (error) {
+        console.error('Error checking Supabase connection:', error);
+      }
+    };
+
     const fetchMessages = async () => {
       try {
         const { data, error } = await supabase
@@ -46,7 +64,7 @@ const AIBattleBuddySystem = () => {
       }
     };
 
-    fetchMessages();
+    checkConnection();
   }, []);
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -54,29 +72,28 @@ const AIBattleBuddySystem = () => {
     
     if (!query.trim()) return;
     
-    // Add user message to UI
     const userMessage: Message = { role: 'user', content: query };
     setMessages([...messages, userMessage]);
     
-    // Save user message to Supabase
     try {
       setIsLoading(true);
-      const { error: saveError } = await supabase
-        .from('ai_messages')
-        .insert([userMessage]);
+      
+      if (isSupabaseConnected) {
+        const { error: saveError } = await supabase
+          .from('ai_messages')
+          .insert([userMessage]);
 
-      if (saveError) {
-        console.error('Error saving message:', saveError);
-        toast({
-          title: "Message Error",
-          description: "Failed to save your message. Please try again.",
-          variant: "destructive"
-        });
+        if (saveError) {
+          console.error('Error saving message:', saveError);
+          toast({
+            title: "Message Error",
+            description: "Failed to save your message. Please try again.",
+            variant: "destructive"
+          });
+        }
       }
 
-      // Simulate AI response
       setTimeout(async () => {
-        // Generate a response based on the query
         let responseText = '';
         if (query.toLowerCase().includes('marketing')) {
           responseText = "For a consulting business, I recommend a three-phase marketing approach:\n1. Establish authority through content marketing - articles, white papers, and case studies.\n2. Leverage LinkedIn for lead generation and networking with potential clients.\n3. Implement a referral system to convert successful client engagements into new business.\n\nWould you like me to elaborate on any of these tactical approaches?";
@@ -90,16 +107,16 @@ const AIBattleBuddySystem = () => {
 
         const aiResponse: Message = { role: 'ai', content: responseText };
         
-        // Add AI response to UI
         setMessages(prev => [...prev, aiResponse]);
         
-        // Save AI response to Supabase
-        const { error: aiError } = await supabase
-          .from('ai_messages')
-          .insert([aiResponse]);
+        if (isSupabaseConnected) {
+          const { error: aiError } = await supabase
+            .from('ai_messages')
+            .insert([aiResponse]);
 
-        if (aiError) {
-          console.error('Error saving AI response:', aiError);
+          if (aiError) {
+            console.error('Error saving AI response:', aiError);
+          }
         }
         
         setIsLoading(false);
@@ -116,7 +133,7 @@ const AIBattleBuddySystem = () => {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-military-navy">AI Battle Buddy System</h2>
         <span className="rounded-full bg-military-olive px-3 py-1 text-xs font-medium text-military-sand">
-          ACTIVE SUPPORT
+          {isSupabaseConnected ? "CONNECTED" : "LOCAL MODE"}
         </span>
       </div>
 

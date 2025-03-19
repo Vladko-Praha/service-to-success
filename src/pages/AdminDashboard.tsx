@@ -19,53 +19,49 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Initialize Supabase client with fallback values for demo mode
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project-url.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'public-anon-key';
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("command");
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
 
   useEffect(() => {
-    // Check Supabase auth session
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        // Optional: Redirect to login if no session
-        // navigate('/login');
+    // Check Supabase connection
+    const checkSupabaseConnection = async () => {
+      try {
+        const { data, error } = await supabase.from('ai_messages').select('count');
+        
+        if (error) {
+          console.error("Supabase connection error:", error);
+          toast({
+            title: "Supabase Connection Issue",
+            description: "Unable to connect to the database. Some features may be limited.",
+            variant: "destructive"
+          });
+        } else {
+          setIsSupabaseConnected(true);
+          toast({
+            title: "Supabase Connected",
+            description: "Connected to the database successfully.",
+          });
+        }
+      } catch (error) {
+        console.error("Database check error:", error);
         toast({
-          title: "Session Notice",
-          description: "You're currently browsing in demo mode. Some features may be limited.",
+          title: "Database Connection Error",
+          description: "Unable to communicate with the database. Some features may be limited.",
+          variant: "destructive"
         });
       }
     };
     
-    // Create participants table if it doesn't exist
-    const setupDatabase = async () => {
-      try {
-        // We can't actually create tables from the client side with Supabase
-        // This would normally be done in a migration or from the Supabase dashboard
-        // For now, we'll just check if we can access the table
-        const { error } = await supabase.from('participants').select('count');
-        
-        if (error && error.code === '42P01') { // Table doesn't exist error
-          toast({
-            title: "Database Setup Required",
-            description: "Please create a 'participants' table in your Supabase dashboard.",
-            variant: "destructive"
-          });
-        }
-      } catch (error) {
-        console.error("Database setup error:", error);
-      }
-    };
-    
-    checkSession();
-    setupDatabase();
-  }, [navigate, toast]);
+    checkSupabaseConnection();
+  }, [toast]);
 
   // Handle navigation to other pages
   const handleNavigation = (path: string) => {
