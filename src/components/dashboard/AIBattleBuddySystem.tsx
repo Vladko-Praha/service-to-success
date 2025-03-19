@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bot, Clock, Lightbulb, Search, Send, Key, AlertCircle, ThumbsUp, ThumbsDown, FileDown, Wand2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
@@ -833,4 +834,89 @@ const AIBattleBuddySystem = () => {
                 <span>Schedule New Report</span>
               </button>
             </CardContent>
-          </
+          </Card>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Most Common Queries</CardTitle>
+          <CardDescription>
+            Popular questions asked by fellow operators
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="flex items-start gap-3 rounded-md border border-military-tan p-3 cursor-pointer hover:border-military-olive transition-colors"
+                 onClick={() => setQuery("How do I find my first clients?")}>
+              <Search className="mt-0.5 h-5 w-5 flex-shrink-0 text-military-olive" />
+              <div>
+                <h4 className="font-medium text-military-navy">How do I find my first clients?</h4>
+                <p className="text-xs text-military-navy/70">
+                  Strategies for initial customer acquisition
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3 rounded-md border border-military-tan p-3 cursor-pointer hover:border-military-olive transition-colors"
+                 onClick={() => setQuery("What's the best business structure for me?")}>
+              <Search className="mt-0.5 h-5 w-5 flex-shrink-0 text-military-olive" />
+              <div>
+                <h4 className="font-medium text-military-navy">What's the best business structure for me?</h4>
+                <p className="text-xs text-military-navy/70">
+                  Comparing LLC, S-Corp, and Sole Proprietorship
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3 rounded-md border border-military-tan p-3 cursor-pointer hover:border-military-olive transition-colors"
+                 onClick={() => setQuery("How much should I charge for my services?")}>
+              <Search className="mt-0.5 h-5 w-5 flex-shrink-0 text-military-olive" />
+              <div>
+                <h4 className="font-medium text-military-navy">How much should I charge for my services?</h4>
+                <p className="text-xs text-military-navy/70">
+                  Pricing strategies for maximum profitability
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3 rounded-md border border-military-tan p-3 cursor-pointer hover:border-military-olive transition-colors"
+                 onClick={() => setQuery("What grants are available for veteran businesses?")}>
+              <Search className="mt-0.5 h-5 w-5 flex-shrink-0 text-military-olive" />
+              <div>
+                <h4 className="font-medium text-military-navy">What grants are available for veteran businesses?</h4>
+                <p className="text-xs text-military-navy/70">
+                  Funding opportunities specifically for veterans
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3 rounded-md border border-military-tan p-3 cursor-pointer hover:border-military-olive transition-colors"
+                 onClick={() => setQuery("How do I create an effective business plan?")}>
+              <Search className="mt-0.5 h-5 w-5 flex-shrink-0 text-military-olive" />
+              <div>
+                <h4 className="font-medium text-military-navy">How do I create an effective business plan?</h4>
+                <p className="text-xs text-military-navy/70">
+                  Step-by-step guide to strategic planning
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3 rounded-md border border-military-tan p-3 cursor-pointer hover:border-military-olive transition-colors"
+                 onClick={() => setQuery("What's the most effective marketing strategy?")}>
+              <Search className="mt-0.5 h-5 w-5 flex-shrink-0 text-military-olive" />
+              <div>
+                <h4 className="font-medium text-military-navy">What's the most effective marketing strategy?</h4>
+                <p className="text-xs text-military-navy/70">
+                  Cost-effective marketing approaches
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default AIBattleBuddySystem;
