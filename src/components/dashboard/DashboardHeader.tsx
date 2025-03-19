@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/pages/AdminDashboard"; // Import the supabase client
 
 interface UserInfo {
   name: string;
@@ -24,30 +25,76 @@ const DashboardHeader = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [userInfo, setUserInfo] = useState<UserInfo>({ 
-    name: "CPT Smith", 
-    email: "default@example.com",
+    name: "Loading...", 
+    email: "",
     isLoggedIn: false
   });
 
   useEffect(() => {
-    // Get user info from localStorage on component mount
-    const storedUserInfo = localStorage.getItem('userInfo');
-    if (storedUserInfo) {
-      setUserInfo(JSON.parse(storedUserInfo));
-    }
-  }, []);
+    // Check for Supabase user first, then fall back to localStorage
+    const getUserInfo = async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session?.user) {
+          const user = sessionData.session.user;
+          setUserInfo({
+            name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+            email: user.email || '',
+            rank: user.user_metadata?.rank,
+            isLoggedIn: true
+          });
+          return;
+        }
+        
+        // Fall back to localStorage
+        const storedUserInfo = localStorage.getItem('userInfo');
+        if (storedUserInfo) {
+          setUserInfo(JSON.parse(storedUserInfo));
+        } else {
+          // Not logged in, redirect to login
+          toast({
+            title: "Not logged in",
+            description: "Please log in to access the dashboard",
+          });
+          navigate("/");
+        }
+      } catch (error) {
+        console.error("Error getting user info:", error);
+        
+        // Fall back to localStorage on error
+        const storedUserInfo = localStorage.getItem('userInfo');
+        if (storedUserInfo) {
+          setUserInfo(JSON.parse(storedUserInfo));
+        }
+      }
+    };
+    
+    getUserInfo();
+  }, [navigate, toast]);
 
-  const handleSignOut = () => {
-    // Clear user info from localStorage
-    localStorage.removeItem('userInfo');
-    
-    toast({
-      title: "Signed Out",
-      description: "You have been signed out successfully.",
-    });
-    
-    // Redirect to home page
-    navigate("/");
+  const handleSignOut = async () => {
+    try {
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Clear user info from localStorage
+      localStorage.removeItem('userInfo');
+      
+      toast({
+        title: "Signed Out",
+        description: "You have been signed out successfully.",
+      });
+      
+      // Redirect to home page
+      navigate("/");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
