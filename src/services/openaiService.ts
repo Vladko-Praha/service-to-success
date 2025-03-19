@@ -1,74 +1,175 @@
 
 import OpenAI from 'openai';
 
-let openaiInstance: OpenAI | null = null;
+// Define message types that match OpenAI's expected format
+export type MessageRole = 'system' | 'user' | 'assistant';
 
-export const getOpenAIInstance = (apiKey: string): OpenAI => {
-  // Create a new instance if one doesn't exist or if the API key has changed
-  if (!openaiInstance || openaiInstance.apiKey !== apiKey) {
-    openaiInstance = new OpenAI({
-      apiKey,
-      dangerouslyAllowBrowser: true // For client-side usage
+export interface ChatMessage {
+  role: MessageRole;
+  content: string;
+}
+
+/**
+ * Validates an OpenAI API key by testing a simple request
+ * @param apiKey The OpenAI API key to validate
+ * @returns A promise that resolves to true if the key is valid, false otherwise
+ */
+export const validateApiKey = async (apiKey: string): Promise<boolean> => {
+  try {
+    // Clean the API key by trimming whitespace
+    const cleanApiKey = apiKey.trim();
+    
+    if (!cleanApiKey.startsWith('sk-')) {
+      console.warn('API key does not start with "sk-". This may not be a valid OpenAI key format.');
+    }
+    
+    const openai = new OpenAI({
+      apiKey: cleanApiKey,
+      dangerouslyAllowBrowser: true // Only for client-side usage in educational context
     });
+
+    // Use a simpler endpoint for validation that's less likely to hit quota issues
+    const response = await openai.models.list();
+    return !!response.data;
+  } catch (error: any) {
+    console.error('Error validating API key:', error);
+    
+    // Log more detailed error information
+    if (error.status) {
+      console.log(`Status code: ${error.status}`);
+    }
+    if (error.message) {
+      console.log(`Error message: ${error.message}`);
+    }
+    
+    return false;
   }
-  
-  return openaiInstance;
 };
 
+/**
+ * Generates a response from OpenAI based on conversation history
+ * Uses a simpler approach and falls back to GPT-3.5-Turbo if needed
+ * @param apiKey The OpenAI API key
+ * @param messages Array of messages in the conversation
+ * @param systemPrompt Optional system prompt to guide the assistant
+ * @param model OpenAI model to use, defaults to gpt-3.5-turbo now for better compatibility
+ * @returns The assistant's response
+ */
 export const generateResponse = async (
   apiKey: string,
-  prompt: string,
-  systemPrompt: string = '',
-  conversationHistory: Array<{role: string, content: string}> = [],
-  model: string = 'gpt-4o-mini',
-  temperature: number = 0.7
-): Promise<string> => {
+  messages: ChatMessage[],
+  systemPrompt?: string,
+  model: string = 'gpt-3.5-turbo'
+): Promise<{ success: boolean; content: string; error?: any }> => {
   try {
-    const openai = getOpenAIInstance(apiKey);
+    // Clean the API key by trimming whitespace
+    const cleanApiKey = apiKey.trim();
     
-    // Convert message objects to the correct type for the OpenAI API
-    const messages: Array<OpenAI.ChatCompletionMessageParam> = [];
+    const openai = new OpenAI({
+      apiKey: cleanApiKey,
+      dangerouslyAllowBrowser: true
+    });
+
+    // Simplify message creation to reduce potential errors
+    const formattedMessages: Array<{role: 'system' | 'user' | 'assistant', content: string}> = [];
     
-    // Add system message if present
+    // Add system message first if provided
     if (systemPrompt) {
-      messages.push({ 
-        role: 'system', 
-        content: systemPrompt 
+      formattedMessages.push({
+        role: 'system',
+        content: systemPrompt
       });
     }
     
-    // Add conversation history
-    for (const msg of conversationHistory) {
-      if (msg.role === 'user' || msg.role === 'assistant' || msg.role === 'system') {
-        messages.push({
-          role: msg.role as 'user' | 'assistant' | 'system',
+    // Add the conversation history with explicit type assertions
+    messages.forEach(msg => {
+      if (msg.role === 'user') {
+        formattedMessages.push({
+          role: 'user',
+          content: msg.content
+        });
+      } else if (msg.role === 'assistant') {
+        formattedMessages.push({
+          role: 'assistant', 
+          content: msg.content
+        });
+      } else if (msg.role === 'system') {
+        formattedMessages.push({
+          role: 'system',
           content: msg.content
         });
       }
-    }
-    
-    // Add the current user prompt
-    messages.push({ 
-      role: 'user', 
-      content: prompt 
     });
-    
-    const response = await openai.chat.completions.create({
+
+    // Use lower values for tokens and temperature to reduce likelihood of quota issues
+    const completion = await openai.chat.completions.create({
       model,
-      messages,
-      temperature,
-      max_tokens: 500,
+      messages: formattedMessages,
+      max_tokens: 300, // Reduced from 500
+      temperature: 0.5, // Reduced from 0.7
     });
-    
-    return response.choices[0]?.message?.content || 'No response generated';
+
+    return {
+      success: true,
+      content: completion.choices[0]?.message?.content || "No response generated."
+    };
   } catch (error: any) {
     console.error('Error generating OpenAI response:', error);
     
-    // Handle quota exceeded error specifically
-    if (error.message?.includes('quota') || error.message?.includes('exceeded') || error.code === 'insufficient_quota') {
-      throw new Error('You have exceeded your OpenAI API quota. Please check your billing details on the OpenAI website.');
+    // Enhanced error logging
+    console.log('Detailed error info:');
+    console.log('Status:', error.status);
+    console.log('Message:', error.message);
+    console.log('Error type:', error.type);
+    if (error.error) {
+      console.log('API Error code:', error.error.code);
+      console.log('API Error message:', error.error.message);
     }
     
-    throw new Error(error.message || 'Failed to generate AI response');
+    // Check for quota exceeded errors specifically with more patterns
+    if (
+      error.status === 429 || 
+      (error.error && (
+        error.error.code === 'insufficient_quota' || 
+        error.error.type === 'insufficient_quota' ||
+        (error.error.message && error.error.message.includes('quota'))
+      )) ||
+      (error.message && error.message.includes('quota'))
+    ) {
+      return {
+        success: false,
+        content: "API quota exceeded. This could be due to rate limits on free accounts even without billing usage. Try waiting a few minutes before sending another message, or add a payment method to your OpenAI account.",
+        error: {
+          type: 'quota_exceeded',
+          message: error.message || 'Rate limit or quota issue detected.'
+        }
+      };
+    }
+    
+    // Check for invalid API key with more patterns
+    if (
+      error.status === 401 || 
+      (error.message && (
+        error.message.includes('API key') || 
+        error.message.includes('authentication') ||
+        error.message.includes('auth')
+      ))
+    ) {
+      return {
+        success: false,
+        content: "Invalid API key. Please check your API key and try again.",
+        error: {
+          type: 'invalid_key',
+          message: 'Your API key is invalid or has been revoked.'
+        }
+      };
+    }
+
+    // Fallback error
+    return {
+      success: false,
+      content: "Error connecting to OpenAI. This might be a temporary issue - please try again in a few minutes.",
+      error
+    };
   }
 };

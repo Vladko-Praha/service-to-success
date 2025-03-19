@@ -3,7 +3,7 @@ import { Bot, Clock, Lightbulb, Search, Send, Key, AlertCircle } from "lucide-re
 import { useState, useEffect } from "react";
 import { supabase } from "@/pages/AdminDashboard";
 import { useToast } from "@/hooks/use-toast";
-import { generateResponse } from "@/services/openaiService";
+import { validateApiKey, generateResponse, ChatMessage } from "@/services/openaiService";
 
 interface Message {
   id?: number;
@@ -11,6 +11,14 @@ interface Message {
   content: string;
   created_at?: string;
 }
+
+// Helper to convert between our Message type and the ChatMessage type used by the service
+const convertToChatMessages = (messages: Message[]): ChatMessage[] => {
+  return messages.map(msg => ({
+    role: msg.role === 'ai' ? 'assistant' : 'user',
+    content: msg.content
+  }));
+};
 
 const AIBattleBuddySystem = () => {
   const [query, setQuery] = useState("");
@@ -26,6 +34,9 @@ const AIBattleBuddySystem = () => {
   const [isApiKeyValid, setIsApiKeyValid] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [showApiSettings, setShowApiSettings] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("gpt-3.5-turbo"); // Changed default to 3.5 for better compatibility
+  const [debugMode, setDebugMode] = useState(false);
+  const [lastErrorDetails, setLastErrorDetails] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -34,7 +45,13 @@ const AIBattleBuddySystem = () => {
     if (storedApiKey) {
       setApiKey(storedApiKey);
       setApiKeyInput(storedApiKey);
-      validateApiKey(storedApiKey);
+      validateStoredApiKey(storedApiKey);
+    }
+
+    // Check for stored model preference
+    const storedModel = localStorage.getItem("openai_model");
+    if (storedModel) {
+      setSelectedModel(storedModel);
     }
 
     const checkConnection = async () => {
@@ -80,32 +97,49 @@ const AIBattleBuddySystem = () => {
     checkConnection();
   }, []);
 
-  const validateApiKey = async (key: string) => {
+  const validateStoredApiKey = async (key: string) => {
     try {
       setIsLoading(true);
-      const response = await fetch('https://api.openai.com/v1/models', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${key}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        setIsApiKeyValid(true);
+      const isValid = await validateApiKey(key);
+      
+      setIsApiKeyValid(isValid);
+      if (isValid) {
         setApiKey(key);
         localStorage.setItem("openai_api_key", key);
+      } else {
+        toast({
+          title: "API Key Issue",
+          description: "Your stored API key appears to be invalid. Please update it.",
+          variant: "destructive"
+        });
+        setShowApiSettings(true);
+      }
+    } catch (error) {
+      console.error('Error validating stored API key:', error);
+      setIsApiKeyValid(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const validateAndSaveApiKey = async () => {
+    try {
+      setIsLoading(true);
+      const isValid = await validateApiKey(apiKeyInput);
+      
+      setIsApiKeyValid(isValid);
+      if (isValid) {
+        setApiKey(apiKeyInput);
+        localStorage.setItem("openai_api_key", apiKeyInput);
         toast({
           title: "API Key Valid",
           description: "Your OpenAI API key is valid and ready to use.",
           variant: "default"
         });
       } else {
-        const errorData = await response.json();
-        setIsApiKeyValid(false);
         toast({
           title: "Invalid API Key",
-          description: errorData.error?.message || "The provided OpenAI API key is invalid. Please check and try again.",
+          description: "The provided OpenAI API key is invalid. Please check and try again.",
           variant: "destructive"
         });
       }
@@ -122,8 +156,66 @@ const AIBattleBuddySystem = () => {
     }
   };
 
-  const saveApiKey = () => {
-    validateApiKey(apiKeyInput);
+  const saveModelPreference = (model: string) => {
+    setSelectedModel(model);
+    localStorage.setItem("openai_model", model);
+    toast({
+      title: "Model Updated",
+      description: `You're now using the ${model} model.`,
+      variant: "default"
+    });
+  };
+
+  const testOpenAIConnection = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Simple test request with minimal tokens
+      const testPrompt = "Hello, this is a test of the OpenAI API. Please respond with 'OK'";
+      
+      // Try making a minimal request
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: [{ role: "user", content: testPrompt }],
+          max_tokens: 10,
+          temperature: 0.1
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast({
+          title: "API Connection Test Successful",
+          description: "Your OpenAI API key appears to be working correctly.",
+          variant: "default"
+        });
+        setLastErrorDetails(null);
+      } else {
+        setLastErrorDetails(data);
+        toast({
+          title: "API Connection Test Failed",
+          description: data.error?.message || "Unknown error occurred",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Test connection error:", error);
+      setLastErrorDetails(error);
+      toast({
+        title: "API Connection Test Failed",
+        description: "Could not connect to OpenAI API. Check console for details.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -166,50 +258,60 @@ const AIBattleBuddySystem = () => {
       // Create system message for context
       const systemPrompt = "You are an AI Battle Buddy for military veterans learning to establish and run online businesses. Provide practical, actionable advice tailored to veterans transitioning to entrepreneurship. Focus on clear steps, military analogies when helpful, and specific resources for veteran entrepreneurs. Be direct, supportive, and tactical in your guidance.";
       
-      // Format conversation history for the API
-      const conversationHistory = messages.map(msg => ({
-        role: msg.role === 'user' ? 'user' : 'assistant',
-        content: msg.content
-      }));
+      // Convert messages to the format expected by the service
+      const chatMessages = convertToChatMessages(messages);
       
-      // Use our generateResponse function instead of direct API call
-      const aiResponseText = await generateResponse(
+      // Call the OpenAI service
+      const result = await generateResponse(
         apiKey,
-        query,
+        chatMessages,
         systemPrompt,
-        conversationHistory,
-        "gpt-4o-mini" // Using gpt-4o-mini as the default model
+        selectedModel
       );
-        
-      const aiResponse: Message = { role: 'ai', content: aiResponseText };
-      
-      setMessages(prev => [...prev, aiResponse]);
-      
-      if (isSupabaseConnected) {
-        const { error: aiError } = await supabase
-          .from('ai_messages')
-          .insert([aiResponse]);
 
-        if (aiError) {
-          console.error('Error saving AI response:', aiError);
+      if (result.success) {
+        const aiResponse: Message = { role: 'ai', content: result.content };
+        setMessages(prev => [...prev, aiResponse]);
+        
+        if (isSupabaseConnected) {
+          const { error: aiError } = await supabase
+            .from('ai_messages')
+            .insert([aiResponse]);
+
+          if (aiError) {
+            console.error('Error saving AI response:', aiError);
+          }
         }
+      } else {
+        // Handle specific error types
+        let errorMessage = result.content;
+        setLastErrorDetails(result.error);
+        
+        if (result.error?.type === 'quota_exceeded') {
+          errorMessage = "You've exceeded your OpenAI API quota. Please check your billing settings at OpenAI.com or try again later.";
+        } else if (result.error?.type === 'invalid_key') {
+          errorMessage = "Your API key appears to be invalid. Please update it in the settings.";
+          setIsApiKeyValid(false);
+          setShowApiSettings(true);
+        }
+        
+        const errorResponse: Message = { 
+          role: 'ai', 
+          content: errorMessage
+        };
+        
+        setMessages(prev => [...prev, errorResponse]);
       }
       
       setQuery("");
     } catch (error) {
-      console.error('Error in OpenAI API call:', error);
-      toast({
-        title: "AI Response Error",
-        description: error instanceof Error ? error.message : "Failed to get a response from AI. Please try again.",
-        variant: "destructive"
-      });
+      console.error('Error in message handling:', error);
+      setLastErrorDetails(error);
       
-      // Add error message as AI response
+      // Generic error message if something unexpected happens
       const errorMessage: Message = { 
         role: 'ai', 
-        content: error instanceof Error && error.message.includes('quota') 
-          ? "I encountered an error: You have exceeded your OpenAI API quota. Please check your billing details on the OpenAI website or try a different API key." 
-          : "I encountered an error while processing your request. Please check your API key or try again later." 
+        content: "I encountered an unexpected error. Please try again later." 
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -259,13 +361,32 @@ const AIBattleBuddySystem = () => {
                     className="w-full rounded-md border border-military-tan bg-white px-4 py-2 focus:border-military-olive focus:outline-none"
                   />
                   <button 
-                    onClick={saveApiKey}
+                    onClick={validateAndSaveApiKey}
                     disabled={isLoading || !apiKeyInput}
                     className="rounded-md bg-military-olive px-4 py-2 text-military-sand hover:bg-military-olive/80 transition-colors disabled:opacity-50"
                   >
                     {isLoading ? "Validating..." : "Validate & Save"}
                   </button>
                 </div>
+              </div>
+
+              <div className="flex flex-col space-y-2 mt-4">
+                <label htmlFor="modelSelect" className="text-sm font-medium text-military-navy">
+                  OpenAI Model
+                </label>
+                <select
+                  id="modelSelect"
+                  value={selectedModel}
+                  onChange={(e) => saveModelPreference(e.target.value)}
+                  className="w-full rounded-md border border-military-tan bg-white px-4 py-2 focus:border-military-olive focus:outline-none"
+                >
+                  <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Recommended for stability)</option>
+                  <option value="gpt-4o-mini">GPT-4o Mini (Fast but may hit quota limits)</option>
+                  <option value="gpt-4o">GPT-4o (Most capable, higher quota needs)</option>
+                </select>
+                <p className="text-xs text-military-navy/70 mt-1">
+                  For free-tier API keys, GPT-3.5 Turbo is more reliable and less likely to hit quota issues.
+                </p>
               </div>
               
               <div className="text-sm text-military-navy/70">
@@ -290,6 +411,45 @@ const AIBattleBuddySystem = () => {
                   </span>
                 </div>
               )}
+
+              <div className="mt-6 border-t border-military-tan pt-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-military-navy">Advanced Troubleshooting</h3>
+                  <button
+                    onClick={() => setDebugMode(!debugMode)}
+                    className="text-xs text-military-olive underline"
+                  >
+                    {debugMode ? "Hide Debug Info" : "Show Debug Info"}
+                  </button>
+                </div>
+                
+                <div className="mt-2 space-y-3">
+                  <button
+                    onClick={testOpenAIConnection}
+                    disabled={isLoading || !apiKey}
+                    className="w-full rounded-md bg-military-navy px-4 py-2 text-military-sand hover:bg-military-navy/80 transition-colors disabled:opacity-50"
+                  >
+                    {isLoading ? "Testing..." : "Test API Connection"}
+                  </button>
+                  
+                  <p className="text-xs text-military-navy/70">
+                    If you're experiencing issues despite having a valid API key, try:
+                    <ul className="list-disc pl-4 mt-1 space-y-1">
+                      <li>Adding a payment method to your OpenAI account (even with $0 spend)</li>
+                      <li>Using GPT-3.5-Turbo instead of newer models</li>
+                      <li>Generating a new API key</li>
+                      <li>Waiting a few minutes between requests (free tier rate limits)</li>
+                    </ul>
+                  </p>
+                  
+                  {debugMode && lastErrorDetails && (
+                    <div className="mt-4 p-3 bg-gray-100 rounded-md overflow-auto max-h-60 text-xs font-mono">
+                      <p className="font-bold">Error Details:</p>
+                      <pre>{JSON.stringify(lastErrorDetails, null, 2)}</pre>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
