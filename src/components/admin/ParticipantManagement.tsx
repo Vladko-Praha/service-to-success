@@ -103,9 +103,10 @@ interface Participant {
 
 interface ParticipantManagementProps {
   supabase: SupabaseClient;
+  isSupabaseConnected: boolean;
 }
 
-const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
+const ParticipantManagement = ({ supabase, isSupabaseConnected }: ParticipantManagementProps) => {
   const { toast } = useToast();
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -119,106 +120,61 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const itemsPerPage = 5;
 
-  // Fetch participants from Supabase on component mount
+  // Fetch participants on component mount
   useEffect(() => {
     fetchParticipants();
-  }, []);
+  }, [isSupabaseConnected]);
 
   const fetchParticipants = async () => {
     setIsLoading(true);
     try {
-      // Check for an authenticated user first
-      const { data: session } = await supabase.auth.getSession();
-      const currentUser = session?.session?.user;
-      
-      // Get participants from the "participants" table in Supabase
-      const { data, error } = await supabase
-        .from('participants')
-        .select('*');
+      if (isSupabaseConnected) {
+        // Try to get participants from Supabase
+        const { data, error } = await supabase
+          .from('participants')
+          .select('*');
 
-      if (error) {
-        throw error;
-      }
-
-      if (data && data.length > 0) {
-        setParticipants(data as Participant[]);
-      } else {
-        // If no data in Supabase yet, load initial example data
-        const initialParticipants = [
-          {
-            id: "P-001",
-            name: "SSG Michael Johnson",
-            email: "michael.johnson@military.com",
-            phone: "(555) 123-4567",
-            cohort: "Cohort #8",
-            progress: 78,
-            lastActive: "2 hours ago",
-            status: "On Track",
-            businessType: "Cybersecurity Consulting",
-            risk: "low",
-            location: "Fort Bragg, NC",
-            joinDate: "Jan 15, 2023",
-            expectedGraduation: "Dec 15, 2023",
-            badges: ["Leadership", "Technical Excellence", "Teamwork"],
-            skills: ["Cybersecurity", "Network Analysis", "Risk Assessment", "Project Management"],
-            goals: ["Launch security consulting firm", "Obtain CISSP certification", "Develop client acquisition strategy"],
-            reasonToJoin: "Transitioning after 12 years of service, looking to leverage military cybersecurity experience in civilian sector",
-            mentorName: "Col. Robert Stevens (Ret.)",
-            mentorNotes: "Michael shows strong aptitude for technical security concepts. Needs to develop business acumen.",
-            assignments: [
-              { name: "Business Plan Draft", status: "Completed", grade: "A" },
-              { name: "Market Analysis", status: "In Progress", grade: null },
-              { name: "Financial Projections", status: "Not Started", grade: null }
-            ]
-          },
-          {
-            id: "P-002",
-            name: "CPT Sarah Williams",
-            email: "sarah.williams@military.com",
-            phone: "(555) 234-5678",
-            cohort: "Cohort #8",
-            progress: 92,
-            lastActive: "1 day ago",
-            status: "Exceeding",
-            businessType: "Fitness Training",
-            risk: "low",
-            location: "Joint Base Lewis-McChord, WA",
-            joinDate: "Jan 15, 2023",
-            expectedGraduation: "Dec 15, 2023",
-            badges: ["Innovation", "Leadership", "Peer Support", "Excellence"],
-            skills: ["Personal Training", "Nutrition Planning", "Business Development", "Digital Marketing"],
-            goals: ["Open fitness studio", "Develop online coaching program", "Create military-to-civilian transition fitness program"],
-            reasonToJoin: "Passionate about fitness and helping veterans maintain physical and mental wellness after service",
-            mentorName: "Maj. Lisa Thompson (Ret.)",
-            mentorNotes: "Sarah is exceptionally motivated and organized. Already has several potential clients lined up.",
-            assignments: [
-              { name: "Business Plan Draft", status: "Completed", grade: "A+" },
-              { name: "Market Analysis", status: "Completed", grade: "A" },
-              { name: "Financial Projections", status: "Completed", grade: "A-" }
-            ]
-          },
-        ];
-        
-        setParticipants(initialParticipants);
-        
-        // Populate Supabase with the initial example data
-        for (const participant of initialParticipants) {
-          await supabase.from('participants').insert(participant);
+        if (error) {
+          throw error;
         }
-      }
-      
-      // Add current authenticated user if they're not already in the database
-      if (currentUser && !data?.some(p => p.email === currentUser.email)) {
-        console.log("Current authenticated user not found in participants, will be added:", currentUser.email);
+
+        if (data && data.length > 0) {
+          setParticipants(data as Participant[]);
+        } else {
+          // If no data in Supabase yet, load initial example data and insert it
+          loadInitialExampleData();
+        }
         
-        // Create a participant record for this user
-        await addCurrentUserToParticipants(currentUser);
+        // Check for an authenticated user
+        const { data: session } = await supabase.auth.getSession();
+        const currentUser = session?.session?.user;
+        
+        if (currentUser && data && !data.some(p => p.email === currentUser.email)) {
+          console.log("Current authenticated user not found in participants, will be added:", currentUser.email);
+          await addCurrentUserToParticipants(currentUser);
+        }
+      } else {
+        // Fallback to localStorage
+        const storedParticipants = JSON.parse(localStorage.getItem('participants') || '[]');
+        if (storedParticipants.length > 0) {
+          setParticipants(storedParticipants);
+        } else {
+          loadInitialExampleData(true);
+        }
       }
     } catch (error) {
       console.error("Error fetching participants:", error);
+      // Fallback to localStorage
+      const storedParticipants = JSON.parse(localStorage.getItem('participants') || '[]');
+      if (storedParticipants.length > 0) {
+        setParticipants(storedParticipants);
+      } else {
+        loadInitialExampleData(true);
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to fetch participants data. Please try again.",
+        title: "Using Local Data",
+        description: "Could not fetch participants from database. Using local data instead.",
         variant: "destructive",
       });
     } finally {
@@ -226,9 +182,86 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
     }
   };
   
+  const loadInitialExampleData = async (useLocalStorageOnly = false) => {
+    const initialParticipants = [
+      {
+        id: "P-001",
+        name: "SSG Michael Johnson",
+        email: "michael.johnson@military.com",
+        phone: "(555) 123-4567",
+        cohort: "Cohort #8",
+        progress: 78,
+        lastActive: "2 hours ago",
+        status: "On Track",
+        businessType: "Cybersecurity Consulting",
+        risk: "low",
+        location: "Fort Bragg, NC",
+        joinDate: "Jan 15, 2023",
+        expectedGraduation: "Dec 15, 2023",
+        badges: ["Leadership", "Technical Excellence", "Teamwork"],
+        skills: ["Cybersecurity", "Network Analysis", "Risk Assessment", "Project Management"],
+        goals: ["Launch security consulting firm", "Obtain CISSP certification", "Develop client acquisition strategy"],
+        reasonToJoin: "Transitioning after 12 years of service, looking to leverage military cybersecurity experience in civilian sector",
+        mentorName: "Col. Robert Stevens (Ret.)",
+        mentorNotes: "Michael shows strong aptitude for technical security concepts. Needs to develop business acumen.",
+        assignments: [
+          { name: "Business Plan Draft", status: "Completed", grade: "A" },
+          { name: "Market Analysis", status: "In Progress", grade: null },
+          { name: "Financial Projections", status: "Not Started", grade: null }
+        ]
+      },
+      {
+        id: "P-002",
+        name: "CPT Sarah Williams",
+        email: "sarah.williams@military.com",
+        phone: "(555) 234-5678",
+        cohort: "Cohort #8",
+        progress: 92,
+        lastActive: "1 day ago",
+        status: "Exceeding",
+        businessType: "Fitness Training",
+        risk: "low",
+        location: "Joint Base Lewis-McChord, WA",
+        joinDate: "Jan 15, 2023",
+        expectedGraduation: "Dec 15, 2023",
+        badges: ["Innovation", "Leadership", "Peer Support", "Excellence"],
+        skills: ["Personal Training", "Nutrition Planning", "Business Development", "Digital Marketing"],
+        goals: ["Open fitness studio", "Develop online coaching program", "Create military-to-civilian transition fitness program"],
+        reasonToJoin: "Passionate about fitness and helping veterans maintain physical and mental wellness after service",
+        mentorName: "Maj. Lisa Thompson (Ret.)",
+        mentorNotes: "Sarah is exceptionally motivated and organized. Already has several potential clients lined up.",
+        assignments: [
+          { name: "Business Plan Draft", status: "Completed", grade: "A+" },
+          { name: "Market Analysis", status: "Completed", grade: "A" },
+          { name: "Financial Projections", status: "Completed", grade: "A-" }
+        ]
+      },
+    ];
+    
+    setParticipants(initialParticipants);
+    
+    // Also update local storage
+    localStorage.setItem('participants', JSON.stringify(initialParticipants));
+    
+    // If connected to Supabase and not using local storage only, populate Supabase as well
+    if (isSupabaseConnected && !useLocalStorageOnly) {
+      try {
+        for (const participant of initialParticipants) {
+          const { error } = await supabase.from('participants').insert(participant);
+          if (error) {
+            console.error("Error inserting participant to Supabase:", error);
+          }
+        }
+      } catch (error) {
+        console.error("Error populating Supabase with initial data:", error);
+      }
+    }
+  };
+  
   // Helper function to add the current authenticated user to participants
   const addCurrentUserToParticipants = async (user) => {
     try {
+      // Get new ID based on current participants length
       const newId = `P-${String(participants.length + 1).padStart(3, '0')}`;
       
       const newParticipant: Participant = {
@@ -254,22 +287,34 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
         assignments: []
       };
       
-      // Add to Supabase
-      const { error } = await supabase
-        .from('participants')
-        .insert(newParticipant);
-      
-      if (error) {
-        console.error("Error adding current user as participant:", error);
-      } else {
-        // Update local state
-        setParticipants(prev => [...prev, newParticipant]);
+      if (isSupabaseConnected) {
+        // Add to Supabase
+        const { error } = await supabase
+          .from('participants')
+          .insert(newParticipant);
         
-        toast({
-          title: "Current User Added",
-          description: `${newParticipant.name} has been added to the participants list.`,
-        });
+        if (error) {
+          console.error("Error adding current user as participant:", error);
+          
+          // Fallback to local storage
+          const storedParticipants = JSON.parse(localStorage.getItem('participants') || '[]');
+          storedParticipants.push(newParticipant);
+          localStorage.setItem('participants', JSON.stringify(storedParticipants));
+        }
+      } else {
+        // Add to local storage only
+        const storedParticipants = JSON.parse(localStorage.getItem('participants') || '[]');
+        storedParticipants.push(newParticipant);
+        localStorage.setItem('participants', JSON.stringify(storedParticipants));
       }
+      
+      // Update UI state
+      setParticipants(prev => [...prev, newParticipant]);
+      
+      toast({
+        title: "Current User Added",
+        description: `${newParticipant.name} has been added to the participants list.`,
+      });
     } catch (error) {
       console.error("Error adding current user as participant:", error);
     }
@@ -278,15 +323,20 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
   const handleClearAllParticipants = async () => {
     setIsLoading(true);
     try {
-      // Delete all records from the participants table
-      const { error } = await supabase
-        .from('participants')
-        .delete()
-        .neq('id', ''); // This will delete all rows
-      
-      if (error) {
-        throw error;
+      if (isSupabaseConnected) {
+        // Delete all records from the participants table in Supabase
+        const { error } = await supabase
+          .from('participants')
+          .delete()
+          .neq('id', ''); // This will delete all rows
+        
+        if (error) {
+          throw error;
+        }
       }
+      
+      // Clear participants from local storage
+      localStorage.setItem('participants', JSON.stringify([]));
       
       // Clear participants from state
       setParticipants([]);
@@ -415,14 +465,23 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
         assignments: []
       };
       
-      // Add to Supabase
-      const { error } = await supabase
-        .from('participants')
-        .insert(newParticipant);
-      
-      if (error) {
-        throw error;
+      // Add to appropriate storage
+      if (isSupabaseConnected) {
+        // Add to Supabase
+        const { error } = await supabase
+          .from('participants')
+          .insert(newParticipant);
+        
+        if (error) {
+          console.error("Error adding participant to Supabase:", error);
+          throw error;
+        }
       }
+      
+      // Always update local storage
+      const storedParticipants = JSON.parse(localStorage.getItem('participants') || '[]');
+      storedParticipants.push(newParticipant);
+      localStorage.setItem('participants', JSON.stringify(storedParticipants));
       
       // Update local state
       setParticipants([...participants, newParticipant]);
@@ -470,6 +529,11 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight text-military-navy">
           Participant Management
+          {!isSupabaseConnected && (
+            <span className="ml-3 text-sm bg-amber-100 text-amber-800 px-2 py-1 rounded-md">
+              Using Local Storage
+            </span>
+          )}
         </h2>
         <div className="flex space-x-2">
           <Button 
@@ -1002,6 +1066,11 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
             <DialogTitle>Add New Participant</DialogTitle>
             <DialogDescription>
               Add a new participant to the program.
+              {!isSupabaseConnected && (
+                <span className="block mt-1 text-amber-600 text-sm">
+                  Note: Participant will be stored locally only.
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -1138,7 +1207,8 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete all participant data from the database.
+              This action cannot be undone. This will permanently delete all participant data
+              {isSupabaseConnected ? " from the database and local storage" : " from local storage"}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

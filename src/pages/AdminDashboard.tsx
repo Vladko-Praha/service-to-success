@@ -19,10 +19,74 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client with fallback values for demo mode
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project-url.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'public-anon-key';
+// Initialize Supabase client
+// In a real environment, these values would come from environment variables
+// For the demo, we're using a fallback to a public demo database
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://nrgwihmgmkmzobjlosrd.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5yZ3dpaG1nbWttbW9iam9sc3JkIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTk1NTgwNzcsImV4cCI6MjAxNTEzNDA3N30.fgSWYn6f5D52Jm8oDSHr5R-5I5xyEaWGJE42XP248VY';
 export const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Initialize local storage for participants if Supabase is unavailable
+const initLocalStorage = () => {
+  const storedParticipants = localStorage.getItem('participants');
+  if (!storedParticipants) {
+    const initialParticipants = [
+      {
+        id: "P-001",
+        name: "SSG Michael Johnson",
+        email: "michael.johnson@military.com",
+        phone: "(555) 123-4567",
+        cohort: "Cohort #8",
+        progress: 78,
+        lastActive: "2 hours ago",
+        status: "On Track",
+        businessType: "Cybersecurity Consulting",
+        risk: "low",
+        location: "Fort Bragg, NC",
+        joinDate: "Jan 15, 2023",
+        expectedGraduation: "Dec 15, 2023",
+        badges: ["Leadership", "Technical Excellence", "Teamwork"],
+        skills: ["Cybersecurity", "Network Analysis", "Risk Assessment", "Project Management"],
+        goals: ["Launch security consulting firm", "Obtain CISSP certification", "Develop client acquisition strategy"],
+        reasonToJoin: "Transitioning after 12 years of service, looking to leverage military cybersecurity experience in civilian sector",
+        mentorName: "Col. Robert Stevens (Ret.)",
+        mentorNotes: "Michael shows strong aptitude for technical security concepts. Needs to develop business acumen.",
+        assignments: [
+          { name: "Business Plan Draft", status: "Completed", grade: "A" },
+          { name: "Market Analysis", status: "In Progress", grade: null },
+          { name: "Financial Projections", status: "Not Started", grade: null }
+        ]
+      },
+      {
+        id: "P-002",
+        name: "CPT Sarah Williams",
+        email: "sarah.williams@military.com",
+        phone: "(555) 234-5678",
+        cohort: "Cohort #8",
+        progress: 92,
+        lastActive: "1 day ago",
+        status: "Exceeding",
+        businessType: "Fitness Training",
+        risk: "low",
+        location: "Joint Base Lewis-McChord, WA",
+        joinDate: "Jan 15, 2023",
+        expectedGraduation: "Dec 15, 2023",
+        badges: ["Innovation", "Leadership", "Peer Support", "Excellence"],
+        skills: ["Personal Training", "Nutrition Planning", "Business Development", "Digital Marketing"],
+        goals: ["Open fitness studio", "Develop online coaching program", "Create military-to-civilian transition fitness program"],
+        reasonToJoin: "Passionate about fitness and helping veterans maintain physical and mental wellness after service",
+        mentorName: "Maj. Lisa Thompson (Ret.)",
+        mentorNotes: "Sarah is exceptionally motivated and organized. Already has several potential clients lined up.",
+        assignments: [
+          { name: "Business Plan Draft", status: "Completed", grade: "A+" },
+          { name: "Market Analysis", status: "Completed", grade: "A" },
+          { name: "Financial Projections", status: "Completed", grade: "A-" }
+        ]
+      },
+    ];
+    localStorage.setItem('participants', JSON.stringify(initialParticipants));
+  }
+};
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("command");
@@ -31,22 +95,26 @@ const AdminDashboard = () => {
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
 
   useEffect(() => {
+    // Initialize local storage as fallback
+    initLocalStorage();
+    
     // Check Supabase connection
     const checkSupabaseConnection = async () => {
       try {
-        const { data, error } = await supabase.from('ai_messages').select('count');
+        const { data, error } = await supabase.from('participants').select('count');
         
         if (error) {
           console.error("Supabase connection error:", error);
+          setIsSupabaseConnected(false);
           toast({
-            title: "Supabase Connection Issue",
-            description: "Unable to connect to the database. Some features may be limited.",
+            title: "Using Local Storage Mode",
+            description: "Database connection unavailable. Using local storage instead.",
             variant: "destructive"
           });
         } else {
           setIsSupabaseConnected(true);
           toast({
-            title: "Supabase Connected",
+            title: "Database Connected",
             description: "Connected to the database successfully.",
           });
           
@@ -68,9 +136,10 @@ const AdminDashboard = () => {
         }
       } catch (error) {
         console.error("Database check error:", error);
+        setIsSupabaseConnected(false);
         toast({
-          title: "Database Connection Error",
-          description: "Unable to communicate with the database. Some features may be limited.",
+          title: "Using Local Storage Mode",
+          description: "Database connection unavailable. Using local storage instead.",
           variant: "destructive"
         });
       }
@@ -118,6 +187,16 @@ const AdminDashboard = () => {
         
         if (error) {
           console.error("Error adding participant:", error);
+          
+          // Fallback to local storage
+          const storedParticipants = JSON.parse(localStorage.getItem('participants') || '[]');
+          storedParticipants.push(newParticipant);
+          localStorage.setItem('participants', JSON.stringify(storedParticipants));
+          
+          toast({
+            title: "New Participant Added (Local Storage)",
+            description: `${newParticipant.name} has been added to the local participants list.`,
+          });
         } else {
           toast({
             title: "New Participant Added",
@@ -162,7 +241,7 @@ const AdminDashboard = () => {
                 <CommandCenterOverview />
               </TabsContent>
               <TabsContent value="participants">
-                <ParticipantManagement supabase={supabase} />
+                <ParticipantManagement supabase={supabase} isSupabaseConnected={isSupabaseConnected} />
               </TabsContent>
               <TabsContent value="curriculum">
                 <CurriculumCommandPost />
