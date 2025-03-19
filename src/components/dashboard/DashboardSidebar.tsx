@@ -6,6 +6,7 @@ import {
   FileText, 
   Flag, 
   Globe, 
+  GraduationCap,
   HeartHandshake, 
   Shield, 
   Target, 
@@ -21,6 +22,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { Link } from "react-router-dom";
 
 type DashboardSidebarProps = {
   activeTab: string;
@@ -99,6 +101,22 @@ const DashboardSidebar = ({ activeTab, setActiveTab }: DashboardSidebarProps) =>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        
+        <SidebarGroup className="mt-6">
+          <SidebarGroupLabel className="text-gray-700">TRAINING CENTER</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/training" className="flex items-center gap-2 text-black hover:bg-gray-100">
+                    <GraduationCap className="h-5 w-5 text-gray-700" />
+                    <span>Training Center</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
