@@ -107,7 +107,7 @@ const DashboardHeader = () => {
               <DropdownMenuLabel>{userInfo.name}</DropdownMenuLabel>
               <DropdownMenuLabel className="font-normal text-xs text-gray-500">{userInfo.email}</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Profile</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/profile")}>Profile</DropdownMenuItem>
               <DropdownMenuItem>My Missions</DropdownMenuItem>
               <DropdownMenuItem>My Resources</DropdownMenuItem>
               <DropdownMenuSeparator />
