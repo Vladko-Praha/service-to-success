@@ -282,11 +282,6 @@ const ParticipantManagement = () => {
                   <Progress 
                     value={selectedParticipant.progress} 
                     className="h-2" 
-                    indicatorClassName={
-                      selectedParticipant.progress >= 80 ? 'bg-emerald-500' : 
-                      selectedParticipant.progress >= 60 ? 'bg-amber-500' : 
-                      'bg-military-red'
-                    }
                   />
                 </div>
                 
