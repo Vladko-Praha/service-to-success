@@ -71,6 +71,13 @@ const DashboardSidebar = ({ activeTab, setActiveTab }: DashboardSidebarProps) =>
       title: "Civilian Integration",
       icon: HeartHandshake,
     },
+    {
+      id: "training",
+      title: "Training Center",
+      icon: GraduationCap,
+      isLink: true,
+      link: "/training"
+    },
   ];
   
   return (
@@ -92,31 +99,24 @@ const DashboardSidebar = ({ activeTab, setActiveTab }: DashboardSidebarProps) =>
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton 
-                    onClick={() => setActiveTab(item.id)}
-                    className={activeTab === item.id ? "bg-military-olive text-military-sand hover:bg-military-olive/90" : "text-black hover:bg-gray-100"}
-                  >
-                    <item.icon className={`h-5 w-5 ${activeTab === item.id ? "" : "text-gray-700"}`} />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
+                  {item.isLink ? (
+                    <SidebarMenuButton asChild>
+                      <Link to={item.link} className="flex items-center gap-2 text-black hover:bg-gray-100">
+                        <item.icon className="h-5 w-5 text-gray-700" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  ) : (
+                    <SidebarMenuButton 
+                      onClick={() => setActiveTab(item.id)}
+                      className={activeTab === item.id ? "bg-military-olive text-military-sand hover:bg-military-olive/90" : "text-black hover:bg-gray-100"}
+                    >
+                      <item.icon className={`h-5 w-5 ${activeTab === item.id ? "" : "text-gray-700"}`} />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  )}
                 </SidebarMenuItem>
               ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        
-        <SidebarGroup className="mt-6">
-          <SidebarGroupLabel className="text-gray-700">TRAINING CENTER</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link to="/training" className="flex items-center gap-2 text-black hover:bg-gray-100">
-                    <GraduationCap className="h-5 w-5 text-gray-700" />
-                    <span>Training Center</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
