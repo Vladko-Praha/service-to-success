@@ -1,9 +1,17 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Search, Filter, Download, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,8 +19,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { Mail, MessageSquare, FileText } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const ParticipantManagement = () => {
+  const { toast } = useToast();
+  const [selectedParticipant, setSelectedParticipant] = useState(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+
   // Sample participant data
   const participants = [
     {
@@ -66,6 +81,25 @@ const ParticipantManagement = () => {
       risk: "low"
     }
   ];
+
+  const handleViewParticipant = (participant) => {
+    setSelectedParticipant(participant);
+    setIsViewDialogOpen(true);
+  };
+
+  const handleSendMessage = () => {
+    toast({
+      title: "Message Sent",
+      description: `Message sent to ${selectedParticipant?.name}`,
+    });
+  };
+
+  const handleRequestReport = () => {
+    toast({
+      title: "Report Requested",
+      description: `Progress report for ${selectedParticipant?.name} has been requested`,
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -181,7 +215,13 @@ const ParticipantManagement = () => {
                     <div>{participant.businessType}</div>
                     <div>
                       <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="sm">View</Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleViewParticipant(participant)}
+                        >
+                          View
+                        </Button>
                         <Button variant="ghost" size="sm">Message</Button>
                       </div>
                     </div>
@@ -206,6 +246,129 @@ const ParticipantManagement = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Participant View Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="sm:max-w-[625px]">
+          {selectedParticipant && (
+            <>
+              <DialogHeader>
+                <DialogTitle>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl font-semibold">{selectedParticipant.name}</span>
+                    <span className={`rounded-full px-2 py-1 text-xs font-medium ${
+                      selectedParticipant.status === 'Exceeding' ? 'bg-emerald-100 text-emerald-700' : 
+                      selectedParticipant.status === 'On Track' ? 'bg-blue-100 text-blue-700' : 
+                      selectedParticipant.status === 'Needs Support' ? 'bg-amber-100 text-amber-700' : 
+                      'bg-military-red/10 text-military-red'
+                    }`}>
+                      {selectedParticipant.status}
+                    </span>
+                  </div>
+                </DialogTitle>
+                <DialogDescription>
+                  <span className="block">ID: {selectedParticipant.id}</span>
+                  <span className="block">{selectedParticipant.cohort}</span>
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">Program Progress</h4>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">{selectedParticipant.progress}%</span>
+                    <span className="text-xs text-muted-foreground">Last active: {selectedParticipant.lastActive}</span>
+                  </div>
+                  <Progress 
+                    value={selectedParticipant.progress} 
+                    className="h-2" 
+                    indicatorClassName={
+                      selectedParticipant.progress >= 80 ? 'bg-emerald-500' : 
+                      selectedParticipant.progress >= 60 ? 'bg-amber-500' : 
+                      'bg-military-red'
+                    }
+                  />
+                </div>
+                
+                <div className="pt-2">
+                  <h4 className="text-sm font-medium mb-2">Business Focus</h4>
+                  <div className="rounded-md border p-3">
+                    <p className="text-sm">{selectedParticipant.businessType}</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">Completion Status</h4>
+                    <div className="rounded-md border p-3">
+                      <ul className="text-sm space-y-2">
+                        <li className="flex justify-between">
+                          <span>Modules Completed:</span>
+                          <span className="font-medium">4/10</span>
+                        </li>
+                        <li className="flex justify-between">
+                          <span>Assignments Submitted:</span>
+                          <span className="font-medium">12/20</span>
+                        </li>
+                        <li className="flex justify-between">
+                          <span>Mentoring Sessions:</span>
+                          <span className="font-medium">5/8</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">Engagement Metrics</h4>
+                    <div className="rounded-md border p-3">
+                      <ul className="text-sm space-y-2">
+                        <li className="flex justify-between">
+                          <span>Login Frequency:</span>
+                          <span className="font-medium">3x/week</span>
+                        </li>
+                        <li className="flex justify-between">
+                          <span>Resource Downloads:</span>
+                          <span className="font-medium">17</span>
+                        </li>
+                        <li className="flex justify-between">
+                          <span>Forum Participation:</span>
+                          <span className="font-medium">Medium</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <DialogFooter className="flex flex-wrap gap-2 sm:gap-0">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleSendMessage}
+                >
+                  <Mail className="mr-2 h-4 w-4" />
+                  Send Message
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleRequestReport}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Request Report
+                </Button>
+                <Button 
+                  variant="default" 
+                  className="bg-military-navy hover:bg-military-navy/90"
+                  onClick={() => setIsViewDialogOpen(false)}
+                >
+                  Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
