@@ -1,16 +1,16 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, Clock, Lightbulb, Search, Send, Key, AlertCircle, ThumbsUp, ThumbsDown } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Bot, Clock, Lightbulb, Search, Send, Key, AlertCircle, ThumbsUp, ThumbsDown, FileDown, Wand2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/pages/AdminDashboard";
 import { useToast } from "@/hooks/use-toast";
-import { validateApiKey, generateResponse, ChatMessage, DEFAULT_SYSTEM_PROMPT } from "@/services/openaiService";
+import { validateApiKey, generateResponse, ChatMessage, DEFAULT_SYSTEM_PROMPT, HTML_TEMPLATE_PROMPT } from "@/services/openaiService";
 
 interface Message {
   id?: number;
   role: 'ai' | 'user';
   content: string;
   created_at?: string;
+  isHTML?: boolean; // Added to support HTML content
 }
 
 const convertToChatMessages = (messages: Message[]): ChatMessage[] => {
@@ -38,6 +38,7 @@ const AIBattleBuddySystem = () => {
   const [debugMode, setDebugMode] = useState(false);
   const [lastErrorDetails, setLastErrorDetails] = useState<any>(null);
   const [feedbackGiven, setFeedbackGiven] = useState<Record<number, 'positive' | 'negative'>>({});
+  const [requestingTemplate, setRequestingTemplate] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -215,6 +216,112 @@ const AIBattleBuddySystem = () => {
     }
   };
 
+  // Add template generation functionality
+  const requestTemplate = async (templateType: string) => {
+    if (!isApiKeyValid) {
+      toast({
+        title: "API Key Required",
+        description: "Please add your OpenAI API key to use the template generator.",
+        variant: "destructive"
+      });
+      setShowApiSettings(true);
+      return;
+    }
+    
+    setRequestingTemplate(true);
+    
+    const templatePrompt = `Create a detailed, interactive ${templateType} template for a veteran entrepreneur starting an online business.`;
+    
+    const templateMessage: Message = { 
+      role: 'user', 
+      content: templatePrompt
+    };
+    
+    setMessages(prevMessages => [...prevMessages, templateMessage]);
+    
+    try {
+      setIsLoading(true);
+      
+      // Convert messages to the format expected by the service
+      const chatMessages = convertToChatMessages([...messages, templateMessage]);
+      
+      // Request HTML-formatted response
+      const result = await generateResponse(
+        apiKey,
+        chatMessages,
+        DEFAULT_SYSTEM_PROMPT,
+        selectedModel,
+        0.7, // Higher temperature for more creative templates
+        true // Request HTML format
+      );
+
+      if (result.success) {
+        const aiResponse: Message = { 
+          role: 'ai', 
+          content: result.content,
+          isHTML: result.isHTML
+        };
+        
+        setMessages(prev => [...prev, aiResponse]);
+        
+        if (isSupabaseConnected) {
+          const { error: aiError } = await supabase
+            .from('ai_messages')
+            .insert([{
+              role: 'ai',
+              content: result.content
+            }]);
+
+          if (aiError) {
+            console.error('Error saving AI response:', aiError);
+          }
+        }
+      } else {
+        let errorMessage = result.content;
+        setLastErrorDetails(result.error);
+        
+        if (result.error?.type === 'quota_exceeded') {
+          errorMessage = "You've exceeded your OpenAI API quota. Please check your billing settings at OpenAI.com or try again later.";
+        } else if (result.error?.type === 'invalid_key') {
+          errorMessage = "Your API key appears to be invalid. Please update it in the settings.";
+          setIsApiKeyValid(false);
+          setShowApiSettings(true);
+        }
+        
+        const errorResponse: Message = { 
+          role: 'ai', 
+          content: errorMessage
+        };
+        
+        setMessages(prev => [...prev, errorResponse]);
+      }
+      
+    } catch (error) {
+      console.error('Error requesting template:', error);
+      
+      const errorMessage: Message = { 
+        role: 'ai', 
+        content: "I encountered an error creating your template. Please try again."
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+      setRequestingTemplate(false);
+    }
+  };
+
+  // Add function to download HTML templates
+  const downloadTemplate = (htmlContent: string, templateName: string) => {
+    const element = document.createElement('a');
+    const file = new Blob([htmlContent], {type: 'text/html'});
+    element.href = URL.createObjectURL(file);
+    element.download = `${templateName.toLowerCase().replace(/\s+/g, '-')}.html`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -265,7 +372,11 @@ const AIBattleBuddySystem = () => {
       );
 
       if (result.success) {
-        const aiResponse: Message = { role: 'ai', content: result.content };
+        const aiResponse: Message = { 
+          role: 'ai', 
+          content: result.content,
+          isHTML: result.isHTML
+        };
         setMessages([...updatedMessages, aiResponse]);
         
         if (isSupabaseConnected) {
@@ -482,10 +593,26 @@ const AIBattleBuddySystem = () => {
                         <Bot className="h-5 w-5 text-military-sand" />
                       </div>
                       <div className="flex flex-col w-full">
-                        <div className="bg-military-navy/10 rounded-lg p-3 max-w-[80%]">
-                          <p className="text-military-navy whitespace-pre-line">
-                            {message.content}
-                          </p>
+                        <div className={`rounded-lg p-3 ${message.isHTML ? 'bg-white border border-military-olive' : 'bg-military-navy/10'} max-w-[95%]`}>
+                          {message.isHTML ? (
+                            <div className="relative">
+                              <div 
+                                className="text-military-navy html-content" 
+                                dangerouslySetInnerHTML={{ __html: message.content }}
+                              />
+                              <button
+                                onClick={() => downloadTemplate(message.content, "Business-Template")}
+                                className="absolute top-2 right-2 bg-military-olive text-military-sand p-1 rounded-md hover:bg-military-olive/80 transition-colors"
+                                title="Download template"
+                              >
+                                <FileDown className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-military-navy whitespace-pre-line">
+                              {message.content}
+                            </p>
+                          )}
                         </div>
                         {index > 0 && (
                           <div className="flex mt-1 gap-2">
@@ -538,7 +665,7 @@ const AIBattleBuddySystem = () => {
                     </div>
                     <div className="bg-military-navy/10 rounded-lg p-3 max-w-[80%]">
                       <p className="text-military-navy">
-                        <span className="animate-pulse">Generating response...</span>
+                        <span className="animate-pulse">{requestingTemplate ? "Generating template..." : "Generating response..."}</span>
                       </p>
                     </div>
                   </div>
@@ -621,6 +748,66 @@ const AIBattleBuddySystem = () => {
           
           <Card>
             <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Business Templates</CardTitle>
+              <CardDescription>
+                Generate interactive business templates
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <button
+                  onClick={() => requestTemplate("Marketing Strategy")}
+                  disabled={isLoading || requestingTemplate}
+                  className="flex items-center justify-between w-full rounded-md border border-military-olive p-3 hover:bg-military-sand transition-colors disabled:opacity-50"
+                >
+                  <div className="flex items-center gap-2">
+                    <Wand2 className="h-4 w-4 text-military-olive" />
+                    <span className="text-sm font-medium text-military-navy">Marketing Strategy Template</span>
+                  </div>
+                  {requestingTemplate ? (
+                    <span className="text-xs text-military-navy/70 animate-pulse">Generating...</span>
+                  ) : (
+                    <span className="text-xs text-military-navy/70">Interactive form</span>
+                  )}
+                </button>
+                
+                <button
+                  onClick={() => requestTemplate("Business Plan")}
+                  disabled={isLoading || requestingTemplate}
+                  className="flex items-center justify-between w-full rounded-md border border-military-olive p-3 hover:bg-military-sand transition-colors disabled:opacity-50"
+                >
+                  <div className="flex items-center gap-2">
+                    <Wand2 className="h-4 w-4 text-military-olive" />
+                    <span className="text-sm font-medium text-military-navy">Business Plan Template</span>
+                  </div>
+                  {requestingTemplate ? (
+                    <span className="text-xs text-military-navy/70 animate-pulse">Generating...</span>
+                  ) : (
+                    <span className="text-xs text-military-navy/70">Interactive form</span>
+                  )}
+                </button>
+                
+                <button
+                  onClick={() => requestTemplate("Competitor Analysis")}
+                  disabled={isLoading || requestingTemplate}
+                  className="flex items-center justify-between w-full rounded-md border border-military-olive p-3 hover:bg-military-sand transition-colors disabled:opacity-50"
+                >
+                  <div className="flex items-center gap-2">
+                    <Wand2 className="h-4 w-4 text-military-olive" />
+                    <span className="text-sm font-medium text-military-navy">Competitor Analysis</span>
+                  </div>
+                  {requestingTemplate ? (
+                    <span className="text-xs text-military-navy/70 animate-pulse">Generating...</span>
+                  ) : (
+                    <span className="text-xs text-military-navy/70">Interactive form</span>
+                  )}
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-3">
               <CardTitle className="text-lg">Scheduled Reports</CardTitle>
             </CardHeader>
             <CardContent>
@@ -646,89 +833,4 @@ const AIBattleBuddySystem = () => {
                 <span>Schedule New Report</span>
               </button>
             </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Most Common Queries</CardTitle>
-          <CardDescription>
-            Popular questions asked by fellow operators
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <div className="flex items-start gap-3 rounded-md border border-military-tan p-3 cursor-pointer hover:border-military-olive transition-colors"
-                 onClick={() => setQuery("How do I find my first clients?")}>
-              <Search className="mt-0.5 h-5 w-5 flex-shrink-0 text-military-olive" />
-              <div>
-                <h4 className="font-medium text-military-navy">How do I find my first clients?</h4>
-                <p className="text-xs text-military-navy/70">
-                  Strategies for initial customer acquisition
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-3 rounded-md border border-military-tan p-3 cursor-pointer hover:border-military-olive transition-colors"
-                 onClick={() => setQuery("What's the best business structure for me?")}>
-              <Search className="mt-0.5 h-5 w-5 flex-shrink-0 text-military-olive" />
-              <div>
-                <h4 className="font-medium text-military-navy">What's the best business structure for me?</h4>
-                <p className="text-xs text-military-navy/70">
-                  Comparing LLC, S-Corp, and Sole Proprietorship
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-3 rounded-md border border-military-tan p-3 cursor-pointer hover:border-military-olive transition-colors"
-                 onClick={() => setQuery("How much should I charge for my services?")}>
-              <Search className="mt-0.5 h-5 w-5 flex-shrink-0 text-military-olive" />
-              <div>
-                <h4 className="font-medium text-military-navy">How much should I charge for my services?</h4>
-                <p className="text-xs text-military-navy/70">
-                  Pricing strategies for maximum profitability
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-3 rounded-md border border-military-tan p-3 cursor-pointer hover:border-military-olive transition-colors"
-                 onClick={() => setQuery("What grants are available for veteran businesses?")}>
-              <Search className="mt-0.5 h-5 w-5 flex-shrink-0 text-military-olive" />
-              <div>
-                <h4 className="font-medium text-military-navy">What grants are available for veteran businesses?</h4>
-                <p className="text-xs text-military-navy/70">
-                  Funding opportunities specifically for veterans
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-3 rounded-md border border-military-tan p-3 cursor-pointer hover:border-military-olive transition-colors"
-                 onClick={() => setQuery("How do I create an effective business plan?")}>
-              <Search className="mt-0.5 h-5 w-5 flex-shrink-0 text-military-olive" />
-              <div>
-                <h4 className="font-medium text-military-navy">How do I create an effective business plan?</h4>
-                <p className="text-xs text-military-navy/70">
-                  Step-by-step guide to strategic planning
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-3 rounded-md border border-military-tan p-3 cursor-pointer hover:border-military-olive transition-colors"
-                 onClick={() => setQuery("What's the most effective marketing strategy?")}>
-              <Search className="mt-0.5 h-5 w-5 flex-shrink-0 text-military-olive" />
-              <div>
-                <h4 className="font-medium text-military-navy">What's the most effective marketing strategy?</h4>
-                <p className="text-xs text-military-navy/70">
-                  Cost-effective marketing approaches
-                </p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
-
-export default AIBattleBuddySystem;
+          </
