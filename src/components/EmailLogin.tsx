@@ -34,7 +34,7 @@ const EmailLogin = ({ onBack, onLogin }: EmailLoginProps) => {
     try {
       // This would be replaced with actual authentication logic
       setTimeout(() => {
-        // Simulate successful login
+        // Simulate successful login and trigger the redirect
         onLogin();
         setIsLoading(false);
       }, 1000);
