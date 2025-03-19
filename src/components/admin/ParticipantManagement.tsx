@@ -46,7 +46,6 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 
-// Interface for participant data
 interface UserInfo {
   name: string;
   email: string;
@@ -100,7 +99,6 @@ const ParticipantManagement = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const itemsPerPage = 5;
 
-  // Sample participant data with enhanced fields
   const [participants, setParticipants] = useState<Participant[]>([
     {
       id: "P-001",
@@ -156,7 +154,6 @@ const ParticipantManagement = () => {
     },
   ]);
 
-  // Load registered users from localStorage
   useEffect(() => {
     const loadUserFromStorage = () => {
       const storedUserInfo = localStorage.getItem('userInfo');
@@ -167,12 +164,10 @@ const ParticipantManagement = () => {
           const userInfo = JSON.parse(storedUserInfo) as UserInfo;
           console.log("Parsed user info:", userInfo);
           
-          // Check if this user already exists in participants list
           const userExists = participants.some(p => p.email === userInfo.email);
           console.log("User exists in participants:", userExists);
           
           if (!userExists && userInfo.name && userInfo.email) {
-            // Create a new participant from the registered user info
             const newParticipant: Participant = {
               id: `P-${String(participants.length + 1).padStart(3, '0')}`,
               name: userInfo.name,
@@ -198,10 +193,8 @@ const ParticipantManagement = () => {
             
             console.log("Adding new participant:", newParticipant);
             
-            // Add the new participant to the list
             setParticipants(prevParticipants => [...prevParticipants, newParticipant]);
             
-            // Show notification
             toast({
               title: "New Registration Detected",
               description: `${userInfo.name} has been added to the participants list.`,
@@ -213,17 +206,13 @@ const ParticipantManagement = () => {
       }
     };
 
-    // Call immediately on component mount
     loadUserFromStorage();
 
-    // Also set up an interval to check periodically for new users
     const intervalId = setInterval(loadUserFromStorage, 3000);
     
-    // Clean up interval
     return () => clearInterval(intervalId);
-  }, []); // Empty dependency array to run only on mount
+  }, []);
 
-  // Form schema for adding a new participant
   const formSchema = z.object({
     name: z.string().min(2, { message: "Name must be at least 2 characters." }),
     email: z.string().email({ message: "Please enter a valid email address." }),
@@ -235,13 +224,11 @@ const ParticipantManagement = () => {
     reasonToJoin: z.string().optional(),
   });
 
-  // Calculate pagination
   const totalPages = Math.ceil(participants.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentParticipants = participants.slice(indexOfFirstItem, indexOfLastItem);
 
-  // React Hook Form
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -289,10 +276,8 @@ const ParticipantManagement = () => {
   };
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
-    // Generate a new ID
     const newId = `P-${String(participants.length + 1).padStart(3, '0')}`;
     
-    // Create new participant object
     const newParticipant: Participant = {
       id: newId,
       name: data.name,
@@ -316,34 +301,28 @@ const ParticipantManagement = () => {
       assignments: []
     };
     
-    // Add to participants array
     setParticipants([...participants, newParticipant]);
     
-    // Show success message
     toast({
       title: "Participant Added",
       description: `${data.name} has been added to ${data.cohort}`,
     });
     
-    // Close dialog and reset form
     setIsAddParticipantDialogOpen(false);
     form.reset();
   };
 
-  // Generate array of page numbers to display
   const getPageNumbers = () => {
     const pageNumbers = [];
     
-    // Always show first page, last page, and pages around current page
     for (let i = 1; i <= totalPages; i++) {
       if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
         pageNumbers.push(i);
       } else if (i === currentPage - 2 || i === currentPage + 2) {
-        pageNumbers.push(null); // null represents ellipsis
+        pageNumbers.push(null);
       }
     }
     
-    // Remove duplicate ellipses
     return pageNumbers.filter((num, index, array) => {
       if (num === null && array[index - 1] === null) {
         return false;
@@ -551,7 +530,6 @@ const ParticipantManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Enhanced Participant View Dialog with Tabs */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="sm:max-w-[700px]">
           {selectedParticipant && (
@@ -594,7 +572,6 @@ const ParticipantManagement = () => {
                   <TabsTrigger value="assignments">Assignments</TabsTrigger>
                 </TabsList>
                 
-                {/* Profile Tab */}
                 <TabsContent value="profile" className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -656,7 +633,6 @@ const ParticipantManagement = () => {
                   </div>
                 </TabsContent>
                 
-                {/* Progress Tab */}
                 <TabsContent value="progress" className="space-y-4">
                   <div className="space-y-3">
                     <h4 className="text-sm font-medium">Program Progress</h4>
@@ -713,7 +689,6 @@ const ParticipantManagement = () => {
                   </div>
                 </TabsContent>
                 
-                {/* Skills & Goals Tab */}
                 <TabsContent value="skills" className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -760,7 +735,6 @@ const ParticipantManagement = () => {
                   </div>
                 </TabsContent>
                 
-                {/* Badges Tab */}
                 <TabsContent value="badges" className="space-y-4">
                   <div className="space-y-2">
                     <h4 className="text-sm font-medium flex items-center">
@@ -785,7 +759,6 @@ const ParticipantManagement = () => {
                   </div>
                 </TabsContent>
                 
-                {/* Assignments Tab */}
                 <TabsContent value="assignments" className="space-y-4">
                   <div className="space-y-2">
                     <h4 className="text-sm font-medium flex items-center">
@@ -828,4 +801,176 @@ const ParticipantManagement = () => {
                     </div>
                   </div>
                 </TabsContent>
-              </Tabs
+              </Tabs>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isMessageDialogOpen} onOpenChange={setIsMessageDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Send Message to {selectedParticipant?.name}</DialogTitle>
+            <DialogDescription>
+              Send a direct message to this participant.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="message" className="text-sm font-medium">
+                Message
+              </label>
+              <textarea
+                id="message"
+                className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+                placeholder="Type your message here..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsMessageDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSendMessage}>Send Message</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAddParticipantDialogOpen} onOpenChange={setIsAddParticipantDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Add New Participant</DialogTitle>
+            <DialogDescription>
+              Fill in the details to add a new participant to the program.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Full name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Email address" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Phone number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="cohort"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cohort</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Cohort" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="businessType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Business Type</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Business type" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Status" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Location" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="reasonToJoin"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Reason to Join</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Reason to join" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <DialogFooter>
+                <Button type="submit">Add Participant</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ParticipantManagement;
