@@ -34,6 +34,33 @@ const EmailLogin = ({ onBack, onLogin }: EmailLoginProps) => {
     try {
       // This would be replaced with actual authentication logic
       setTimeout(() => {
+        // Store user information in localStorage
+        const userName = email.split('@')[0];
+        // Convert first letter to uppercase and replace dots with spaces
+        const formattedName = userName
+          .split('.')
+          .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(' ');
+          
+        // Create a rank prefix based on email domain (just for demo)
+        let rankPrefix = "PVT";
+        if (email.includes("military")) {
+          rankPrefix = "CPT";
+        } else if (email.includes("army")) {
+          rankPrefix = "SGT";
+        } else if (email.includes("navy")) {
+          rankPrefix = "LT";
+        }
+        
+        const userInfo = {
+          email,
+          name: `${rankPrefix} ${formattedName}`,
+          rank: rankPrefix,
+          isLoggedIn: true
+        };
+        
+        localStorage.setItem('userInfo', JSON.stringify(userInfo));
+        
         // Simulate successful login and trigger the redirect
         onLogin();
         setIsLoading(false);
