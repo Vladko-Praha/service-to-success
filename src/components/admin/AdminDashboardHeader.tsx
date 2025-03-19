@@ -5,7 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const AdminDashboardHeader = () => {
+type AdminDashboardHeaderProps = {
+  onAction?: (actionName: string) => void;
+};
+
+const AdminDashboardHeader = ({ onAction = () => {} }: AdminDashboardHeaderProps) => {
   return (
     <header className="sticky top-0 z-10 border-b border-military-olive/20 bg-military-beige px-6 py-3">
       <div className="flex items-center justify-between">
@@ -20,13 +24,23 @@ const AdminDashboardHeader = () => {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="relative">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="relative"
+            onClick={() => onAction("Checked notifications")}
+          >
             <Bell className="h-5 w-5" />
             <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-military-red text-[10px] font-medium text-white">
               3
             </span>
           </Button>
-          <Button variant="ghost" size="icon" className="relative">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="relative"
+            onClick={() => onAction("Checked messages")}
+          >
             <Mail className="h-5 w-5" />
             <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-military-olive text-[10px] font-medium text-white">
               5
