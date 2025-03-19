@@ -33,6 +33,14 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 const ParticipantManagement = () => {
   const { toast } = useToast();
@@ -40,6 +48,8 @@ const ParticipantManagement = () => {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
   const [isAddParticipantDialogOpen, setIsAddParticipantDialogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   // Sample participant data
   const [participants, setParticipants] = useState([
@@ -92,6 +102,76 @@ const ParticipantManagement = () => {
       status: "On Track",
       businessType: "Defense Contracting",
       risk: "low"
+    },
+    {
+      id: "P-006",
+      name: "LTC Jessica Thompson",
+      cohort: "Cohort #8",
+      progress: 72,
+      lastActive: "4 hours ago",
+      status: "On Track",
+      businessType: "Healthcare Services",
+      risk: "low"
+    },
+    {
+      id: "P-007",
+      name: "MAJ Brian Wilson",
+      cohort: "Cohort #8",
+      progress: 54,
+      lastActive: "2 days ago",
+      status: "Needs Support",
+      businessType: "Drone Technology",
+      risk: "medium"
+    },
+    {
+      id: "P-008",
+      name: "CPT Amanda Harris",
+      cohort: "Cohort #8",
+      progress: 91,
+      lastActive: "5 hours ago",
+      status: "Exceeding",
+      businessType: "Educational Services",
+      risk: "low"
+    },
+    {
+      id: "P-009",
+      name: "SFC Thomas Williams",
+      cohort: "Cohort #8",
+      progress: 33,
+      lastActive: "1 week ago",
+      status: "At Risk",
+      businessType: "Supply Chain Management",
+      risk: "high"
+    },
+    {
+      id: "P-010",
+      name: "SSG Laura Rodriguez",
+      cohort: "Cohort #8",
+      progress: 81,
+      lastActive: "3 days ago",
+      status: "On Track",
+      businessType: "IT Consulting",
+      risk: "low"
+    },
+    {
+      id: "P-011",
+      name: "MAJ Chris Barnes",
+      cohort: "Cohort #8",
+      progress: 67,
+      lastActive: "12 hours ago",
+      status: "On Track",
+      businessType: "Security Services",
+      risk: "low"
+    },
+    {
+      id: "P-012",
+      name: "CPT Elizabeth Chen",
+      cohort: "Cohort #8",
+      progress: 49,
+      lastActive: "4 days ago",
+      status: "Needs Support",
+      businessType: "Engineering Solutions",
+      risk: "medium"
     }
   ]);
 
@@ -103,6 +183,12 @@ const ParticipantManagement = () => {
     status: z.string().min(1, { message: "Please select a status." }),
   });
 
+  // Calculate pagination
+  const totalPages = Math.ceil(participants.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentParticipants = participants.slice(indexOfFirstItem, indexOfLastItem);
+
   // React Hook Form
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -113,6 +199,12 @@ const ParticipantManagement = () => {
       status: "On Track",
     },
   });
+
+  const handlePageChange = (pageNumber: number) => {
+    if (pageNumber > 0 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+    }
+  };
 
   const handleViewParticipant = (participant) => {
     setSelectedParticipant(participant);
@@ -167,6 +259,28 @@ const ParticipantManagement = () => {
     // Close dialog and reset form
     setIsAddParticipantDialogOpen(false);
     form.reset();
+  };
+
+  // Generate array of page numbers to display
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    
+    // Always show first page, last page, and pages around current page
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+        pageNumbers.push(i);
+      } else if (i === currentPage - 2 || i === currentPage + 2) {
+        pageNumbers.push(null); // null represents ellipsis
+      }
+    }
+    
+    // Remove duplicate ellipses
+    return pageNumbers.filter((num, index, array) => {
+      if (num === null && array[index - 1] === null) {
+        return false;
+      }
+      return true;
+    });
   };
 
   return (
@@ -250,7 +364,7 @@ const ParticipantManagement = () => {
                 <div>Actions</div>
               </div>
               <Separator />
-              {participants.map((participant) => (
+              {currentParticipants.map((participant) => (
                 <div key={participant.id}>
                   <div className={`grid grid-cols-7 px-4 py-3 text-sm ${participant.risk === 'high' ? 'bg-military-red/5' : participant.risk === 'medium' ? 'bg-amber-50' : ''}`}>
                     <div className="font-medium text-military-navy">{participant.name}</div>
@@ -310,15 +424,43 @@ const ParticipantManagement = () => {
             
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
-                Showing {participants.length} of {participants.length} participants
+                Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, participants.length)} of {participants.length} participants
               </div>
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm" disabled>Previous</Button>
-                <Button variant="outline" size="sm" className="bg-military-navy text-white">1</Button>
-                <Button variant="outline" size="sm">2</Button>
-                <Button variant="outline" size="sm">3</Button>
-                <Button variant="outline" size="sm">Next</Button>
-              </div>
+              
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      aria-disabled={currentPage === 1}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                  
+                  {getPageNumbers().map((pageNumber, index) => (
+                    <PaginationItem key={index}>
+                      {pageNumber === null ? (
+                        <span className="px-4 py-2">...</span>
+                      ) : (
+                        <PaginationLink
+                          isActive={currentPage === pageNumber}
+                          onClick={() => handlePageChange(pageNumber)}
+                        >
+                          {pageNumber}
+                        </PaginationLink>
+                      )}
+                    </PaginationItem>
+                  ))}
+                  
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      aria-disabled={currentPage === totalPages}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           </div>
         </CardContent>
