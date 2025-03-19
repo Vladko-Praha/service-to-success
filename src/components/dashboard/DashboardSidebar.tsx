@@ -72,29 +72,29 @@ const DashboardSidebar = ({ activeTab, setActiveTab }: DashboardSidebarProps) =>
   ];
   
   return (
-    <Sidebar className="border-r border-military-olive/20 bg-military-navy text-military-sand">
+    <Sidebar className="border-r border-military-olive/20 bg-white text-black">
       <SidebarContent>
         <div className="px-6 py-6">
           <div className="flex items-center gap-3">
             <Award className="h-6 w-6 text-military-olive" />
             <h2 className="text-xl font-bold tracking-tight">VETERAN OPS</h2>
           </div>
-          <p className="mt-1 text-xs text-military-sand/70">
+          <p className="mt-1 text-xs text-gray-600">
             Business Deployment Platform
           </p>
         </div>
         
         <SidebarGroup>
-          <SidebarGroupLabel>MISSION CENTER</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-gray-700">MISSION CENTER</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton 
                     onClick={() => setActiveTab(item.id)}
-                    className={activeTab === item.id ? "bg-military-olive text-military-sand hover:bg-military-olive/90" : ""}
+                    className={activeTab === item.id ? "bg-military-olive text-military-sand hover:bg-military-olive/90" : "text-black hover:bg-gray-100"}
                   >
-                    <item.icon className="h-5 w-5" />
+                    <item.icon className={`h-5 w-5 ${activeTab === item.id ? "" : "text-gray-700"}`} />
                     <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -104,21 +104,21 @@ const DashboardSidebar = ({ activeTab, setActiveTab }: DashboardSidebarProps) =>
         </SidebarGroup>
         
         <SidebarGroup className="mt-6">
-          <SidebarGroupLabel>QUICK LINKS</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-gray-700">QUICK LINKS</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <a href="#" className="flex items-center gap-2">
-                    <Globe className="h-5 w-5" />
+                  <a href="#" className="flex items-center gap-2 text-black hover:bg-gray-100">
+                    <Globe className="h-5 w-5 text-gray-700" />
                     <span>Resources</span>
                   </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <a href="#" className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
+                  <a href="#" className="flex items-center gap-2 text-black hover:bg-gray-100">
+                    <Users className="h-5 w-5 text-gray-700" />
                     <span>Veteran Network</span>
                   </a>
                 </SidebarMenuButton>
