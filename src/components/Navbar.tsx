@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Shield, Medal } from 'lucide-react';
+import Login from './Login';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -70,6 +71,7 @@ const Navbar = () => {
               >
                 INTEL CENTER
               </a>
+              <Login />
             </>
           ) : null}
           
@@ -136,6 +138,9 @@ const Navbar = () => {
                 >
                   INTEL CENTER
                 </a>
+                <div className="py-3">
+                  <Login />
+                </div>
               </>
             ) : (
               <Link 
