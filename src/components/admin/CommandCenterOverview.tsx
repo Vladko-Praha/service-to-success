@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { 
@@ -14,7 +13,9 @@ import {
   Mail,
   Send,
   FileText,
-  Bell
+  Bell,
+  UserRound,
+  UserSearch
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -25,6 +26,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const data = [
   {
@@ -77,36 +86,97 @@ const data = [
   },
 ];
 
+const atRiskParticipants = [
+  {
+    id: "P-003",
+    name: "SFC Robert Davis",
+    rank: "Sergeant First Class",
+    branch: "Army",
+    cohort: "Cohort #8",
+    progress: 45,
+    lastActive: "5 days ago",
+    status: "At Risk",
+    businessType: "Logistics Solutions",
+    risk: "high",
+    riskReasons: ["Missed 3 consecutive assignments", "No login for 5 days", "Failed Module 4 assessment"],
+    contact: {
+      email: "robert.davis@military.gov",
+      phone: "(555) 123-4567"
+    }
+  },
+  {
+    id: "P-007",
+    name: "CPL James Wilson",
+    rank: "Corporal",
+    branch: "Marines",
+    cohort: "Cohort #8",
+    progress: 39,
+    lastActive: "7 days ago",
+    status: "At Risk",
+    businessType: "Security Consulting",
+    risk: "high",
+    riskReasons: ["Attendance below 60%", "Multiple incomplete assignments", "Requested extension twice"],
+    contact: {
+      email: "james.wilson@military.gov",
+      phone: "(555) 987-6543"
+    }
+  },
+  {
+    id: "P-012",
+    name: "PO2 Lisa Thompson",
+    rank: "Petty Officer Second Class",
+    branch: "Navy",
+    cohort: "Cohort #8",
+    progress: 51,
+    lastActive: "3 days ago",
+    status: "At Risk",
+    businessType: "Maritime Training",
+    risk: "medium",
+    riskReasons: ["Struggling with financial module", "Requested additional support"],
+    contact: {
+      email: "lisa.thompson@military.gov",
+      phone: "(555) 456-7890"
+    }
+  }
+];
+
 const CommandCenterOverview = () => {
   const { toast } = useToast();
+  const [selectedParticipant, setSelectedParticipant] = useState(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   
-  // Alert action handlers
-  const handleSendReminder = (alertText: string) => {
+  const handleSendReminder = (alertText) => {
     toast({
       title: "Reminder Sent",
       description: `Reminder sent for: ${alertText}`,
     });
   };
   
-  const handleSendEmail = (alertText: string) => {
+  const handleSendEmail = (alertText) => {
     toast({
       title: "Email Sent",
       description: `Email notification sent regarding: ${alertText}`,
     });
   };
   
-  const handleAddToCalendar = (alertText: string) => {
+  const handleAddToCalendar = (alertText) => {
     toast({
       title: "Added to Calendar",
       description: `${alertText} has been added to participants' calendars`,
     });
   };
   
-  const handleRequestReport = (alertText: string) => {
+  const handleRequestReport = (alertText) => {
     toast({
       title: "Report Requested",
       description: `Report requested concerning: ${alertText}`,
     });
+  };
+
+  const handleViewProfile = (participantId) => {
+    const participant = atRiskParticipants.find(p => p.id === participantId);
+    setSelectedParticipant(participant);
+    setIsProfileOpen(true);
   };
 
   return (
@@ -266,6 +336,15 @@ const CommandCenterOverview = () => {
                         <FileText className="mr-2 h-4 w-4" />
                         Request report
                       </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="justify-start"
+                        onClick={() => handleViewProfile("P-003")}
+                      >
+                        <UserSearch className="mr-2 h-4 w-4" />
+                        View profiles
+                      </Button>
                     </div>
                   </PopoverContent>
                 </Popover>
@@ -309,6 +388,15 @@ const CommandCenterOverview = () => {
                       >
                         <FileText className="mr-2 h-4 w-4" />
                         Request report
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="justify-start"
+                        onClick={() => handleViewProfile("P-007")}
+                      >
+                        <UserSearch className="mr-2 h-4 w-4" />
+                        View profiles
                       </Button>
                     </div>
                   </PopoverContent>
@@ -502,46 +590,38 @@ const CommandCenterOverview = () => {
         </Card>
         
         <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>At-Risk Participants</CardTitle>
+            <Button variant="outline" size="sm" onClick={() => handleViewProfile("P-003")}>
+              View All
+            </Button>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-lg border p-3 text-center">
-                <Users className="mx-auto h-6 w-6 text-military-navy" />
-                <p className="mt-1 text-xs font-medium">Participant Directory</p>
-              </div>
-              
-              <div className="rounded-lg border p-3 text-center">
-                <MessageSquare className="mx-auto h-6 w-6 text-military-navy" />
-                <p className="mt-1 text-xs font-medium">Send Announcement</p>
-              </div>
-              
-              <div className="rounded-lg border p-3 text-center">
-                <Calendar className="mx-auto h-6 w-6 text-military-navy" />
-                <p className="mt-1 text-xs font-medium">Schedule Event</p>
-              </div>
-              
-              <div className="rounded-lg border p-3 text-center">
-                <BookOpen className="mx-auto h-6 w-6 text-military-navy" />
-                <p className="mt-1 text-xs font-medium">Deploy Module</p>
-              </div>
-              
-              <div className="rounded-lg border p-3 text-center">
-                <ClipboardCheck className="mx-auto h-6 w-6 text-military-navy" />
-                <p className="mt-1 text-xs font-medium">Create Assignment</p>
-              </div>
-              
-              <div className="rounded-lg border p-3 text-center">
-                <Activity className="mx-auto h-6 w-6 text-military-navy" />
-                <p className="mt-1 text-xs font-medium">View Reports</p>
-              </div>
+            <div className="space-y-4">
+              {atRiskParticipants.map((participant) => (
+                <div 
+                  key={participant.id} 
+                  className="flex items-start gap-4 rounded-lg border p-3 bg-military-red/5"
+                >
+                  <UserRound className="mt-1 h-5 w-5 text-military-red" />
+                  <div className="flex-1">
+                    <p className="font-medium">{participant.name}</p>
+                    <p className="text-sm text-muted-foreground">{participant.progress}% Progress</p>
+                    <p className="text-xs text-military-red">Last active: {participant.lastActive}</p>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => handleViewProfile(participant.id)}
+                  >
+                    <UserSearch className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
-};
 
-export default CommandCenterOverview;
+      <
+

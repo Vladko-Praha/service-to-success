@@ -96,3 +96,22 @@ export type AutomationStepInput = {
   delayDays: number;
   emailName: string;
 };
+
+export type AtRiskParticipant = {
+  id: string;
+  name: string;
+  rank: string;
+  branch: string;
+  cohort: string;
+  progress: number;
+  lastActive: string;
+  status: string;
+  businessType: string;
+  risk: "high" | "medium" | "low";
+  riskReasons: string[];
+  contact: {
+    email: string;
+    phone: string;
+  };
+};
+
