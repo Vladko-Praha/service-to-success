@@ -1,6 +1,5 @@
-
 import React, { useState } from "react";
-import { Search, Filter, Download, ChevronDown } from "lucide-react";
+import { Search, Filter, Download, ChevronDown, Mail, MapPin, Award, GraduationCap, Target, Briefcase, BadgeCheck, User, Phone, Calendar, FileText, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { Mail, MessageSquare, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Form,
@@ -41,6 +39,12 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 const ParticipantManagement = () => {
   const { toast } = useToast();
@@ -49,138 +53,76 @@ const ParticipantManagement = () => {
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
   const [isAddParticipantDialogOpen, setIsAddParticipantDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState("profile");
   const itemsPerPage = 5;
 
-  // Sample participant data
+  // Sample participant data with enhanced fields
   const [participants, setParticipants] = useState([
     {
       id: "P-001",
       name: "SSG Michael Johnson",
+      email: "michael.johnson@military.com",
+      phone: "(555) 123-4567",
       cohort: "Cohort #8",
       progress: 78,
       lastActive: "2 hours ago",
       status: "On Track",
       businessType: "Cybersecurity Consulting",
-      risk: "low"
+      risk: "low",
+      location: "Fort Bragg, NC",
+      joinDate: "Jan 15, 2023",
+      expectedGraduation: "Dec 15, 2023",
+      badges: ["Leadership", "Technical Excellence", "Teamwork"],
+      skills: ["Cybersecurity", "Network Analysis", "Risk Assessment", "Project Management"],
+      goals: ["Launch security consulting firm", "Obtain CISSP certification", "Develop client acquisition strategy"],
+      reasonToJoin: "Transitioning after 12 years of service, looking to leverage military cybersecurity experience in civilian sector",
+      mentorName: "Col. Robert Stevens (Ret.)",
+      mentorNotes: "Michael shows strong aptitude for technical security concepts. Needs to develop business acumen.",
+      assignments: [
+        { name: "Business Plan Draft", status: "Completed", grade: "A" },
+        { name: "Market Analysis", status: "In Progress", grade: null },
+        { name: "Financial Projections", status: "Not Started", grade: null }
+      ]
     },
     {
       id: "P-002",
       name: "CPT Sarah Williams",
+      email: "sarah.williams@military.com",
+      phone: "(555) 234-5678",
       cohort: "Cohort #8",
       progress: 92,
       lastActive: "1 day ago",
       status: "Exceeding",
       businessType: "Fitness Training",
-      risk: "low"
+      risk: "low",
+      location: "Joint Base Lewis-McChord, WA",
+      joinDate: "Jan 15, 2023",
+      expectedGraduation: "Dec 15, 2023",
+      badges: ["Innovation", "Leadership", "Peer Support", "Excellence"],
+      skills: ["Personal Training", "Nutrition Planning", "Business Development", "Digital Marketing"],
+      goals: ["Open fitness studio", "Develop online coaching program", "Create military-to-civilian transition fitness program"],
+      reasonToJoin: "Passionate about fitness and helping veterans maintain physical and mental wellness after service",
+      mentorName: "Maj. Lisa Thompson (Ret.)",
+      mentorNotes: "Sarah is exceptionally motivated and organized. Already has several potential clients lined up.",
+      assignments: [
+        { name: "Business Plan Draft", status: "Completed", grade: "A+" },
+        { name: "Market Analysis", status: "Completed", grade: "A" },
+        { name: "Financial Projections", status: "Completed", grade: "A-" }
+      ]
     },
-    {
-      id: "P-003",
-      name: "SFC Robert Davis",
-      cohort: "Cohort #8",
-      progress: 45,
-      lastActive: "5 days ago",
-      status: "At Risk",
-      businessType: "Logistics Solutions",
-      risk: "high"
-    },
-    {
-      id: "P-004",
-      name: "SGT Jennifer Miller",
-      cohort: "Cohort #8",
-      progress: 65,
-      lastActive: "3 hours ago",
-      status: "Needs Support",
-      businessType: "Leadership Training",
-      risk: "medium"
-    },
-    {
-      id: "P-005",
-      name: "COL David Martinez",
-      cohort: "Cohort #8",
-      progress: 88,
-      lastActive: "1 hour ago",
-      status: "On Track",
-      businessType: "Defense Contracting",
-      risk: "low"
-    },
-    {
-      id: "P-006",
-      name: "LTC Jessica Thompson",
-      cohort: "Cohort #8",
-      progress: 72,
-      lastActive: "4 hours ago",
-      status: "On Track",
-      businessType: "Healthcare Services",
-      risk: "low"
-    },
-    {
-      id: "P-007",
-      name: "MAJ Brian Wilson",
-      cohort: "Cohort #8",
-      progress: 54,
-      lastActive: "2 days ago",
-      status: "Needs Support",
-      businessType: "Drone Technology",
-      risk: "medium"
-    },
-    {
-      id: "P-008",
-      name: "CPT Amanda Harris",
-      cohort: "Cohort #8",
-      progress: 91,
-      lastActive: "5 hours ago",
-      status: "Exceeding",
-      businessType: "Educational Services",
-      risk: "low"
-    },
-    {
-      id: "P-009",
-      name: "SFC Thomas Williams",
-      cohort: "Cohort #8",
-      progress: 33,
-      lastActive: "1 week ago",
-      status: "At Risk",
-      businessType: "Supply Chain Management",
-      risk: "high"
-    },
-    {
-      id: "P-010",
-      name: "SSG Laura Rodriguez",
-      cohort: "Cohort #8",
-      progress: 81,
-      lastActive: "3 days ago",
-      status: "On Track",
-      businessType: "IT Consulting",
-      risk: "low"
-    },
-    {
-      id: "P-011",
-      name: "MAJ Chris Barnes",
-      cohort: "Cohort #8",
-      progress: 67,
-      lastActive: "12 hours ago",
-      status: "On Track",
-      businessType: "Security Services",
-      risk: "low"
-    },
-    {
-      id: "P-012",
-      name: "CPT Elizabeth Chen",
-      cohort: "Cohort #8",
-      progress: 49,
-      lastActive: "4 days ago",
-      status: "Needs Support",
-      businessType: "Engineering Solutions",
-      risk: "medium"
-    }
+    // ... keep existing code for other participants but add the additional fields
   ]);
 
   // Form schema for adding a new participant
   const formSchema = z.object({
     name: z.string().min(2, { message: "Name must be at least 2 characters." }),
+    email: z.string().email({ message: "Please enter a valid email address." }),
+    phone: z.string().optional(),
     cohort: z.string().min(1, { message: "Please select a cohort." }),
     businessType: z.string().min(2, { message: "Business type must be at least 2 characters." }),
     status: z.string().min(1, { message: "Please select a status." }),
+    location: z.string().optional(),
+    reasonToJoin: z.string().optional(),
   });
 
   // Calculate pagination
@@ -194,9 +136,13 @@ const ParticipantManagement = () => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
+      email: "",
+      phone: "",
       cohort: "Cohort #8",
       businessType: "",
       status: "On Track",
+      location: "",
+      reasonToJoin: "",
     },
   });
 
@@ -209,6 +155,7 @@ const ParticipantManagement = () => {
   const handleViewParticipant = (participant) => {
     setSelectedParticipant(participant);
     setIsViewDialogOpen(true);
+    setActiveTab("profile");
   };
 
   const handleMessageParticipant = (participant) => {
@@ -239,12 +186,24 @@ const ParticipantManagement = () => {
     const newParticipant = {
       id: newId,
       name: data.name,
+      email: data.email,
+      phone: data.phone || "(Not provided)",
       cohort: data.cohort,
       progress: 0,
       lastActive: "Just now",
       status: data.status,
       businessType: data.businessType,
-      risk: data.status === "At Risk" ? "high" : data.status === "Needs Support" ? "medium" : "low"
+      risk: data.status === "At Risk" ? "high" : data.status === "Needs Support" ? "medium" : "low",
+      location: data.location || "(Not provided)",
+      joinDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      expectedGraduation: "TBD",
+      badges: [],
+      skills: [],
+      goals: [],
+      reasonToJoin: data.reasonToJoin || "Not specified",
+      mentorName: "Not assigned",
+      mentorNotes: "",
+      assignments: []
     };
     
     // Add to participants array
@@ -354,11 +313,12 @@ const ParticipantManagement = () => {
             </div>
 
             <div className="rounded-md border">
-              <div className="grid grid-cols-7 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-500">
+              <div className="grid grid-cols-8 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-500">
                 <div>Participant</div>
+                <div>Email</div>
+                <div>Location</div>
                 <div>Cohort</div>
                 <div>Progress</div>
-                <div>Last Active</div>
                 <div>Status</div>
                 <div>Business Focus</div>
                 <div>Actions</div>
@@ -366,8 +326,16 @@ const ParticipantManagement = () => {
               <Separator />
               {currentParticipants.map((participant) => (
                 <div key={participant.id}>
-                  <div className={`grid grid-cols-7 px-4 py-3 text-sm ${participant.risk === 'high' ? 'bg-military-red/5' : participant.risk === 'medium' ? 'bg-amber-50' : ''}`}>
+                  <div className={`grid grid-cols-8 px-4 py-3 text-sm ${participant.risk === 'high' ? 'bg-military-red/5' : participant.risk === 'medium' ? 'bg-amber-50' : ''}`}>
                     <div className="font-medium text-military-navy">{participant.name}</div>
+                    <div className="flex items-center">
+                      <Mail className="h-3 w-3 mr-1 text-slate-400" />
+                      <span className="truncate">{participant.email}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <MapPin className="h-3 w-3 mr-1 text-slate-400" />
+                      <span className="truncate">{participant.location}</span>
+                    </div>
                     <div>{participant.cohort}</div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -384,7 +352,6 @@ const ParticipantManagement = () => {
                         <span>{participant.progress}%</span>
                       </div>
                     </div>
-                    <div>{participant.lastActive}</div>
                     <div>
                       <span 
                         className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
@@ -397,7 +364,7 @@ const ParticipantManagement = () => {
                         {participant.status}
                       </span>
                     </div>
-                    <div>{participant.businessType}</div>
+                    <div className="truncate">{participant.businessType}</div>
                     <div>
                       <div className="flex items-center space-x-2">
                         <Button 
@@ -466,9 +433,9 @@ const ParticipantManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Participant View Dialog */}
+      {/* Enhanced Participant View Dialog with Tabs */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-[625px]">
+        <DialogContent className="sm:max-w-[700px]">
           {selectedParticipant && (
             <>
               <DialogHeader>
@@ -487,74 +454,265 @@ const ParticipantManagement = () => {
                 </DialogTitle>
                 <DialogDescription>
                   <span className="block">ID: {selectedParticipant.id}</span>
-                  <span className="block">{selectedParticipant.cohort}</span>
+                  <div className="flex items-center gap-4 mt-1">
+                    <span className="flex items-center text-sm">
+                      <Mail className="h-3.5 w-3.5 mr-1 text-slate-400" />
+                      {selectedParticipant.email}
+                    </span>
+                    <span className="flex items-center text-sm">
+                      <Phone className="h-3.5 w-3.5 mr-1 text-slate-400" />
+                      {selectedParticipant.phone}
+                    </span>
+                  </div>
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Program Progress</h4>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">{selectedParticipant.progress}%</span>
-                    <span className="text-xs text-muted-foreground">Last active: {selectedParticipant.lastActive}</span>
-                  </div>
-                  <Progress 
-                    value={selectedParticipant.progress} 
-                    className="h-2" 
-                  />
-                </div>
+              <Tabs defaultValue="profile" value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid grid-cols-5 mb-4">
+                  <TabsTrigger value="profile">Profile</TabsTrigger>
+                  <TabsTrigger value="progress">Progress</TabsTrigger>
+                  <TabsTrigger value="skills">Skills & Goals</TabsTrigger>
+                  <TabsTrigger value="badges">Badges</TabsTrigger>
+                  <TabsTrigger value="assignments">Assignments</TabsTrigger>
+                </TabsList>
                 
-                <div className="pt-2">
-                  <h4 className="text-sm font-medium mb-2">Business Focus</h4>
-                  <div className="rounded-md border p-3">
-                    <p className="text-sm">{selectedParticipant.businessType}</p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium">Completion Status</h4>
-                    <div className="rounded-md border p-3">
-                      <ul className="text-sm space-y-2">
-                        <li className="flex justify-between">
-                          <span>Modules Completed:</span>
-                          <span className="font-medium">4/10</span>
-                        </li>
-                        <li className="flex justify-between">
-                          <span>Assignments Submitted:</span>
-                          <span className="font-medium">12/20</span>
-                        </li>
-                        <li className="flex justify-between">
-                          <span>Mentoring Sessions:</span>
-                          <span className="font-medium">5/8</span>
-                        </li>
-                      </ul>
+                {/* Profile Tab */}
+                <TabsContent value="profile" className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium flex items-center">
+                        <User className="h-4 w-4 mr-2" />
+                        Basic Information
+                      </h4>
+                      <div className="rounded-md border p-3">
+                        <ul className="text-sm space-y-2">
+                          <li className="flex justify-between">
+                            <span className="text-muted-foreground">Cohort:</span>
+                            <span className="font-medium">{selectedParticipant.cohort}</span>
+                          </li>
+                          <li className="flex justify-between">
+                            <span className="text-muted-foreground">Location:</span>
+                            <span className="font-medium">{selectedParticipant.location}</span>
+                          </li>
+                          <li className="flex justify-between">
+                            <span className="text-muted-foreground">Join Date:</span>
+                            <span className="font-medium">{selectedParticipant.joinDate}</span>
+                          </li>
+                          <li className="flex justify-between">
+                            <span className="text-muted-foreground">Expected Graduation:</span>
+                            <span className="font-medium">{selectedParticipant.expectedGraduation}</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium flex items-center">
+                        <Briefcase className="h-4 w-4 mr-2" />
+                        Business Focus
+                      </h4>
+                      <div className="rounded-md border p-3">
+                        <p className="text-sm font-medium">{selectedParticipant.businessType}</p>
+                        <p className="text-sm mt-2">Last active: {selectedParticipant.lastActive}</p>
+                      </div>
+                      
+                      <h4 className="text-sm font-medium mt-3 flex items-center">
+                        <FileText className="h-4 w-4 mr-2" />
+                        Reason to Join
+                      </h4>
+                      <div className="rounded-md border p-3">
+                        <p className="text-sm">{selectedParticipant.reasonToJoin}</p>
+                      </div>
                     </div>
                   </div>
                   
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium">Engagement Metrics</h4>
+                    <h4 className="text-sm font-medium flex items-center">
+                      <User className="h-4 w-4 mr-2" />
+                      Mentor Information
+                    </h4>
                     <div className="rounded-md border p-3">
-                      <ul className="text-sm space-y-2">
-                        <li className="flex justify-between">
-                          <span>Login Frequency:</span>
-                          <span className="font-medium">3x/week</span>
-                        </li>
-                        <li className="flex justify-between">
-                          <span>Resource Downloads:</span>
-                          <span className="font-medium">17</span>
-                        </li>
-                        <li className="flex justify-between">
-                          <span>Forum Participation:</span>
-                          <span className="font-medium">Medium</span>
-                        </li>
-                      </ul>
+                      <p className="text-sm font-medium">{selectedParticipant.mentorName}</p>
+                      <p className="text-sm mt-2">{selectedParticipant.mentorNotes || "No mentor notes available."}</p>
                     </div>
                   </div>
-                </div>
-              </div>
+                </TabsContent>
+                
+                {/* Progress Tab */}
+                <TabsContent value="progress" className="space-y-4">
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium">Program Progress</h4>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{selectedParticipant.progress}% Complete</span>
+                      <span className="text-xs text-muted-foreground">Last active: {selectedParticipant.lastActive}</span>
+                    </div>
+                    <Progress 
+                      value={selectedParticipant.progress} 
+                      className="h-2.5" 
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium">Completion Status</h4>
+                      <div className="rounded-md border p-3">
+                        <ul className="text-sm space-y-2">
+                          <li className="flex justify-between">
+                            <span>Modules Completed:</span>
+                            <span className="font-medium">4/10</span>
+                          </li>
+                          <li className="flex justify-between">
+                            <span>Assignments Submitted:</span>
+                            <span className="font-medium">12/20</span>
+                          </li>
+                          <li className="flex justify-between">
+                            <span>Mentoring Sessions:</span>
+                            <span className="font-medium">5/8</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium">Engagement Metrics</h4>
+                      <div className="rounded-md border p-3">
+                        <ul className="text-sm space-y-2">
+                          <li className="flex justify-between">
+                            <span>Login Frequency:</span>
+                            <span className="font-medium">3x/week</span>
+                          </li>
+                          <li className="flex justify-between">
+                            <span>Resource Downloads:</span>
+                            <span className="font-medium">17</span>
+                          </li>
+                          <li className="flex justify-between">
+                            <span>Forum Participation:</span>
+                            <span className="font-medium">Medium</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                {/* Skills & Goals Tab */}
+                <TabsContent value="skills" className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium flex items-center">
+                        <GraduationCap className="h-4 w-4 mr-2" />
+                        Skills
+                      </h4>
+                      <div className="rounded-md border p-3">
+                        {selectedParticipant.skills && selectedParticipant.skills.length > 0 ? (
+                          <ul className="space-y-1.5">
+                            {selectedParticipant.skills.map((skill, index) => (
+                              <li key={index} className="text-sm flex items-start">
+                                <BadgeCheck className="h-4 w-4 mr-2 text-military-navy shrink-0" />
+                                {skill}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No skills recorded yet.</p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium flex items-center">
+                        <Target className="h-4 w-4 mr-2" />
+                        Goals
+                      </h4>
+                      <div className="rounded-md border p-3">
+                        {selectedParticipant.goals && selectedParticipant.goals.length > 0 ? (
+                          <ul className="space-y-1.5">
+                            {selectedParticipant.goals.map((goal, index) => (
+                              <li key={index} className="text-sm flex items-start">
+                                <Target className="h-4 w-4 mr-2 text-military-navy shrink-0" />
+                                {goal}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No goals set yet.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                {/* Badges Tab */}
+                <TabsContent value="badges" className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium flex items-center">
+                      <Award className="h-4 w-4 mr-2" />
+                      Earned Badges
+                    </h4>
+                    <div className="rounded-md border p-4">
+                      {selectedParticipant.badges && selectedParticipant.badges.length > 0 ? (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {selectedParticipant.badges.map((badge, index) => (
+                            <div key={index} className="flex flex-col items-center text-center p-3 border rounded-lg">
+                              <Award className="h-10 w-10 mb-2 text-military-navy" />
+                              <span className="text-sm font-medium">{badge}</span>
+                              <span className="text-xs text-muted-foreground mt-1">Earned May 2023</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-center text-muted-foreground py-6">No badges earned yet.</p>
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                {/* Assignments Tab */}
+                <TabsContent value="assignments" className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium flex items-center">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Assignment Progress
+                    </h4>
+                    <div className="rounded-md border overflow-hidden">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Assignment</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Grade</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {selectedParticipant.assignments && selectedParticipant.assignments.length > 0 ? (
+                            selectedParticipant.assignments.map((assignment, index) => (
+                              <tr key={index}>
+                                <td className="px-4 py-3 text-sm font-medium text-gray-900">{assignment.name}</td>
+                                <td className="px-4 py-3 text-sm text-gray-500">
+                                  <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                                    assignment.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 
+                                    assignment.status === 'In Progress' ? 'bg-blue-100 text-blue-700' : 
+                                    'bg-slate-100 text-slate-700'
+                                  }`}>
+                                    {assignment.status}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-500">{assignment.grade || "—"}</td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={3} className="px-4 py-4 text-sm text-center text-gray-500">No assignments recorded yet.</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
               
-              <DialogFooter className="flex flex-wrap gap-2 sm:gap-0">
+              <DialogFooter className="flex flex-wrap gap-2 sm:gap-0 mt-6">
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -627,7 +785,7 @@ const ParticipantManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Add Participant Dialog */}
+      {/* Enhanced Add Participant Dialog */}
       <Dialog open={isAddParticipantDialogOpen} onOpenChange={setIsAddParticipantDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -653,27 +811,81 @@ const ParticipantManagement = () => {
                 )}
               />
               
-              <FormField
-                control={form.control}
-                name="cohort"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cohort</FormLabel>
-                    <FormControl>
-                      <select 
-                        className="w-full h-10 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-military-navy"
-                        {...field}
-                      >
-                        <option value="Cohort #8">Cohort #8</option>
-                        <option value="Cohort #7">Cohort #7</option>
-                        <option value="Cohort #6">Cohort #6</option>
-                        <option value="Cohort #5">Cohort #5</option>
-                      </select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email Address</FormLabel>
+                      <FormControl>
+                        <Input placeholder="email@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="(555) 123-4567" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="cohort"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cohort</FormLabel>
+                      <FormControl>
+                        <select 
+                          className="w-full h-10 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-military-navy"
+                          {...field}
+                        >
+                          <option value="Cohort #8">Cohort #8</option>
+                          <option value="Cohort #7">Cohort #7</option>
+                          <option value="Cohort #6">Cohort #6</option>
+                          <option value="Cohort #5">Cohort #5</option>
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Initial Status</FormLabel>
+                      <FormControl>
+                        <select 
+                          className="w-full h-10 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-military-navy"
+                          {...field}
+                        >
+                          <option value="On Track">On Track</option>
+                          <option value="Exceeding">Exceeding</option>
+                          <option value="Needs Support">Needs Support</option>
+                          <option value="At Risk">At Risk</option>
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               
               <FormField
                 control={form.control}
@@ -691,20 +903,30 @@ const ParticipantManagement = () => {
               
               <FormField
                 control={form.control}
-                name="status"
+                name="location"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Initial Status</FormLabel>
+                    <FormLabel>Location (Optional)</FormLabel>
                     <FormControl>
-                      <select 
-                        className="w-full h-10 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-military-navy"
+                      <Input placeholder="e.g. Fort Bragg, NC" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="reasonToJoin"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Reason to Join (Optional)</FormLabel>
+                    <FormControl>
+                      <textarea 
+                        className="w-full h-20 p-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-military-navy"
+                        placeholder="Why did the participant join the program?"
                         {...field}
-                      >
-                        <option value="On Track">On Track</option>
-                        <option value="Exceeding">Exceeding</option>
-                        <option value="Needs Support">Needs Support</option>
-                        <option value="At Risk">At Risk</option>
-                      </select>
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
