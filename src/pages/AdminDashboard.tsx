@@ -23,13 +23,12 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Single initial check for registration, without repeating or setting up intervals
+  // Modified to only check if userInfo exists - no need to log anything 
+  // since ParticipantManagement handles this
   useEffect(() => {
-    // Check once if there's any new user registration
     const userInfo = localStorage.getItem('userInfo');
     if (userInfo) {
-      console.log("Admin dashboard detected user info in localStorage on initial load");
-      // We'll handle the actual user addition in the ParticipantManagement component
+      // The actual user processing is done in ParticipantManagement
     }
   }, []);
 

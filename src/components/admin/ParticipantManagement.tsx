@@ -227,8 +227,13 @@ const ParticipantManagement = () => {
   }, []);
 
   const handleClearAllParticipants = () => {
+    // Clear participants from state
     setParticipants([]);
     setProcessedUserEmails(new Set());
+    
+    // Clear userInfo from localStorage
+    localStorage.removeItem('userInfo');
+    
     setIsClearParticipantsDialogOpen(false);
     toast({
       title: "All Participants Cleared",
