@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, Filter, Download, ChevronDown, Mail, MapPin, Award, GraduationCap, Target, Briefcase, BadgeCheck, User, Phone, Calendar, FileText, MessageSquare } from "lucide-react";
+import { Search, Filter, Download, ChevronDown, Mail, MapPin, Award, GraduationCap, Target, Briefcase, BadgeCheck, User, Phone, Calendar, FileText, MessageSquare, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,16 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface UserInfo {
   name: string;
@@ -95,8 +105,10 @@ const ParticipantManagement = () => {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
   const [isAddParticipantDialogOpen, setIsAddParticipantDialogOpen] = useState(false);
+  const [isClearParticipantsDialogOpen, setIsClearParticipantsDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("profile");
+  const [processedUserEmails, setProcessedUserEmails] = useState<Set<string>>(new Set());
   const itemsPerPage = 5;
 
   const [participants, setParticipants] = useState<Participant[]>([
@@ -157,17 +169,21 @@ const ParticipantManagement = () => {
   useEffect(() => {
     const loadUserFromStorage = () => {
       const storedUserInfo = localStorage.getItem('userInfo');
-      console.log("User info from localStorage:", storedUserInfo);
       
       if (storedUserInfo) {
         try {
           const userInfo = JSON.parse(storedUserInfo) as UserInfo;
-          console.log("Parsed user info:", userInfo);
+          
+          if (!userInfo.name || !userInfo.email) return;
+          
+          if (processedUserEmails.has(userInfo.email)) {
+            console.log("Already processed this email, skipping:", userInfo.email);
+            return;
+          }
           
           const userExists = participants.some(p => p.email === userInfo.email);
-          console.log("User exists in participants:", userExists);
           
-          if (!userExists && userInfo.name && userInfo.email) {
+          if (!userExists) {
             const newParticipant: Participant = {
               id: `P-${String(participants.length + 1).padStart(3, '0')}`,
               name: userInfo.name,
@@ -191,7 +207,7 @@ const ParticipantManagement = () => {
               assignments: []
             };
             
-            console.log("Adding new participant:", newParticipant);
+            setProcessedUserEmails(prev => new Set(prev).add(userInfo.email));
             
             setParticipants(prevParticipants => [...prevParticipants, newParticipant]);
             
@@ -207,11 +223,18 @@ const ParticipantManagement = () => {
     };
 
     loadUserFromStorage();
-
-    const intervalId = setInterval(loadUserFromStorage, 3000);
-    
-    return () => clearInterval(intervalId);
   }, []);
+
+  const handleClearAllParticipants = () => {
+    setParticipants([]);
+    setProcessedUserEmails(new Set());
+    setIsClearParticipantsDialogOpen(false);
+    toast({
+      title: "All Participants Cleared",
+      description: "The participant database has been cleared successfully.",
+      variant: "default",
+    });
+  };
 
   const formSchema = z.object({
     name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -337,12 +360,22 @@ const ParticipantManagement = () => {
         <h2 className="text-3xl font-bold tracking-tight text-military-navy">
           Participant Management
         </h2>
-        <Button 
-          className="bg-military-navy hover:bg-military-navy/90"
-          onClick={() => setIsAddParticipantDialogOpen(true)}
-        >
-          + Add Participant
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            className="bg-military-navy hover:bg-military-navy/90"
+            onClick={() => setIsAddParticipantDialogOpen(true)}
+          >
+            + Add Participant
+          </Button>
+          <Button 
+            variant="destructive"
+            onClick={() => setIsClearParticipantsDialogOpen(true)}
+            className="flex items-center space-x-1"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span>Clear All</span>
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -800,177 +833,4 @@ const ParticipantManagement = () => {
                       </table>
                     </div>
                   </div>
-                </TabsContent>
-              </Tabs>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isMessageDialogOpen} onOpenChange={setIsMessageDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Send Message to {selectedParticipant?.name}</DialogTitle>
-            <DialogDescription>
-              Send a direct message to this participant.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label htmlFor="message" className="text-sm font-medium">
-                Message
-              </label>
-              <textarea
-                id="message"
-                className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
-                placeholder="Type your message here..."
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsMessageDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSendMessage}>Send Message</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isAddParticipantDialogOpen} onOpenChange={setIsAddParticipantDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Add New Participant</DialogTitle>
-            <DialogDescription>
-              Fill in the details to add a new participant to the program.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Full name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Email address" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Phone number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="cohort"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cohort</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Cohort" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="businessType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Business Type</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Business type" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Status" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Location</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Location" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="reasonToJoin"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Reason to Join</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Reason to join" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <DialogFooter>
-                <Button type="submit">Add Participant</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-export default ParticipantManagement;
+                </TabsContent
