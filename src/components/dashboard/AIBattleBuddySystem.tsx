@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bot, Clock, Lightbulb, Search, Send, Key, AlertCircle, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -36,7 +37,7 @@ const AIBattleBuddySystem = () => {
   const [selectedModel, setSelectedModel] = useState("gpt-3.5-turbo");
   const [debugMode, setDebugMode] = useState(false);
   const [lastErrorDetails, setLastErrorDetails] = useState<any>(null);
-  const [feedbackGiven, setFeedbackGiven] = useState<Record<number, 'positive' | 'negative'>({}));
+  const [feedbackGiven, setFeedbackGiven] = useState<Record<number, 'positive' | 'negative'>>({});
   const { toast } = useToast();
 
   useEffect(() => {
