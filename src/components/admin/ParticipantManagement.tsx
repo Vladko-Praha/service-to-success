@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Search, Filter, Download, ChevronDown, Mail, MapPin, Award, GraduationCap, Target, Briefcase, BadgeCheck, User, Phone, Calendar, FileText, MessageSquare, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -116,6 +115,7 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
   const [activeTab, setActiveTab] = useState("profile");
   const [isLoading, setIsLoading] = useState(false);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const itemsPerPage = 5;
 
   // Fetch participants from Supabase on component mount
@@ -126,6 +126,10 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
   const fetchParticipants = async () => {
     setIsLoading(true);
     try {
+      // Check for an authenticated user first
+      const { data: session } = await supabase.auth.getSession();
+      const currentUser = session?.session?.user;
+      
       // Get participants from the "participants" table in Supabase
       const { data, error } = await supabase
         .from('participants')
@@ -202,53 +206,12 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
         }
       }
       
-      // Check for any new user registrations in Supabase auth
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) {
-        console.error("Error fetching auth users:", authError);
-      } else if (authUsers) {
-        // Process any new registrations not yet in the participants table
-        for (const user of authUsers.users) {
-          const existingParticipant = participants.find(p => p.email === user.email);
-          
-          if (!existingParticipant && user.user_metadata) {
-            // Create a new participant entry from the auth user
-            const newParticipant: Participant = {
-              id: `P-${String(participants.length + 1).padStart(3, '0')}`,
-              name: user.user_metadata.full_name || user.email?.split('@')[0] || 'New User',
-              email: user.email || '',
-              phone: user.user_metadata.phone || "(Not provided)",
-              cohort: "Cohort #8",
-              progress: 0,
-              lastActive: "Just registered",
-              status: "On Track",
-              businessType: user.user_metadata.businessGoals || "(Not specified)",
-              risk: "low",
-              location: user.user_metadata.militaryBranch ? `${user.user_metadata.militaryBranch} veteran` : "(Not provided)",
-              joinDate: new Date(user.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-              expectedGraduation: "TBD",
-              badges: [],
-              skills: user.user_metadata.skillsets ? [user.user_metadata.skillsets] : [],
-              goals: user.user_metadata.businessGoals ? [user.user_metadata.businessGoals] : [],
-              reasonToJoin: user.user_metadata.heardFrom ? `Referred from: ${user.user_metadata.heardFrom}` : "New registration",
-              mentorName: "Not assigned",
-              mentorNotes: "",
-              assignments: []
-            };
-            
-            // Add to Supabase
-            await supabase.from('participants').insert(newParticipant);
-            
-            // Update local state
-            setParticipants(prev => [...prev, newParticipant]);
-            
-            toast({
-              title: "New Registration Detected",
-              description: `${newParticipant.name} has been added to the participants list.`,
-            });
-          }
-        }
+      // Add current authenticated user if they're not already in the database
+      if (currentUser && !data?.some(p => p.email === currentUser.email)) {
+        console.log("Current authenticated user not found in participants, will be added:", currentUser.email);
+        
+        // Create a participant record for this user
+        await addCurrentUserToParticipants(currentUser);
       }
     } catch (error) {
       console.error("Error fetching participants:", error);
@@ -259,6 +222,55 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  // Helper function to add the current authenticated user to participants
+  const addCurrentUserToParticipants = async (user) => {
+    try {
+      const newId = `P-${String(participants.length + 1).padStart(3, '0')}`;
+      
+      const newParticipant: Participant = {
+        id: newId,
+        name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'New User',
+        email: user.email || '',
+        phone: user.user_metadata?.phone || "(Not provided)",
+        cohort: "Cohort #8",
+        progress: 0,
+        lastActive: "Just now",
+        status: "On Track",
+        businessType: user.user_metadata?.businessGoals || "(Not specified)",
+        risk: "low",
+        location: user.user_metadata?.militaryBranch ? `${user.user_metadata.militaryBranch} veteran` : "(Not provided)",
+        joinDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        expectedGraduation: "TBD",
+        badges: [],
+        skills: user.user_metadata?.skillsets ? [user.user_metadata.skillsets] : [],
+        goals: user.user_metadata?.businessGoals ? [user.user_metadata.businessGoals] : [],
+        reasonToJoin: user.user_metadata?.heardFrom ? `Referred from: ${user.user_metadata.heardFrom}` : "New registration",
+        mentorName: "Not assigned",
+        mentorNotes: "",
+        assignments: []
+      };
+      
+      // Add to Supabase
+      const { error } = await supabase
+        .from('participants')
+        .insert(newParticipant);
+      
+      if (error) {
+        console.error("Error adding current user as participant:", error);
+      } else {
+        // Update local state
+        setParticipants(prev => [...prev, newParticipant]);
+        
+        toast({
+          title: "Current User Added",
+          description: `${newParticipant.name} has been added to the participants list.`,
+        });
+      }
+    } catch (error) {
+      console.error("Error adding current user as participant:", error);
     }
   };
 
@@ -307,10 +319,20 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
     reasonToJoin: z.string().optional(),
   });
 
-  const totalPages = Math.ceil(participants.length / itemsPerPage);
+  const filteredParticipants = participants.filter(participant => {
+    if (!searchTerm) return true;
+    return (
+      participant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      participant.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      participant.businessType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      participant.location.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  });
+
+  const totalPages = Math.ceil(filteredParticipants.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentParticipants = participants.slice(indexOfFirstItem, indexOfLastItem);
+  const currentParticipants = filteredParticipants.slice(indexOfFirstItem, indexOfLastItem);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -356,6 +378,11 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
       title: "Report Requested",
       description: `Progress report for ${selectedParticipant?.name} has been requested`,
     });
+  };
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reset to first page on search
   };
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
@@ -477,6 +504,8 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
                 <Input
                   placeholder="Search participants..."
                   className="pl-8"
+                  value={searchTerm}
+                  onChange={handleSearch}
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -610,7 +639,7 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
                 
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-muted-foreground">
-                    Showing {participants.length > 0 ? indexOfFirstItem + 1 : 0}-{Math.min(indexOfLastItem, participants.length)} of {participants.length} participants
+                    Showing {filteredParticipants.length > 0 ? indexOfFirstItem + 1 : 0}-{Math.min(indexOfLastItem, filteredParticipants.length)} of {filteredParticipants.length} participants
                   </div>
                   
                   {totalPages > 0 && (
@@ -848,320 +877,4 @@ const ParticipantManagement = ({ supabase }: ParticipantManagementProps) => {
                         {selectedParticipant.goals && selectedParticipant.goals.length > 0 ? (
                           <ul className="space-y-1.5">
                             {selectedParticipant.goals.map((goal, index) => (
-                              <li key={index} className="text-sm flex items-start">
-                                <Target className="h-4 w-4 mr-2 text-military-navy shrink-0" />
-                                {goal}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">No goals set yet.</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="badges" className="space-y-4">
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium flex items-center">
-                      <Award className="h-4 w-4 mr-2" />
-                      Earned Badges
-                    </h4>
-                    <div className="rounded-md border p-4">
-                      {selectedParticipant.badges && selectedParticipant.badges.length > 0 ? (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                          {selectedParticipant.badges.map((badge, index) => (
-                            <div key={index} className="flex items-center p-2 border rounded-md bg-slate-50">
-                              <Award className="h-5 w-5 mr-2 text-military-navy" />
-                              <span className="text-sm font-medium">{badge}</span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground text-center py-4">
-                          No badges earned yet.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="assignments" className="space-y-4">
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium flex items-center">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Assignment Progress
-                    </h4>
-                    <div className="rounded-md border">
-                      {selectedParticipant.assignments && selectedParticipant.assignments.length > 0 ? (
-                        <div className="divide-y">
-                          <div className="grid grid-cols-3 px-4 py-2 bg-slate-50 text-sm font-medium text-slate-500">
-                            <div>Assignment</div>
-                            <div>Status</div>
-                            <div>Grade</div>
-                          </div>
-                          {selectedParticipant.assignments.map((assignment, index) => (
-                            <div key={index} className="grid grid-cols-3 px-4 py-3 text-sm">
-                              <div className="font-medium">{assignment.name}</div>
-                              <div>
-                                <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                                  assignment.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 
-                                  assignment.status === 'In Progress' ? 'bg-blue-100 text-blue-700' : 
-                                  'bg-slate-100 text-slate-700'
-                                }`}>
-                                  {assignment.status}
-                                </span>
-                              </div>
-                              <div>{assignment.grade || '—'}</div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground text-center py-4">
-                          No assignments assigned yet.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-end">
-                    <Button 
-                      variant="outline" 
-                      className="mr-2"
-                      onClick={handleRequestReport}
-                    >
-                      Request Progress Report
-                    </Button>
-                    <Button onClick={() => handleMessageParticipant(selectedParticipant)}>
-                      Send Message
-                    </Button>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Message Dialog */}
-      <Dialog open={isMessageDialogOpen} onOpenChange={setIsMessageDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Message to {selectedParticipant?.name}</DialogTitle>
-            <DialogDescription>
-              Send a direct message to this participant
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label htmlFor="subject" className="text-sm font-medium">Subject</label>
-              <Input id="subject" placeholder="Message subject" />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="message" className="text-sm font-medium">Message</label>
-              <textarea 
-                id="message" 
-                className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="Type your message here..."
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setIsMessageDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleSendMessage}>
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Send Message
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Participant Dialog */}
-      <Dialog open={isAddParticipantDialogOpen} onOpenChange={setIsAddParticipantDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Add New Participant</DialogTitle>
-            <DialogDescription>
-              Enter the details for the new participant
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Full name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Email address" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone (optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Phone number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="cohort"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cohort</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Cohort" 
-                          defaultValue="Cohort #8" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="businessType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Business Type</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Business type or focus" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Status" 
-                          defaultValue="On Track" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Location (optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Location" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="reasonToJoin"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Reason to Join (optional)</FormLabel>
-                    <FormControl>
-                      <textarea 
-                        className="flex h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        placeholder="Why did they join the program?"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => {
-                    setIsAddParticipantDialogOpen(false);
-                    form.reset();
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Adding...' : 'Add Participant'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Clear Participants Confirmation Dialog */}
-      <AlertDialog
-        open={isClearParticipantsDialogOpen}
-        onOpenChange={setIsClearParticipantsDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Clear All Participants?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action will permanently delete all participants from the database.
-              This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleClearAllParticipants}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isLoading ? 'Clearing...' : 'Yes, Clear All'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  );
-};
-
-export default ParticipantManagement;
+                              <li key

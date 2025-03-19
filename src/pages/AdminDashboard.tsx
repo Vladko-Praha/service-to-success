@@ -49,6 +49,22 @@ const AdminDashboard = () => {
             title: "Supabase Connected",
             description: "Connected to the database successfully.",
           });
+          
+          // Check if the user is authenticated
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData?.session?.user) {
+            // We have a logged-in user, let's make sure they're in the participants table
+            const { data: existingParticipant } = await supabase
+              .from('participants')
+              .select('*')
+              .eq('email', sessionData.session.user.email)
+              .maybeSingle();
+            
+            if (!existingParticipant) {
+              // If the user isn't in participants table yet, add them
+              await createParticipantFromUser(sessionData.session.user);
+            }
+          }
         }
       } catch (error) {
         console.error("Database check error:", error);
@@ -57,6 +73,59 @@ const AdminDashboard = () => {
           description: "Unable to communicate with the database. Some features may be limited.",
           variant: "destructive"
         });
+      }
+    };
+    
+    // Helper function to create a participant record from auth user
+    const createParticipantFromUser = async (user) => {
+      try {
+        // Get existing participant count for ID generation
+        const { data: participantCount } = await supabase
+          .from('participants')
+          .select('count');
+        
+        const count = participantCount?.[0]?.count || 0;
+        const newId = `P-${String(count + 1).padStart(3, '0')}`;
+        
+        // Create new participant from user data
+        const newParticipant = {
+          id: newId,
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'New User',
+          email: user.email || '',
+          phone: user.user_metadata?.phone || "(Not provided)",
+          cohort: "Cohort #8",
+          progress: 0,
+          lastActive: "Just registered",
+          status: "On Track",
+          businessType: user.user_metadata?.businessGoals || "(Not specified)",
+          risk: "low",
+          location: user.user_metadata?.militaryBranch ? `${user.user_metadata.militaryBranch} veteran` : "(Not provided)",
+          joinDate: new Date(user.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          expectedGraduation: "TBD",
+          badges: [],
+          skills: user.user_metadata?.skillsets ? [user.user_metadata.skillsets] : [],
+          goals: user.user_metadata?.businessGoals ? [user.user_metadata.businessGoals] : [],
+          reasonToJoin: user.user_metadata?.heardFrom ? `Referred from: ${user.user_metadata.heardFrom}` : "New registration",
+          mentorName: "Not assigned",
+          mentorNotes: "",
+          assignments: []
+        };
+        
+        // Add to Supabase
+        const { error } = await supabase
+          .from('participants')
+          .insert(newParticipant);
+        
+        if (error) {
+          console.error("Error adding participant:", error);
+        } else {
+          toast({
+            title: "New Participant Added",
+            description: `${newParticipant.name} has been added to the participants list.`,
+          });
+        }
+      } catch (error) {
+        console.error("Error creating participant from user:", error);
       }
     };
     
