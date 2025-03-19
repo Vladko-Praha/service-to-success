@@ -27,6 +27,7 @@ const ParticipantManagement = () => {
   const { toast } = useToast();
   const [selectedParticipant, setSelectedParticipant] = useState(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
 
   // Sample participant data
   const participants = [
@@ -87,11 +88,17 @@ const ParticipantManagement = () => {
     setIsViewDialogOpen(true);
   };
 
+  const handleMessageParticipant = (participant) => {
+    setSelectedParticipant(participant);
+    setIsMessageDialogOpen(true);
+  };
+
   const handleSendMessage = () => {
     toast({
       title: "Message Sent",
       description: `Message sent to ${selectedParticipant?.name}`,
     });
+    setIsMessageDialogOpen(false);
   };
 
   const handleRequestReport = () => {
@@ -222,7 +229,13 @@ const ParticipantManagement = () => {
                         >
                           View
                         </Button>
-                        <Button variant="ghost" size="sm">Message</Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleMessageParticipant(participant)}
+                        >
+                          Message
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -358,6 +371,49 @@ const ParticipantManagement = () => {
                   onClick={() => setIsViewDialogOpen(false)}
                 >
                   Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Message Participant Dialog */}
+      <Dialog open={isMessageDialogOpen} onOpenChange={setIsMessageDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          {selectedParticipant && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Send Message</DialogTitle>
+                <DialogDescription>
+                  Send a message to {selectedParticipant.name}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <label htmlFor="message" className="text-sm font-medium">Message</label>
+                  <textarea 
+                    id="message" 
+                    className="w-full h-32 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-military-navy"
+                    placeholder="Type your message here..."
+                  />
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsMessageDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  className="bg-military-navy hover:bg-military-navy/90"
+                  onClick={handleSendMessage}
+                >
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Send Message
                 </Button>
               </DialogFooter>
             </>
