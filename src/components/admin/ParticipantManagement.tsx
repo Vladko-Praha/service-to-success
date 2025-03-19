@@ -22,15 +22,27 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Mail, MessageSquare, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from "@/components/ui/form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 
 const ParticipantManagement = () => {
   const { toast } = useToast();
   const [selectedParticipant, setSelectedParticipant] = useState(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
+  const [isAddParticipantDialogOpen, setIsAddParticipantDialogOpen] = useState(false);
 
   // Sample participant data
-  const participants = [
+  const [participants, setParticipants] = useState([
     {
       id: "P-001",
       name: "SSG Michael Johnson",
@@ -81,7 +93,26 @@ const ParticipantManagement = () => {
       businessType: "Defense Contracting",
       risk: "low"
     }
-  ];
+  ]);
+
+  // Form schema for adding a new participant
+  const formSchema = z.object({
+    name: z.string().min(2, { message: "Name must be at least 2 characters." }),
+    cohort: z.string().min(1, { message: "Please select a cohort." }),
+    businessType: z.string().min(2, { message: "Business type must be at least 2 characters." }),
+    status: z.string().min(1, { message: "Please select a status." }),
+  });
+
+  // React Hook Form
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      cohort: "Cohort #8",
+      businessType: "",
+      status: "On Track",
+    },
+  });
 
   const handleViewParticipant = (participant) => {
     setSelectedParticipant(participant);
@@ -108,13 +139,46 @@ const ParticipantManagement = () => {
     });
   };
 
+  const onSubmit = (data: z.infer<typeof formSchema>) => {
+    // Generate a new ID
+    const newId = `P-${String(participants.length + 1).padStart(3, '0')}`;
+    
+    // Create new participant object
+    const newParticipant = {
+      id: newId,
+      name: data.name,
+      cohort: data.cohort,
+      progress: 0,
+      lastActive: "Just now",
+      status: data.status,
+      businessType: data.businessType,
+      risk: data.status === "At Risk" ? "high" : data.status === "Needs Support" ? "medium" : "low"
+    };
+    
+    // Add to participants array
+    setParticipants([...participants, newParticipant]);
+    
+    // Show success message
+    toast({
+      title: "Participant Added",
+      description: `${data.name} has been added to ${data.cohort}`,
+    });
+    
+    // Close dialog and reset form
+    setIsAddParticipantDialogOpen(false);
+    form.reset();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight text-military-navy">
           Participant Management
         </h2>
-        <Button className="bg-military-navy hover:bg-military-navy/90">
+        <Button 
+          className="bg-military-navy hover:bg-military-navy/90"
+          onClick={() => setIsAddParticipantDialogOpen(true)}
+        >
           + Add Participant
         </Button>
       </div>
@@ -246,7 +310,7 @@ const ParticipantManagement = () => {
             
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
-                Showing 5 of 32 participants
+                Showing {participants.length} of {participants.length} participants
               </div>
               <div className="flex items-center space-x-2">
                 <Button variant="outline" size="sm" disabled>Previous</Button>
@@ -418,6 +482,110 @@ const ParticipantManagement = () => {
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Participant Dialog */}
+      <Dialog open={isAddParticipantDialogOpen} onOpenChange={setIsAddParticipantDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New Participant</DialogTitle>
+            <DialogDescription>
+              Enter the details of the new participant
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. SGT John Smith" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="cohort"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cohort</FormLabel>
+                    <FormControl>
+                      <select 
+                        className="w-full h-10 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-military-navy"
+                        {...field}
+                      >
+                        <option value="Cohort #8">Cohort #8</option>
+                        <option value="Cohort #7">Cohort #7</option>
+                        <option value="Cohort #6">Cohort #6</option>
+                        <option value="Cohort #5">Cohort #5</option>
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="businessType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Business Focus</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Cybersecurity Consulting" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Initial Status</FormLabel>
+                    <FormControl>
+                      <select 
+                        className="w-full h-10 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-military-navy"
+                        {...field}
+                      >
+                        <option value="On Track">On Track</option>
+                        <option value="Exceeding">Exceeding</option>
+                        <option value="Needs Support">Needs Support</option>
+                        <option value="At Risk">At Risk</option>
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsAddParticipantDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  className="bg-military-navy hover:bg-military-navy/90"
+                >
+                  Add Participant
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>
