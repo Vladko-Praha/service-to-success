@@ -28,6 +28,9 @@ const TrainingCenter = () => {
               activeSection={activeSection}
               activeModule={activeModule}
               activeClass={activeClass}
+              setActiveSection={setActiveSection}
+              setActiveModule={setActiveModule}
+              setActiveClass={setActiveClass}
             />
           </main>
         </div>
