@@ -50,37 +50,37 @@ const AdminDashboard = () => {
           <main className="flex-1 p-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
               <TabsContent value="command">
-                <CommandCenterOverview onAction={handleAction} />
+                <CommandCenterOverview />
               </TabsContent>
               <TabsContent value="participants">
                 <ParticipantManagement />
               </TabsContent>
               <TabsContent value="curriculum">
-                <CurriculumCommandPost onAction={handleAction} />
+                <CurriculumCommandPost />
               </TabsContent>
               <TabsContent value="business">
-                <BusinessVentureIntelligence onAction={handleAction} />
+                <BusinessVentureIntelligence />
               </TabsContent>
               <TabsContent value="ai">
-                <AICoachManagement onAction={handleAction} />
+                <AICoachManagement />
               </TabsContent>
               <TabsContent value="communication">
-                <CommunicationHeadquarters onAction={handleAction} />
+                <CommunicationHeadquarters />
               </TabsContent>
               <TabsContent value="email">
-                <EmailCampaignHQ onAction={handleAction} />
+                <EmailCampaignHQ />
               </TabsContent>
               <TabsContent value="resources">
-                <ResourceOperations onAction={handleAction} />
+                <ResourceOperations />
               </TabsContent>
               <TabsContent value="analytics">
-                <ProgramAnalytics onAction={handleAction} />
+                <ProgramAnalytics />
               </TabsContent>
               <TabsContent value="administrative">
-                <AdministrativeFunctions onAction={handleAction} />
+                <AdministrativeFunctions />
               </TabsContent>
               <TabsContent value="graduation">
-                <GraduationTracking onAction={handleAction} />
+                <GraduationTracking />
               </TabsContent>
             </Tabs>
           </main>
