@@ -337,7 +337,7 @@ const MessageBubble = ({
   return (
     <div 
       id={`message-${message.id}`}
-      ref={forwardedRef ? forwardedRef.current : null}
+      ref={forwardedRef}
       className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} transition-colors duration-300 mb-4`}
     >
       <div className={`max-w-[80%] ${isCurrentUser ? 'bg-military-navy text-white' : 'bg-military-beige'} p-3 rounded-lg`}>
@@ -750,7 +750,7 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
                 key={message.id}
                 message={message}
                 isCurrentUser={message.sender.id === 'current-user'}
-                forwardedRef={null}
+                forwardedRef={message.id === selectedMessageId ? messagesEndRef : null}
               />
             ))}
             <div ref={messagesEndRef} />
@@ -769,3 +769,4 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
 };
 
 export default DirectMessages;
+
