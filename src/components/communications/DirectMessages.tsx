@@ -87,17 +87,8 @@ const mockConversations: Conversation[] = [
   }
 ];
 
-const mockActiveConversation: {
-  contact: Conversation['contact'];
-  messages: Message[];
-} = {
-  contact: {
-    id: "user1",
-    name: "Captain Sarah Johnson",
-    status: "online",
-    role: "Training Coordinator"
-  },
-  messages: [
+const mockMessages: Record<string, Message[]> = {
+  "1": [
     {
       id: "msg1",
       sender: {
@@ -142,6 +133,45 @@ const mockActiveConversation: {
       timestamp: "10:32 AM",
       read: false
     }
+  ],
+  "2": [
+    {
+      id: "msg5",
+      sender: {
+        id: "user2",
+        name: "Sgt. Michael Brooks",
+        status: "online"
+      },
+      content: "I've reviewed your business plan draft. It has potential but needs work on the financial projections.",
+      timestamp: "Yesterday",
+      read: true
+    }
+  ],
+  "3": [
+    {
+      id: "msg6",
+      sender: {
+        id: "user3",
+        name: "Lt. Jessica Martinez",
+        status: "away"
+      },
+      content: "Let's schedule a funding strategy call. I have some resources that might help with your venture.",
+      timestamp: "Monday",
+      read: true
+    }
+  ],
+  "4": [
+    {
+      id: "msg7",
+      sender: {
+        id: "user4",
+        name: "Lt. Col. David Clark",
+        status: "offline"
+      },
+      content: "Congratulations on completing Phase 1! You're making excellent progress in the program.",
+      timestamp: "3/20/25",
+      read: true
+    }
   ]
 };
 
@@ -152,43 +182,65 @@ interface DirectMessagesProps {
 const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) => {
   const { toast } = useToast();
   const [conversations, setConversations] = React.useState(mockConversations);
-  const [activeConversation, setActiveConversation] = React.useState(mockActiveConversation);
+  const [activeConversationId, setActiveConversationId] = React.useState("1");
   const [newMessage, setNewMessage] = React.useState("");
   const [searchTerm, setSearchTerm] = React.useState("");
+  const [messages, setMessages] = React.useState<Message[]>(mockMessages["1"]);
   
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
+  const activeConversation = conversations.find(c => c.id === activeConversationId);
+
   React.useEffect(() => {
-    // Scroll to bottom of messages
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [activeConversation.messages]);
+  }, [messages]);
+
+  React.useEffect(() => {
+    if (activeConversationId && mockMessages[activeConversationId]) {
+      setMessages(mockMessages[activeConversationId]);
+    } else {
+      setMessages([]);
+    }
+  }, [activeConversationId]);
 
   React.useEffect(() => {
     if (selectedMessageId) {
-      // Find the conversation that contains the selected message
-      const conversation = conversations.find(conv => 
-        mockActiveConversation.messages.some(msg => msg.id === selectedMessageId)
-      );
+      console.log("Looking for message with ID:", selectedMessageId);
       
-      if (conversation) {
-        // Mark messages as read
-        const updatedConversations = conversations.map(conv => 
-          conv.id === conversation.id ? { ...conv, unread: 0 } : conv
-        );
-        setConversations(updatedConversations);
-
-        // Focus on the conversation with the selected message
-        setActiveConversation(mockActiveConversation);
+      for (const [convId, msgList] of Object.entries(mockMessages)) {
+        const foundMessage = msgList.find(msg => msg.id === selectedMessageId);
+        
+        if (foundMessage) {
+          console.log("Found message in conversation:", convId);
+          setActiveConversationId(convId);
+          
+          const updatedConversations = conversations.map(conv => 
+            conv.id === convId ? { ...conv, unread: 0 } : conv
+          );
+          setConversations(updatedConversations);
+          
+          setTimeout(() => {
+            const messageElement = document.getElementById(`message-${selectedMessageId}`);
+            if (messageElement) {
+              messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+              messageElement.classList.add("bg-military-sand/30");
+              setTimeout(() => {
+                messageElement.classList.remove("bg-military-sand/30");
+              }, 2000);
+            }
+          }, 100);
+          
+          break;
+        }
       }
     }
-  }, [selectedMessageId]);
+  }, [selectedMessageId, conversations]);
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
 
-    // In a real app, this would make an API call
     const newMsg: Message = {
-      id: `msg${activeConversation.messages.length + 1}`,
+      id: `msg${Date.now()}`,
       sender: {
         id: "current-user",
         name: "You",
@@ -199,15 +251,14 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
       read: true
     };
 
-    setActiveConversation(prev => ({
-      ...prev,
-      messages: [...prev.messages, newMsg]
-    }));
+    const updatedMessages = [...messages, newMsg];
+    setMessages(updatedMessages);
+    
+    mockMessages[activeConversationId] = updatedMessages;
 
-    // Update conversation list
     setConversations(prev => 
       prev.map(conv => 
-        conv.id === activeConversation.contact.id 
+        conv.id === activeConversationId 
           ? { ...conv, lastMessage: newMessage.trim(), timestamp: 'Just now', unread: 0 } 
           : conv
       )
@@ -224,32 +275,14 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
   };
 
   const handleSelectConversation = (conversation: Conversation) => {
-    // In a real app, this would make an API call to fetch messages
-    if (conversation.id === activeConversation.contact.id) return;
+    if (conversation.id === activeConversationId) return;
 
-    // Mark messages as read
     const updatedConversations = conversations.map(conv => 
       conv.id === conversation.id ? { ...conv, unread: 0 } : conv
     );
     setConversations(updatedConversations);
 
-    // Set active conversation (mocked for demo)
-    setActiveConversation({
-      contact: conversation.contact,
-      messages: [
-        {
-          id: "msg1",
-          sender: {
-            id: conversation.contact.id,
-            name: conversation.contact.name,
-            status: conversation.contact.status
-          },
-          content: "This is the beginning of your conversation with " + conversation.contact.name,
-          timestamp: conversation.timestamp,
-          read: true
-        }
-      ]
-    });
+    setActiveConversationId(conversation.id);
   };
 
   const filteredConversations = conversations.filter(
@@ -258,7 +291,6 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
 
   return (
     <div className="flex h-[620px] border rounded-lg overflow-hidden">
-      {/* Left sidebar - Conversations list */}
       <div className="w-1/3 border-r bg-military-sand/50">
         <div className="p-3 border-b">
           <div className="relative">
@@ -276,7 +308,7 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
             <div 
               key={conversation.id}
               className={`p-3 hover:bg-military-beige cursor-pointer transition-colors border-b ${
-                activeConversation.contact.id === conversation.contact.id ? 'bg-military-beige' : ''
+                activeConversationId === conversation.id ? 'bg-military-beige' : ''
               }`}
               onClick={() => handleSelectConversation(conversation)}
             >
@@ -309,49 +341,53 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
         </ScrollArea>
       </div>
 
-      {/* Right side - Message content */}
       <div className="flex-1 flex flex-col">
-        {/* Conversation header */}
         <div className="p-3 border-b flex items-center justify-between bg-military-sand/30">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 bg-military-navy">
-              <User className="h-6 w-6 text-white" />
-            </Avatar>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold">{activeConversation.contact.name}</h3>
-                <div className={`h-2 w-2 rounded-full ${
-                  activeConversation.contact.status === 'online' ? 'bg-green-500' : 
-                  activeConversation.contact.status === 'away' ? 'bg-amber-500' : 'bg-gray-400'
-                }`} />
+          {activeConversation ? (
+            <>
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10 bg-military-navy">
+                  <User className="h-6 w-6 text-white" />
+                </Avatar>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold">{activeConversation.contact.name}</h3>
+                    <div className={`h-2 w-2 rounded-full ${
+                      activeConversation.contact.status === 'online' ? 'bg-green-500' : 
+                      activeConversation.contact.status === 'away' ? 'bg-amber-500' : 'bg-gray-400'
+                    }`} />
+                  </div>
+                  {activeConversation.contact.role && (
+                    <p className="text-xs text-muted-foreground">{activeConversation.contact.role}</p>
+                  )}
+                </div>
               </div>
-              {activeConversation.contact.role && (
-                <p className="text-xs text-muted-foreground">{activeConversation.contact.role}</p>
-              )}
-            </div>
-          </div>
-          <div>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => toast({
-                title: "Feature coming soon",
-                description: "Additional conversation options will be available in the next update."
-              })}
-            >
-              <FileText className="h-4 w-4 mr-1" />
-              Files
-            </Button>
-          </div>
+              <div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => toast({
+                    title: "Feature coming soon",
+                    description: "Additional conversation options will be available in the next update."
+                  })}
+                >
+                  <FileText className="h-4 w-4 mr-1" />
+                  Files
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div>Select a conversation</div>
+          )}
         </div>
 
-        {/* Messages */}
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4">
-            {activeConversation.messages.map((message) => (
+            {messages.map((message) => (
               <div 
-                key={message.id} 
-                className={`flex ${message.sender.id === 'current-user' ? 'justify-end' : 'justify-start'}`}
+                key={message.id}
+                id={`message-${message.id}`}
+                className={`flex ${message.sender.id === 'current-user' ? 'justify-end' : 'justify-start'} transition-colors duration-300`}
               >
                 <div className={`max-w-[80%] ${message.sender.id === 'current-user' ? 'bg-military-navy text-white' : 'bg-military-beige'} p-3 rounded-lg`}>
                   <p className="text-sm">{message.content}</p>
@@ -365,7 +401,6 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
           </div>
         </ScrollArea>
 
-        {/* Message input */}
         <div className="p-3 border-t bg-white">
           <div className="flex gap-2">
             <div className="flex-1">
