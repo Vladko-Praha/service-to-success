@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +24,7 @@ import {
   Star,
   Trash,
   Archive,
-  Label,
+  Tag,
   MoreHorizontal,
   RefreshCw,
   Clock,
@@ -441,7 +440,7 @@ const ConversationHeader = ({
               title: "Add label",
               description: "This feature will be available soon."
             })}>
-              <Label className="h-4 w-4 mr-2" />
+              <Tag className="h-4 w-4 mr-2" />
               Add label
             </DropdownMenuItem>
           </DropdownMenuContent>
