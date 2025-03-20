@@ -1,6 +1,6 @@
 
 import React from "react";
-import { NotificationBell } from "@/components/communications/NotificationBell";
+import NotificationBell from "@/components/communications/NotificationBell";
 import CommunicationHub from "@/components/communications/CommunicationHub";
 
 const Communications = () => {
