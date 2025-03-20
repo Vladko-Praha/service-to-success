@@ -222,7 +222,6 @@ const mockMessages: Record<string, Message[]> = {
   ]
 };
 
-// Component for conversation list
 const ConversationList = ({ 
   conversations, 
   activeConversationId, 
@@ -284,7 +283,6 @@ const ConversationList = ({
   );
 };
 
-// Component for conversation header
 const ConversationHeader = ({ 
   activeConversation,
   onFilesClick 
@@ -327,20 +325,19 @@ const ConversationHeader = ({
   );
 };
 
-// Component for message bubble
 const MessageBubble = ({ 
   message, 
   isCurrentUser,
-  ref 
+  forwardedRef 
 }: { 
   message: Message, 
   isCurrentUser: boolean,
-  ref?: React.RefObject<HTMLDivElement> | null
+  forwardedRef?: React.RefObject<HTMLDivElement> | null
 }) => {
   return (
     <div 
       id={`message-${message.id}`}
-      ref={ref || null}
+      ref={forwardedRef ? forwardedRef.current : null}
       className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} transition-colors duration-300 mb-4`}
     >
       <div className={`max-w-[80%] ${isCurrentUser ? 'bg-military-navy text-white' : 'bg-military-beige'} p-3 rounded-lg`}>
@@ -378,7 +375,6 @@ const MessageBubble = ({
   );
 };
 
-// Component for message composer
 const MessageComposer = ({
   newMessage,
   setNewMessage,
@@ -546,7 +542,6 @@ const MessageComposer = ({
   );
 };
 
-// Main Direct Messages component
 interface DirectMessagesProps {
   selectedMessageId?: string | null;
 }
@@ -564,14 +559,12 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
 
   const activeConversation = conversations.find(c => c.id === activeConversationId);
 
-  // Scroll to bottom of messages when messages change
   useEffect(() => {
     if (!selectedMessageId) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, selectedMessageId]);
 
-  // Load messages for active conversation
   useEffect(() => {
     if (activeConversationId && mockMessages[activeConversationId]) {
       setMessages(mockMessages[activeConversationId]);
@@ -580,12 +573,10 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
     }
   }, [activeConversationId]);
 
-  // Handle selected message from search
   useEffect(() => {
     if (selectedMessageId) {
       console.log("Looking for message with ID:", selectedMessageId);
       
-      // Find which conversation contains this message
       let foundConversationId = null;
       
       for (const [convId, msgList] of Object.entries(mockMessages)) {
@@ -599,17 +590,14 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
       }
       
       if (foundConversationId) {
-        // Set the active conversation
         setActiveConversationId(foundConversationId);
         
-        // Mark conversation as read
         setConversations(prevConversations => 
           prevConversations.map(conv => 
             conv.id === foundConversationId ? { ...conv, unread: 0 } : conv
           )
         );
         
-        // Scroll to the message after a short delay to allow rendering
         setTimeout(() => {
           const messageElement = document.getElementById(`message-${selectedMessageId}`);
           if (messageElement) {
@@ -619,7 +607,7 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
               messageElement.classList.remove("bg-military-sand/30");
             }, 2000);
           }
-        }, 500); // Increased delay to ensure rendering
+        }, 500);
       }
     }
   }, [selectedMessageId]);
@@ -627,7 +615,6 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
 
-    // Create a new message with 'sending' status first
     const newMsg: Message = {
       id: `msg${Date.now()}`,
       sender: {
@@ -640,14 +627,11 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
       status: "sending"
     };
 
-    // Update the messages for the active conversation
     const updatedMessages = [...messages, newMsg];
     setMessages(updatedMessages);
     
-    // Update the mock messages data
     mockMessages[activeConversationId] = updatedMessages;
 
-    // Update the conversation list
     setConversations(prev => 
       prev.map(conv => 
         conv.id === activeConversationId 
@@ -658,7 +642,6 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
 
     setNewMessage("");
     
-    // Simulate status changes for the message
     setTimeout(() => {
       setMessages(current => 
         current.map(msg => 
@@ -673,7 +656,6 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
           )
         );
         
-        // If the other user is "online", simulate read receipt after a few seconds
         if (activeConversation?.contact.status === "online") {
           setTimeout(() => {
             setMessages(current => 
@@ -697,13 +679,11 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
   const handleSelectConversation = (conversation: Conversation) => {
     if (conversation.id === activeConversationId) return;
 
-    // Mark conversation as read
     const updatedConversations = conversations.map(conv => 
       conv.id === conversation.id ? { ...conv, unread: 0 } : conv
     );
     setConversations(updatedConversations);
 
-    // Set active conversation
     setActiveConversationId(conversation.id);
   };
 
@@ -714,12 +694,11 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
     });
   };
 
-  // Simulate typing indicators
   useEffect(() => {
     const typingInterval = setInterval(() => {
       setConversations(prev => 
         prev.map(conv => {
-          if (conv.id === "2") { // Only for conversation 2 (Sgt. Michael Brooks)
+          if (conv.id === "2") {
             return { 
               ...conv, 
               contact: { 
@@ -771,7 +750,7 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
                 key={message.id}
                 message={message}
                 isCurrentUser={message.sender.id === 'current-user'}
-                ref={messageElementRefs.current[message.id]}
+                forwardedRef={null}
               />
             ))}
             <div ref={messagesEndRef} />
