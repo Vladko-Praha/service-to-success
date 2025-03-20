@@ -1,10 +1,16 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bell, AlertTriangle, Info, CheckCircle2, Calendar, Eye } from "lucide-react";
+import { Bell, AlertTriangle, Info, CheckCircle2, Calendar, Eye, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type Notice = {
   id: string;
@@ -60,6 +66,8 @@ type CommandNoticeBoardProps = {
 
 const CommandNoticeBoard = ({ className = "" }: CommandNoticeBoardProps) => {
   const { toast } = useToast();
+  const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const getTypeIcon = (type: Notice["type"]) => {
     switch (type) {
@@ -97,11 +105,8 @@ const CommandNoticeBoard = ({ className = "" }: CommandNoticeBoardProps) => {
   };
 
   const handleViewDetails = (notice: Notice) => {
-    toast({
-      title: notice.title,
-      description: notice.content,
-      variant: notice.type === "mission-critical" ? "destructive" : "default",
-    });
+    setSelectedNotice(notice);
+    setDialogOpen(true);
   };
 
   const markAsRead = (id: string) => {
@@ -114,102 +119,156 @@ const CommandNoticeBoard = ({ className = "" }: CommandNoticeBoardProps) => {
   };
 
   return (
-    <Card className={`border-2 border-military-navy/20 ${className}`}>
-      <CardHeader className="bg-military-navy/10 pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-military-navy flex items-center gap-2">
-            <Bell className="h-5 w-5" />
-            Command Notice Board
-          </CardTitle>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className="h-8 gap-1"
-            onClick={() => toast({
-              title: "Notice Board Refreshed",
-              description: "Pulled latest notices from headquarters",
-            })}
-          >
-            <span className="text-xs">Refresh</span>
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-4 px-3">
-        <div className="space-y-3 max-h-[450px] overflow-y-auto pr-1">
-          {mockNotices.map((notice) => (
-            <div 
-              key={notice.id} 
-              className={`rounded-lg border p-3 relative ${
-                notice.type === "mission-critical" ? "border-military-red/30 bg-military-red/5" : 
-                notice.type === "high-priority" ? "border-[#FFB300]/30 bg-[#FFB300]/5" : 
-                notice.type === "standard" ? "border-military-olive/30 bg-military-olive/5" : 
-                "border-military-navy/30 bg-military-navy/5"
-              } ${notice.isNew ? "ring-2 ring-military-navy/20" : ""}`}
+    <>
+      <Card className={`border-2 border-military-navy/20 ${className}`}>
+        <CardHeader className="bg-military-navy/10 pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-military-navy flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Command Notice Board
+            </CardTitle>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="h-8 gap-1"
+              onClick={() => toast({
+                title: "Notice Board Refreshed",
+                description: "Pulled latest notices from headquarters",
+              })}
             >
-              {notice.isNew && (
-                <div className="absolute top-1 right-1">
-                  <Badge variant="outline" className="text-xs bg-white">NEW</Badge>
-                </div>
-              )}
-              <div className="flex justify-between items-start gap-2 mb-2">
-                <div className="flex items-start gap-2">
-                  {getTypeIcon(notice.type)}
-                  <div>
-                    <h3 className="font-medium text-sm">{notice.title}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      {getTypeBadge(notice.type)}
-                      <span className="text-xs text-muted-foreground">{notice.category}</span>
+              <span className="text-xs">Refresh</span>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-4 px-3">
+          <div className="space-y-3 max-h-[450px] overflow-y-auto pr-1">
+            {mockNotices.map((notice) => (
+              <div 
+                key={notice.id} 
+                className={`rounded-lg border p-3 relative ${
+                  notice.type === "mission-critical" ? "border-military-red/30 bg-military-red/5" : 
+                  notice.type === "high-priority" ? "border-[#FFB300]/30 bg-[#FFB300]/5" : 
+                  notice.type === "standard" ? "border-military-olive/30 bg-military-olive/5" : 
+                  "border-military-navy/30 bg-military-navy/5"
+                } ${notice.isNew ? "ring-2 ring-military-navy/20" : ""}`}
+              >
+                {notice.isNew && (
+                  <div className="absolute top-1 right-1">
+                    <Badge variant="outline" className="text-xs bg-white">NEW</Badge>
+                  </div>
+                )}
+                <div className="flex justify-between items-start gap-2 mb-2">
+                  <div className="flex items-start gap-2">
+                    {getTypeIcon(notice.type)}
+                    <div>
+                      <h3 className="font-medium text-sm">{notice.title}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        {getTypeBadge(notice.type)}
+                        <span className="text-xs text-muted-foreground">{notice.category}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              
-              <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
-                {notice.content}
-              </p>
-              
-              <div className="flex items-center justify-between mt-3">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Calendar className="h-3 w-3" />
-                  <span>Posted: {notice.date}</span>
-                  {notice.expiresAt && (
-                    <span className="ml-2">Expires: {notice.expiresAt}</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {notice.isNew && (
+                
+                <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
+                  {notice.content}
+                </p>
+                
+                <div className="flex items-center justify-between mt-3">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Calendar className="h-3 w-3" />
+                    <span>Posted: {notice.date}</span>
+                    {notice.expiresAt && (
+                      <span className="ml-2">Expires: {notice.expiresAt}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {notice.isNew && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 text-xs" 
+                        onClick={() => markAsRead(notice.id)}
+                      >
+                        Mark as Read
+                      </Button>
+                    )}
                     <Button 
-                      variant="ghost" 
+                      variant="outline" 
                       size="sm" 
-                      className="h-7 text-xs" 
-                      onClick={() => markAsRead(notice.id)}
+                      className="h-7 text-xs"
+                      onClick={() => handleViewDetails(notice)}
                     >
-                      Mark as Read
+                      View Details
                     </Button>
-                  )}
-                  <Button 
-                    variant={notice.type}
-                    size="sm"
-                    className="h-8 gap-1 text-xs transition-all hover:scale-105"
-                    onClick={() => handleViewDetails(notice)}
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                    <span>View Details</span>
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    className="h-7 text-xs bg-military-navy hover:bg-military-navy/90"
-                    onClick={() => handleAcknowledge(notice.id, notice.title)}
-                  >
-                    Acknowledge
-                  </Button>
+                    <Button 
+                      size="sm" 
+                      className="h-7 text-xs bg-military-navy hover:bg-military-navy/90"
+                      onClick={() => handleAcknowledge(notice.id, notice.title)}
+                    >
+                      Acknowledge
+                    </Button>
+                  </div>
                 </div>
               </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              {selectedNotice && getTypeIcon(selectedNotice.type)}
+              <DialogTitle className="text-base">
+                {selectedNotice?.title}
+              </DialogTitle>
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+            {selectedNotice && (
+              <div className="flex items-center gap-2 mt-1">
+                {getTypeBadge(selectedNotice.type)}
+                <span className="text-xs text-muted-foreground">{selectedNotice.category}</span>
+              </div>
+            )}
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4">
+            <DialogDescription className="text-sm whitespace-pre-line">
+              {selectedNotice?.content}
+            </DialogDescription>
+            
+            <div className="text-xs text-muted-foreground flex flex-col gap-1">
+              <div className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                <span>Posted: {selectedNotice?.date}</span>
+              </div>
+              {selectedNotice?.expiresAt && (
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  <span>Expires: {selectedNotice?.expiresAt}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 mt-2">
+            <Button
+              size="sm"
+              className="h-8 text-xs bg-military-navy hover:bg-military-navy/90"
+              onClick={() => {
+                if (selectedNotice) {
+                  handleAcknowledge(selectedNotice.id, selectedNotice.title);
+                  setDialogOpen(false);
+                }
+              }}
+            >
+              Acknowledge
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
