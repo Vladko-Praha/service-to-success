@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -265,6 +266,53 @@ Use military analogies when helpful and be direct in your guidance.`;
     }
   };
 
+  // Function to handle file downloads
+  const handleDownload = (filename: string) => {
+    // Create a dummy content for the file
+    let content = "";
+    let mimeType = "";
+    
+    if (filename.endsWith('.pdf')) {
+      // For PDF, we'd normally generate a real PDF file
+      // Here we'll create a text file with PDF content note
+      content = "This is a placeholder for a PDF file: " + filename;
+      mimeType = "text/plain";
+    } else if (filename.includes('Worksheet') || filename.endsWith('.docx')) {
+      content = "This is a placeholder for document: " + filename;
+      mimeType = "text/plain";
+    } else {
+      content = "Content for: " + filename;
+      mimeType = "text/plain";
+    }
+    
+    // Create a Blob with the content
+    const blob = new Blob([content], { type: mimeType });
+    
+    // Create a URL for the Blob
+    const url = URL.createObjectURL(blob);
+    
+    // Create a temporary link element
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    
+    // Append the link to the body
+    document.body.appendChild(link);
+    
+    // Click the link to trigger the download
+    link.click();
+    
+    // Clean up
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    // Show success toast
+    toast({
+      title: "Download Started",
+      description: `Downloading ${filename}`,
+    });
+  };
+
   if (!content) {
     return <div>Loading content...</div>;
   }
@@ -345,7 +393,12 @@ Use military analogies when helpful and be direct in your guidance.`;
                 <FileText className="h-5 w-5 text-military-navy" />
                 <span>Lesson Summary PDF</span>
               </div>
-              <Button variant="outline" size="sm" className="flex items-center gap-1">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-1"
+                onClick={() => handleDownload(`${content.title} - Summary.pdf`)}
+              >
                 <Download className="h-4 w-4" />
                 Download
               </Button>
@@ -355,7 +408,12 @@ Use military analogies when helpful and be direct in your guidance.`;
                 <FileText className="h-5 w-5 text-military-navy" />
                 <span>Exercise Worksheet</span>
               </div>
-              <Button variant="outline" size="sm" className="flex items-center gap-1">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-1"
+                onClick={() => handleDownload(`${content.title} - Exercise Worksheet.docx`)}
+              >
                 <Download className="h-4 w-4" />
                 Download
               </Button>
