@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bell, AlertTriangle, Info, CheckCircle2, Calendar } from "lucide-react";
+import { Bell, AlertTriangle, Info, CheckCircle2, Calendar, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -188,12 +188,13 @@ const CommandNoticeBoard = ({ className = "" }: CommandNoticeBoardProps) => {
                     </Button>
                   )}
                   <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-7 text-xs"
+                    variant={notice.type}
+                    size="sm"
+                    className="h-8 gap-1 text-xs transition-all hover:scale-105"
                     onClick={() => handleViewDetails(notice)}
                   >
-                    View Details
+                    <Eye className="h-3.5 w-3.5" />
+                    <span>View Details</span>
                   </Button>
                   <Button 
                     size="sm" 
