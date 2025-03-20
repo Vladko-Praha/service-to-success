@@ -1,27 +1,18 @@
 
-import { useState } from "react";
-import { Briefcase, GraduationCap, Globe, Target, ArrowLeft } from "lucide-react";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar";
+import { useState, useEffect } from "react";
+import { ChevronDown, BookOpen, CheckCircle } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { trainingData } from "./trainingData";
 
-type TrainingCenterSidebarProps = {
+interface TrainingCenterSidebarProps {
   activeSection: string;
   setActiveSection: (section: string) => void;
   activeModule: string;
   setActiveModule: (module: string) => void;
   activeClass: string;
   setActiveClass: (classId: string) => void;
-};
+}
 
 const TrainingCenterSidebar = ({
   activeSection,
@@ -31,192 +22,148 @@ const TrainingCenterSidebar = ({
   activeClass,
   setActiveClass,
 }: TrainingCenterSidebarProps) => {
-  const sections = [
-    {
-      id: "business-establishment",
-      title: "Business Establishment",
-      icon: Briefcase,
-      modules: [
-        {
-          id: "module-1",
-          title: "Module 1: Business Foundations",
-          classes: [
-            { id: "class-1", title: "Class 1: Business Structures & Legal Entities" },
-            { id: "class-2", title: "Class 2: Business Planning Fundamentals" },
-            { id: "class-3", title: "Class 3: Financial Basics" },
-          ],
-        },
-        {
-          id: "module-2",
-          title: "Module 2: Business Registration",
-          classes: [
-            { id: "class-1", title: "Class 1: Registration Process" },
-            { id: "class-2", title: "Class 2: Licenses & Permits" },
-            { id: "class-3", title: "Class 3: Tax Considerations" },
-          ],
-        },
-        {
-          id: "module-3",
-          title: "Module 3: Business Operations",
-          classes: [
-            { id: "class-1", title: "Class 1: Business Systems" },
-            { id: "class-2", title: "Class 2: Team Building" },
-            { id: "class-3", title: "Class 3: Growth Strategy" },
-          ],
-        },
-      ],
-    },
-    {
-      id: "online-business-types",
-      title: "Online Business Types",
-      icon: Globe,
-      modules: [
-        {
-          id: "module-1",
-          title: "Module 1: E-commerce Businesses",
-          classes: [
-            { id: "class-1", title: "Class 1: Online Retail Stores" },
-            { id: "class-2", title: "Class 2: Dropshipping Models" },
-            { id: "class-3", title: "Class 3: Print-on-Demand" },
-          ],
-        },
-        {
-          id: "module-2",
-          title: "Module 2: Digital Products",
-          classes: [
-            { id: "class-1", title: "Class 1: Courses & Education" },
-            { id: "class-2", title: "Class 2: E-books & Information Products" },
-            { id: "class-3", title: "Class 3: Software & Apps" },
-          ],
-        },
-        {
-          id: "module-3",
-          title: "Module 3: Service-Based Businesses",
-          classes: [
-            { id: "class-1", title: "Class 1: Consulting & Coaching" },
-            { id: "class-2", title: "Class 2: Freelancing & Agency Models" },
-            { id: "class-3", title: "Class 3: Subscription-Based Services" },
-          ],
-        },
-      ],
-    },
-    {
-      id: "marketing",
-      title: "Marketing",
-      icon: Target,
-      modules: [
-        {
-          id: "module-1",
-          title: "Module 1: Marketing Fundamentals",
-          classes: [
-            { id: "class-1", title: "Class 1: Market Research & Strategy" },
-            { id: "class-2", title: "Class 2: Brand Development" },
-            { id: "class-3", title: "Class 3: Customer Journey Mapping" },
-          ],
-        },
-        {
-          id: "module-2",
-          title: "Module 2: Digital Marketing Channels",
-          classes: [
-            { id: "class-1", title: "Class 1: Content Marketing" },
-            { id: "class-2", title: "Class 2: Email Marketing" },
-            { id: "class-3", title: "Class 3: Social Media Marketing" },
-          ],
-        },
-        {
-          id: "module-3",
-          title: "Module 3: Paid Advertising",
-          classes: [
-            { id: "class-1", title: "Class 1: Pay-Per-Click Fundamentals" },
-            { id: "class-2", title: "Class 2: Social Media Advertising" },
-            { id: "class-3", title: "Class 3: Retargeting Strategies" },
-          ],
-        },
-      ],
-    },
-  ];
+  const [completedLessons, setCompletedLessons] = useState<string[]>([]);
+  const [expandedSections, setExpandedSections] = useState<string[]>([activeSection]);
+  const [expandedModules, setExpandedModules] = useState<string[]>([activeModule]);
 
-  const handleModuleSelection = (section: string, moduleId: string, classId: string) => {
-    setActiveSection(section);
+  useEffect(() => {
+    // Load completed lessons from localStorage
+    const savedCompletedLessons = localStorage.getItem("completedLessons");
+    if (savedCompletedLessons) {
+      setCompletedLessons(JSON.parse(savedCompletedLessons));
+    }
+  }, []);
+
+  const isLessonCompleted = (sectionId: string, moduleId: string, classId: string) => {
+    const lessonId = `${sectionId}-${moduleId}-${classId}`;
+    return completedLessons.includes(lessonId);
+  };
+
+  const handleSectionClick = (sectionId: string) => {
+    if (expandedSections.includes(sectionId)) {
+      setExpandedSections(expandedSections.filter(id => id !== sectionId));
+    } else {
+      setExpandedSections([...expandedSections, sectionId]);
+    }
+    setActiveSection(sectionId);
+    
+    // Select first module and class of section
+    const section = trainingData.find(s => s.id === sectionId);
+    if (section && section.modules.length > 0) {
+      const firstModule = section.modules[0];
+      setActiveModule(firstModule.id);
+      
+      if (firstModule.classes.length > 0) {
+        setActiveClass(firstModule.classes[0].id);
+      }
+    }
+  };
+
+  const handleModuleClick = (moduleId: string) => {
+    if (expandedModules.includes(moduleId)) {
+      setExpandedModules(expandedModules.filter(id => id !== moduleId));
+    } else {
+      setExpandedModules([...expandedModules, moduleId]);
+    }
     setActiveModule(moduleId);
+    
+    // Select first class of module
+    const section = trainingData.find(s => s.id === activeSection);
+    if (section) {
+      const module = section.modules.find(m => m.id === moduleId);
+      if (module && module.classes.length > 0) {
+        setActiveClass(module.classes[0].id);
+      }
+    }
+  };
+
+  const handleClassClick = (classId: string) => {
     setActiveClass(classId);
   };
 
   return (
-    <Sidebar className="border-r border-military-olive/20 bg-white text-black">
-      <SidebarContent>
-        <div className="px-6 py-6">
-          <div className="flex items-center gap-3">
-            <GraduationCap className="h-6 w-6 text-military-olive" />
-            <h2 className="text-xl font-bold tracking-tight">TRAINING CENTER</h2>
-          </div>
-          <p className="mt-1 text-xs text-gray-600">
-            Business Training Platform
-          </p>
-        </div>
-
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-gray-700">NAVIGATION</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link to="/dashboard" className="flex items-center gap-2 text-black hover:bg-gray-100">
-                    <ArrowLeft className="h-5 w-5 text-gray-700" />
-                    <span>Back to Dashboard</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {sections.map((section) => (
-          <SidebarGroup key={section.id} className="mt-2">
-            <SidebarGroupLabel className="text-gray-700 uppercase">
-              {section.title}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <Accordion type="single" collapsible className="w-full">
+    <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto hidden md:block">
+      <div className="p-4 border-b">
+        <h2 className="font-semibold text-lg text-military-navy">Course Content</h2>
+      </div>
+      <div className="p-2">
+        {trainingData.map((section) => (
+          <div key={section.id} className="mb-2">
+            <button
+              className={cn(
+                "w-full flex items-center justify-between p-2 rounded text-left",
+                activeSection === section.id
+                  ? "bg-military-beige text-military-navy font-medium"
+                  : "hover:bg-gray-100"
+              )}
+              onClick={() => handleSectionClick(section.id)}
+            >
+              <span className="truncate">{section.title}</span>
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 transition-transform",
+                  expandedSections.includes(section.id) ? "transform rotate-180" : ""
+                )}
+              />
+            </button>
+            
+            {expandedSections.includes(section.id) && (
+              <div className="ml-2 pl-2 border-l border-gray-200 mt-1">
                 {section.modules.map((module) => (
-                  <AccordionItem key={module.id} value={module.id}>
-                    <AccordionTrigger 
-                      className={`py-2 text-sm hover:no-underline ${
+                  <div key={module.id} className="mb-1">
+                    <button
+                      className={cn(
+                        "w-full flex items-center justify-between p-2 rounded text-left text-sm",
                         activeModule === module.id && activeSection === section.id
-                          ? "text-military-olive font-medium"
-                          : ""
-                      }`}
+                          ? "bg-military-olive/10 text-military-navy font-medium"
+                          : "hover:bg-gray-100"
+                      )}
+                      onClick={() => handleModuleClick(module.id)}
                     >
-                      {module.title}
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <ul className="space-y-1 pl-2">
-                        {module.classes.map((classItem) => (
-                          <li key={classItem.id}>
-                            <button
-                              onClick={() => handleModuleSelection(section.id, module.id, classItem.id)}
-                              className={`w-full text-left text-sm py-1.5 px-3 rounded-md transition-colors ${
-                                activeClass === classItem.id && 
-                                activeModule === module.id && 
+                      <span className="truncate">{module.title}</span>
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 transition-transform",
+                          expandedModules.includes(module.id) ? "transform rotate-180" : ""
+                        )}
+                      />
+                    </button>
+                    
+                    {expandedModules.includes(module.id) && (
+                      <div className="ml-2 pl-2 border-l border-gray-200 mt-1">
+                        {module.classes.map((cls) => (
+                          <button
+                            key={cls.id}
+                            className={cn(
+                              "w-full flex items-center justify-between p-2 rounded text-left text-sm",
+                              activeClass === cls.id &&
+                                activeModule === module.id &&
                                 activeSection === section.id
-                                  ? "bg-military-olive/10 text-military-olive font-medium"
-                                  : "hover:bg-gray-100"
-                              }`}
-                            >
-                              {classItem.title}
-                            </button>
-                          </li>
+                                ? "bg-military-olive/20 text-military-navy font-medium"
+                                : "hover:bg-gray-100"
+                            )}
+                            onClick={() => handleClassClick(cls.id)}
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              {isLessonCompleted(section.id, module.id, cls.id) ? (
+                                <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                              ) : (
+                                <BookOpen className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                              )}
+                              <span className="truncate">{cls.title}</span>
+                            </div>
+                          </button>
                         ))}
-                      </ul>
-                    </AccordionContent>
-                  </AccordionItem>
+                      </div>
+                    )}
+                  </div>
                 ))}
-              </Accordion>
-            </SidebarGroupContent>
-          </SidebarGroup>
+              </div>
+            )}
+          </div>
         ))}
-      </SidebarContent>
-    </Sidebar>
+      </div>
+    </div>
   );
 };
 
