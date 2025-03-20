@@ -11,6 +11,7 @@ import FireTeamNetwork from "@/components/dashboard/FireTeamNetwork";
 import CivilianIntegrationSupport from "@/components/dashboard/CivilianIntegrationSupport";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import DashboardCommunications from "@/components/dashboard/DashboardCommunications";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 const Dashboard = () => {
@@ -41,6 +42,9 @@ const Dashboard = () => {
               </TabsContent>
               <TabsContent value="ai">
                 <AIBattleBuddySystem />
+              </TabsContent>
+              <TabsContent value="communications">
+                <DashboardCommunications />
               </TabsContent>
               <TabsContent value="fireteam">
                 <FireTeamNetwork />

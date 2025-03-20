@@ -8,6 +8,7 @@ import {
   Globe, 
   GraduationCap,
   HeartHandshake, 
+  MessageSquare,
   Shield, 
   Target, 
   Users 
@@ -60,6 +61,11 @@ const DashboardSidebar = ({ activeTab, setActiveTab }: DashboardSidebarProps) =>
       id: "ai",
       title: "AI Battle Buddy",
       icon: Shield,
+    },
+    {
+      id: "communications",
+      title: "Communications",
+      icon: MessageSquare,
     },
     {
       id: "fireteam",
