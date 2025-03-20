@@ -2,9 +2,20 @@ import React, { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   MessageSquare, 
   Search, 
@@ -30,20 +41,20 @@ import {
   Clock,
   Reply,
   Forward,
-  Download
+  Download,
+  Inbox,
+  ChevronDown,
+  Mail,
+  Edit3,
+  FilePlus,
+  Plus,
+  Pencil,
+  ArrowLeft,
+  ArrowRight,
+  MoreVertical,
+  Trash2,
+  Clock3
 } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useToast } from "@/hooks/use-toast";
-import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 type MessageStatus = "sending" | "sent" | "delivered" | "read";
 
@@ -98,7 +109,8 @@ const mockConversations: Conversation[] = [
     },
     lastMessage: "When will you complete the market analysis assignment?",
     timestamp: "10:32 AM",
-    unread: 2
+    unread: 2,
+    isImportant: true
   },
   {
     id: "2",
@@ -124,7 +136,8 @@ const mockConversations: Conversation[] = [
     },
     lastMessage: "Let's schedule a funding strategy call",
     timestamp: "Monday",
-    unread: 0
+    unread: 0,
+    isStarred: true
   },
   {
     id: "4",
@@ -245,64 +258,124 @@ const mockMessages: Record<string, Message[]> = {
   ]
 };
 
+const ComposeButton = ({ onClick }: { onClick: () => void }) => {
+  return (
+    <Button 
+      onClick={onClick} 
+      className="flex items-center gap-2 mb-4 w-full max-w-[200px] bg-white hover:bg-gray-100 text-gray-800 shadow-sm border"
+    >
+      <Pencil className="h-4 w-4" />
+      <span>Compose</span>
+    </Button>
+  );
+};
+
+const SidebarNav = () => {
+  return (
+    <div className="py-2">
+      <div className="space-y-1">
+        <Button variant="ghost" className="w-full justify-start font-medium bg-blue-50 text-blue-700">
+          <Inbox className="h-4 w-4 mr-3" />
+          Inbox
+          <Badge className="ml-auto bg-gray-700">3</Badge>
+        </Button>
+        <Button variant="ghost" className="w-full justify-start">
+          <Star className="h-4 w-4 mr-3" />
+          Starred
+        </Button>
+        <Button variant="ghost" className="w-full justify-start">
+          <Clock3 className="h-4 w-4 mr-3" />
+          Snoozed
+        </Button>
+        <Button variant="ghost" className="w-full justify-start">
+          <Tag className="h-4 w-4 mr-3" />
+          Important
+        </Button>
+        <Button variant="ghost" className="w-full justify-start">
+          <Send className="h-4 w-4 mr-3" />
+          Sent
+        </Button>
+        <Button variant="ghost" className="w-full justify-start">
+          <FilePlus className="h-4 w-4 mr-3" />
+          Drafts
+          <Badge className="ml-auto bg-gray-500">5</Badge>
+        </Button>
+        <Button variant="ghost" className="w-full justify-start">
+          <ChevronDown className="h-4 w-4 mr-3" />
+          More
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 const ConversationListItem = ({ 
   conversation, 
   isActive,
-  onSelect
+  isSelected,
+  onSelect,
+  onCheckboxChange
 }: { 
   conversation: Conversation,
   isActive: boolean,
-  onSelect: () => void
+  isSelected: boolean,
+  onSelect: () => void,
+  onCheckboxChange: (e: React.ChangeEvent<HTMLInputElement>) => void
 }) => {
-  const [isStarred, setIsStarred] = useState(conversation.isStarred || false);
-  
-  const handleStarClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsStarred(!isStarred);
-  };
-  
   return (
     <div 
-      className={`flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer transition-colors ${
-        isActive ? 'bg-military-sand/50 font-medium' : ''
+      className={`flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer border-b ${
+        isActive ? 'bg-gray-100' : ''
       } ${conversation.unread > 0 ? 'font-semibold' : ''}`}
       onClick={onSelect}
     >
-      <div className="flex items-center gap-3 flex-1 min-w-0">
+      <div className="flex items-center gap-3 w-full">
+        <input 
+          type="checkbox" 
+          className="h-4 w-4 rounded-sm border-gray-300"
+          onClick={(e) => e.stopPropagation()}
+          onChange={onCheckboxChange}
+          checked={isSelected}
+        />
+        
         <button
           className="text-gray-400 hover:text-amber-400 transition-colors"
-          onClick={handleStarClick}
+          onClick={(e) => {
+            e.stopPropagation();
+            // Handle star functionality
+          }}
           aria-label="Star conversation"
         >
-          <Star className={`h-4 w-4 ${isStarred ? 'fill-amber-400 text-amber-400' : ''}`} />
+          <Star className={`h-4 w-4 ${conversation.isStarred ? 'fill-amber-400 text-amber-400' : ''}`} />
         </button>
         
-        <div className="relative">
-          <Avatar className="h-9 w-9 bg-military-navy">
-            <User className="h-5 w-5 text-white" />
-          </Avatar>
-          <div className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white ${
-            conversation.contact.status === 'online' ? 'bg-green-500' : 
-            conversation.contact.status === 'away' ? 'bg-amber-500' : 'bg-gray-400'
-          }`} />
-        </div>
+        <button
+          className="text-gray-400 hover:text-amber-400 transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            // Handle importance functionality
+          }}
+          aria-label="Mark as important"
+        >
+          <Tag className={`h-4 w-4 ${conversation.isImportant ? 'fill-amber-400 text-amber-400' : ''}`} />
+        </button>
         
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-baseline w-full">
-            <h4 className="text-sm truncate">{conversation.contact.name}</h4>
-            <span className="text-xs text-gray-500 whitespace-nowrap ml-2">{conversation.timestamp}</span>
+        <div className="flex-1 min-w-0 flex">
+          <div className="w-1/4 truncate font-medium">
+            {conversation.contact.name}
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex-1 truncate">
             {conversation.contact.isTyping ? (
-              <span className="text-xs italic text-military-navy">Typing...</span>
+              <span className="text-blue-600 italic">Typing...</span>
             ) : (
-              <p className="text-xs text-gray-600 truncate">{conversation.lastMessage}</p>
+              <span className="text-gray-700">{conversation.lastMessage}</span>
             )}
           </div>
+          <span className="text-xs text-gray-500 whitespace-nowrap ml-2">{conversation.timestamp}</span>
         </div>
         
         {conversation.unread > 0 && (
-          <Badge className="bg-military-navy ml-2 rounded-full text-xs h-5 w-5 flex items-center justify-center p-0">{conversation.unread}</Badge>
+          <Badge className="bg-blue-600 ml-2 rounded-full text-xs h-5 w-5 flex items-center justify-center p-0">{conversation.unread}</Badge>
         )}
       </div>
     </div>
@@ -312,12 +385,16 @@ const ConversationListItem = ({
 const ConversationList = ({ 
   conversations, 
   activeConversationId, 
+  selectedConversations,
   onSelectConversation,
+  onCheckboxChange,
   searchTerm 
 }: { 
   conversations: Conversation[], 
   activeConversationId: string,
+  selectedConversations: string[],
   onSelectConversation: (conversation: Conversation) => void,
+  onCheckboxChange: (id: string, checked: boolean) => void,
   searchTerm: string
 }) => {
   const filteredConversations = conversations.filter(
@@ -326,126 +403,36 @@ const ConversationList = ({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-2 flex items-center justify-between border-b">
-        <h3 className="text-sm font-medium text-gray-700">Inbox</h3>
-        <RefreshCw className="h-4 w-4 text-gray-500" />
+      <div className="border-b py-2 px-2 bg-gray-50 flex items-center gap-2">
+        <input 
+          type="checkbox" 
+          className="h-4 w-4 rounded-sm border-gray-300"
+        />
+        <RefreshCw className="h-4 w-4 text-gray-500 ml-2" />
+        <MoreVertical className="h-4 w-4 text-gray-500" />
+        
+        <div className="flex ml-auto gap-2">
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
       
-      <ScrollArea className="h-[calc(620px-80px)]">
+      <ScrollArea className="flex-1">
         {filteredConversations.map((conversation) => (
           <ConversationListItem
             key={conversation.id}
             conversation={conversation}
             isActive={activeConversationId === conversation.id}
+            isSelected={selectedConversations.includes(conversation.id)}
             onSelect={() => onSelectConversation(conversation)}
+            onCheckboxChange={(e) => onCheckboxChange(conversation.id, e.target.checked)}
           />
         ))}
       </ScrollArea>
-    </div>
-  );
-};
-
-const ConversationHeader = ({ 
-  activeConversation,
-  onFilesClick 
-}: { 
-  activeConversation: Conversation | undefined,
-  onFilesClick: () => void
-}) => {
-  const { toast } = useToast();
-  
-  if (!activeConversation) return <div>Select a conversation</div>;
-  
-  return (
-    <div className="p-3 border-b flex items-center justify-between bg-white">
-      <div className="flex items-center gap-3">
-        <Avatar className="h-10 w-10 bg-military-navy">
-          <User className="h-6 w-6 text-white" />
-        </Avatar>
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold">{activeConversation.contact.name}</h3>
-            <div className={`h-2 w-2 rounded-full ${
-              activeConversation.contact.status === 'online' ? 'bg-green-500' : 
-              activeConversation.contact.status === 'away' ? 'bg-amber-500' : 'bg-gray-400'
-            }`} />
-          </div>
-          {activeConversation.contact.role && (
-            <p className="text-xs text-muted-foreground">{activeConversation.contact.role}</p>
-          )}
-        </div>
-      </div>
-      
-      <div className="flex items-center gap-2">
-        <Button 
-          variant="ghost" 
-          size="sm"
-          onClick={() => toast({
-            title: "Quick reply",
-            description: "This feature will be available soon."
-          })}
-        >
-          <Reply className="h-4 w-4" />
-        </Button>
-        
-        <Button 
-          variant="ghost" 
-          size="sm"
-          onClick={() => toast({
-            title: "Forward message",
-            description: "This feature will be available soon."
-          })}
-        >
-          <Forward className="h-4 w-4" />
-        </Button>
-        
-        <Button 
-          variant="ghost" 
-          size="sm"
-          onClick={onFilesClick}
-        >
-          <FileText className="h-4 w-4" />
-        </Button>
-        
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => toast({
-              title: "Archive conversation",
-              description: "This feature will be available soon."
-            })}>
-              <Archive className="h-4 w-4 mr-2" />
-              Archive
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => toast({
-              title: "Delete conversation",
-              description: "This feature will be available soon."
-            })}>
-              <Trash className="h-4 w-4 mr-2" />
-              Delete
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => toast({
-              title: "Mark as unread",
-              description: "This feature will be available soon."
-            })}>
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Mark as unread
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => toast({
-              title: "Add label",
-              description: "This feature will be available soon."
-            })}>
-              <Tag className="h-4 w-4 mr-2" />
-              Add label
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
     </div>
   );
 };
@@ -601,6 +588,63 @@ const MessageBubble = ({
           <span className="text-xs text-gray-400">{message.timestamp}</span>
         </div>
       </div>
+    </div>
+  );
+};
+
+const ThreadView = ({
+  messages,
+  activeConversation,
+  highlightedMessageId,
+  onStarMessage
+}: {
+  messages: Message[],
+  activeConversation: Conversation | undefined,
+  highlightedMessageId: string | null,
+  onStarMessage: (messageId: string) => void
+}) => {
+  if (!activeConversation) return null;
+  
+  return (
+    <div className="flex flex-col h-full">
+      <div className="p-3 border-b flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          
+          <h2 className="text-lg font-medium">
+            {activeConversation.contact.name}
+          </h2>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm">
+            <Archive className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="sm">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="sm">
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+      
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-4">
+          {messages.map((message) => (
+            <MessageBubble 
+              key={message.id}
+              message={message}
+              isCurrentUser={message.sender.id === 'current-user'}
+              isHighlighted={message.id === highlightedMessageId}
+              onStar={onStarMessage}
+            />
+          ))}
+        </div>
+      </ScrollArea>
     </div>
   );
 };
@@ -784,6 +828,8 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
   const [searchTerm, setSearchTerm] = useState("");
   const [messages, setMessages] = useState<Message[]>(mockMessages["1"]);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+  const [selectedConversations, setSelectedConversations] = useState<string[]>([]);
+  const [showCompose, setShowCompose] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -918,15 +964,17 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
     setConversations(updatedConversations);
 
     setActiveConversationId(conversation.id);
+    setShowCompose(false);
   };
 
-  const handleFilesClick = () => {
-    toast({
-      title: "Files and attachments",
-      description: "View and manage files shared in this conversation."
-    });
+  const handleCheckboxChange = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedConversations(prev => [...prev, id]);
+    } else {
+      setSelectedConversations(prev => prev.filter(convId => convId !== id));
+    }
   };
-  
+
   const handleStarMessage = (messageId: string) => {
     setMessages(current => 
       current.map(msg => 
@@ -935,81 +983,110 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
     );
   };
 
-  useEffect(() => {
-    const typingInterval = setInterval(() => {
-      setConversations(prev => 
-        prev.map(conv => {
-          if (conv.id === "2") {
-            return { 
-              ...conv, 
-              contact: { 
-                ...conv.contact, 
-                isTyping: !conv.contact.isTyping 
-              } 
-            };
-          }
-          return conv;
-        })
-      );
-    }, 5000);
-    
-    return () => clearInterval(typingInterval);
-  }, []);
+  const handleComposeClick = () => {
+    setShowCompose(true);
+    toast({
+      title: "Compose new message",
+      description: "This feature will be fully implemented in a future update."
+    });
+  };
 
   return (
     <div className="flex h-[620px] border rounded-lg overflow-hidden bg-white">
-      {/* Left sidebar - Gmail style conversations list */}
-      <div className="w-1/3 border-r flex flex-col">
-        <div className="p-2 border-b">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search messages..."
-              className="pl-8 h-9"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+      {/* Left sidebar - Navigation + conversations list */}
+      <div className="w-[250px] border-r flex flex-col bg-white">
+        <div className="p-3">
+          <ComposeButton onClick={handleComposeClick} />
+        </div>
+        
+        <SidebarNav />
+        
+        <Separator className="my-2" />
+        
+        <div className="relative flex-1">
+          <div className="absolute inset-0 flex flex-col">
+            <div className="p-2">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search mail"
+                  className="pl-8 h-9"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-hidden">
+              <ConversationList 
+                conversations={conversations}
+                activeConversationId={activeConversationId}
+                selectedConversations={selectedConversations}
+                onSelectConversation={handleSelectConversation}
+                onCheckboxChange={handleCheckboxChange}
+                searchTerm={searchTerm}
+              />
+            </div>
           </div>
         </div>
-        <ConversationList 
-          conversations={conversations}
-          activeConversationId={activeConversationId}
-          onSelectConversation={handleSelectConversation}
-          searchTerm={searchTerm}
-        />
       </div>
 
-      {/* Right side - Conversation view */}
+      {/* Right side - Mail view */}
       <div className="flex-1 flex flex-col bg-white">
-        <ConversationHeader 
-          activeConversation={activeConversation}
-          onFilesClick={handleFilesClick}
-        />
-
-        <ScrollArea className="flex-1 p-4">
-          <div className="space-y-4" ref={messagesContainerRef}>
-            {messages.map((message) => (
-              <MessageBubble 
-                key={message.id}
-                message={message}
-                isCurrentUser={message.sender.id === 'current-user'}
-                isHighlighted={message.id === highlightedMessageId}
-                onStar={handleStarMessage}
+        {showCompose ? (
+          <div className="flex flex-col h-full">
+            <div className="p-3 bg-gray-100 border-b flex justify-between items-center">
+              <h3 className="font-medium">New Message</h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-7 w-7 p-0"
+                onClick={() => setShowCompose(false)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+              </Button>
+            </div>
+            
+            <div className="p-4 flex-1">
+              <div className="mb-4">
+                <Input placeholder="To" className="mb-2" />
+                <Input placeholder="Subject" />
+              </div>
+              
+              <Textarea 
+                placeholder="Compose email" 
+                className="min-h-[300px]" 
               />
-            ))}
-            <div ref={messagesEndRef} />
+            </div>
+            
+            <div className="border-t p-3 flex justify-between">
+              <Button>Send</Button>
+              <Button variant="ghost" size="icon">
+                <Trash className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </ScrollArea>
-
-        <MessageComposer
-          newMessage={newMessage}
-          setNewMessage={setNewMessage}
-          handleSendMessage={handleSendMessage}
-          handleKeyDown={handleKeyDown}
-        />
+        ) : (
+          <>
+            <ThreadView
+              messages={messages}
+              activeConversation={activeConversation}
+              highlightedMessageId={highlightedMessageId}
+              onStarMessage={handleStarMessage}
+            />
+            
+            <MessageComposer
+              newMessage={newMessage}
+              setNewMessage={setNewMessage}
+              handleSendMessage={handleSendMessage}
+              handleKeyDown={handleKeyDown}
+            />
+          </>
+        )}
       </div>
     </div>
   );
 };
 
 export default DirectMessages;
+
