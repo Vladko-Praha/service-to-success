@@ -10,6 +10,8 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandTitle,
+  CommandDescription,
 } from "@/components/ui/command";
 import { useNavigate } from "react-router-dom";
 

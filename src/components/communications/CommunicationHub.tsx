@@ -13,14 +13,21 @@ import { useLocation } from "react-router-dom";
 
 const CommunicationHub = () => {
   const [activeTab, setActiveTab] = useState("messages");
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const location = useLocation();
 
   // Handle URL parameters for deep linking
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const tabParam = searchParams.get("tab");
+    const messageId = searchParams.get("id");
+    
     if (tabParam && ["messages", "fireteam", "notifications", "broadcasts"].includes(tabParam)) {
       setActiveTab(tabParam);
+    }
+    
+    if (messageId) {
+      setSelectedMessageId(messageId);
     }
   }, [location]);
 
@@ -28,8 +35,12 @@ const CommunicationHub = () => {
     // Set the active tab based on the search result
     setActiveTab(result.tab);
     
-    // Additional logic could be added here to scroll to the specific message or post
-    // This would require passing the selected ID to the respective component
+    // Set the selected message ID to focus on the specific message
+    setSelectedMessageId(result.id);
+    
+    console.log("Selected result:", result);
+    console.log("Setting active tab to:", result.tab);
+    console.log("Setting selected message ID to:", result.id);
   };
 
   return (
@@ -90,19 +101,19 @@ const CommunicationHub = () => {
         </TabsList>
         
         <TabsContent value="messages" className="mt-4">
-          <DirectMessages />
+          <DirectMessages selectedMessageId={selectedMessageId} />
         </TabsContent>
         
         <TabsContent value="fireteam" className="mt-4">
-          <FireTeamNetwork />
+          <FireTeamNetwork selectedPostId={selectedMessageId} />
         </TabsContent>
         
         <TabsContent value="notifications" className="mt-4">
-          <Notifications />
+          <Notifications selectedNotificationId={selectedMessageId} />
         </TabsContent>
         
         <TabsContent value="broadcasts" className="mt-4">
-          <Broadcasts />
+          <Broadcasts selectedBroadcastId={selectedMessageId} />
         </TabsContent>
       </Tabs>
     </div>
