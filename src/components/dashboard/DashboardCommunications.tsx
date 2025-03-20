@@ -5,6 +5,10 @@ import CommandNoticeBoard from "@/components/communications/CommandNoticeBoard";
 import { MessageSquare, Users, Bell, MailOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import NotificationBell from "@/components/communications/NotificationBell";
+import DirectMessages from "@/components/communications/DirectMessages";
+import FireTeamNetwork from "@/components/communications/FireTeamNetwork";
+import Notifications from "@/components/communications/Notifications";
+import Broadcasts from "@/components/communications/Broadcasts";
 
 const DashboardCommunications = () => {
   return (
@@ -64,28 +68,20 @@ const DashboardCommunications = () => {
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="messages" className="p-4 border rounded-lg mt-4">
-          <div className="h-64 flex items-center justify-center">
-            <p className="text-muted-foreground">Direct message functionality will be implemented next.</p>
-          </div>
+        <TabsContent value="messages" className="mt-4">
+          <DirectMessages />
         </TabsContent>
         
-        <TabsContent value="fireteam" className="p-4 border rounded-lg mt-4">
-          <div className="h-64 flex items-center justify-center">
-            <p className="text-muted-foreground">Fire Team Network functionality will be implemented next.</p>
-          </div>
+        <TabsContent value="fireteam" className="mt-4">
+          <FireTeamNetwork />
         </TabsContent>
         
-        <TabsContent value="notifications" className="p-4 border rounded-lg mt-4">
-          <div className="h-64 flex items-center justify-center">
-            <p className="text-muted-foreground">Notifications functionality will be implemented next.</p>
-          </div>
+        <TabsContent value="notifications" className="mt-4">
+          <Notifications />
         </TabsContent>
         
-        <TabsContent value="broadcasts" className="p-4 border rounded-lg mt-4">
-          <div className="h-64 flex items-center justify-center">
-            <p className="text-muted-foreground">Broadcasts functionality will be implemented next.</p>
-          </div>
+        <TabsContent value="broadcasts" className="mt-4">
+          <Broadcasts />
         </TabsContent>
       </Tabs>
     </div>

@@ -4,6 +4,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CommandNoticeBoard from "./CommandNoticeBoard";
 import { MessageSquare, Users, Bell, MailOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import DirectMessages from "./DirectMessages";
+import FireTeamNetwork from "./FireTeamNetwork";
+import Notifications from "./Notifications";
+import Broadcasts from "./Broadcasts";
 
 const CommunicationHub = () => {
   return (
@@ -60,28 +64,20 @@ const CommunicationHub = () => {
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="messages" className="p-4 border rounded-lg mt-4">
-          <div className="h-64 flex items-center justify-center">
-            <p className="text-muted-foreground">Direct message functionality will be implemented next.</p>
-          </div>
+        <TabsContent value="messages" className="mt-4">
+          <DirectMessages />
         </TabsContent>
         
-        <TabsContent value="fireteam" className="p-4 border rounded-lg mt-4">
-          <div className="h-64 flex items-center justify-center">
-            <p className="text-muted-foreground">Fire Team Network functionality will be implemented next.</p>
-          </div>
+        <TabsContent value="fireteam" className="mt-4">
+          <FireTeamNetwork />
         </TabsContent>
         
-        <TabsContent value="notifications" className="p-4 border rounded-lg mt-4">
-          <div className="h-64 flex items-center justify-center">
-            <p className="text-muted-foreground">Notifications functionality will be implemented next.</p>
-          </div>
+        <TabsContent value="notifications" className="mt-4">
+          <Notifications />
         </TabsContent>
         
-        <TabsContent value="broadcasts" className="p-4 border rounded-lg mt-4">
-          <div className="h-64 flex items-center justify-center">
-            <p className="text-muted-foreground">Broadcasts functionality will be implemented next.</p>
-          </div>
+        <TabsContent value="broadcasts" className="mt-4">
+          <Broadcasts />
         </TabsContent>
       </Tabs>
     </div>
