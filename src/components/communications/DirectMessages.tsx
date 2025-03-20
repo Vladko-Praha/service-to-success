@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -999,4 +1000,17 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
             ))}
             <div ref={messagesEndRef} />
           </div>
-        </Scroll
+        </ScrollArea>
+
+        <MessageComposer
+          newMessage={newMessage}
+          setNewMessage={setNewMessage}
+          handleSendMessage={handleSendMessage}
+          handleKeyDown={handleKeyDown}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default DirectMessages;
