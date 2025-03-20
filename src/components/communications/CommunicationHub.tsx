@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CommandNoticeBoard from "./CommandNoticeBoard";
 import { MessageSquare, Users, Bell, MailOpen } from "lucide-react";
@@ -8,17 +8,42 @@ import DirectMessages from "./DirectMessages";
 import FireTeamNetwork from "./FireTeamNetwork";
 import Notifications from "./Notifications";
 import Broadcasts from "./Broadcasts";
+import CommunicationsSearch, { SearchResult } from "./CommunicationsSearch";
+import { useLocation } from "react-router-dom";
 
 const CommunicationHub = () => {
+  const [activeTab, setActiveTab] = useState("messages");
+  const location = useLocation();
+
+  // Handle URL parameters for deep linking
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tabParam = searchParams.get("tab");
+    if (tabParam && ["messages", "fireteam", "notifications", "broadcasts"].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [location]);
+
+  const handleSearchResultSelect = (result: SearchResult) => {
+    // Set the active tab based on the search result
+    setActiveTab(result.tab);
+    
+    // Additional logic could be added here to scroll to the specific message or post
+    // This would require passing the selected ID to the respective component
+  };
+
   return (
     <div className="space-y-4">
-      <h2 className="text-3xl font-bold tracking-tight text-military-navy">
-        Communications Hub
-      </h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold tracking-tight text-military-navy">
+          Communications Hub
+        </h2>
+        <CommunicationsSearch onResultSelect={handleSearchResultSelect} />
+      </div>
       
       <CommandNoticeBoard className="mb-6" />
       
-      <Tabs defaultValue="messages" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid grid-cols-4 bg-military-beige/30">
           <TabsTrigger 
             value="messages" 
