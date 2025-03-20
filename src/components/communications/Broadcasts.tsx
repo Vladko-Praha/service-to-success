@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -257,7 +256,11 @@ Analytics Team`,
   }
 ];
 
-const Broadcasts = () => {
+interface BroadcastsProps {
+  selectedBroadcastId?: string | null;
+}
+
+const Broadcasts: React.FC<BroadcastsProps> = ({ selectedBroadcastId }) => {
   const { toast } = useToast();
   const [broadcasts, setBroadcasts] = React.useState(mockBroadcasts);
   const [selectedBroadcast, setSelectedBroadcast] = React.useState<Broadcast | null>(null);
@@ -265,7 +268,17 @@ const Broadcasts = () => {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [filterCategory, setFilterCategory] = React.useState<string>("all");
 
-  // Mark as read when viewing a broadcast
+  React.useEffect(() => {
+    if (selectedBroadcastId) {
+      const broadcast = broadcasts.find(b => b.id === selectedBroadcastId);
+      
+      if (broadcast) {
+        setSelectedBroadcast(broadcast);
+        setShowContent(true);
+      }
+    }
+  }, [selectedBroadcastId, broadcasts]);
+
   React.useEffect(() => {
     if (selectedBroadcast && !selectedBroadcast.read) {
       setBroadcasts(prev => 
@@ -308,12 +321,10 @@ const Broadcasts = () => {
   };
 
   const filteredBroadcasts = broadcasts.filter(bc => {
-    // Apply category filter
     if (filterCategory !== "all" && bc.category !== filterCategory) {
       return false;
     }
     
-    // Apply search term
     if (searchTerm) {
       return (
         bc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -327,7 +338,6 @@ const Broadcasts = () => {
 
   return (
     <div className="flex h-[620px] border rounded-lg overflow-hidden">
-      {/* Left sidebar - Broadcast list */}
       <div className={`${showContent ? "hidden md:block md:w-1/3" : "w-full md:w-1/2"} border-r bg-military-sand/50`}>
         <div className="p-3 border-b">
           <div className="flex justify-between items-center mb-3">
@@ -490,7 +500,6 @@ const Broadcasts = () => {
         </ScrollArea>
       </div>
 
-      {/* Right side - Broadcast content */}
       {showContent && selectedBroadcast && (
         <div className={`${showContent ? "w-full md:w-2/3" : "hidden"} bg-white`}>
           <div className="flex flex-col h-full">

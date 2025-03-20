@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -120,10 +119,21 @@ const getNotificationIcon = (type: Notification["type"]) => {
   }
 };
 
-const Notifications = () => {
+interface NotificationsProps {
+  selectedNotificationId?: string | null;
+}
+
+const Notifications: React.FC<NotificationsProps> = ({ selectedNotificationId }) => {
   const { toast } = useToast();
   const [notifications, setNotifications] = React.useState(mockNotifications);
   const [activeTab, setActiveTab] = React.useState("all");
+  
+  React.useEffect(() => {
+    if (selectedNotificationId) {
+      console.log("Selected notification ID:", selectedNotificationId);
+      // Implement logic to focus on the selected notification
+    }
+  }, [selectedNotificationId]);
   
   const markAsRead = (id: string) => {
     setNotifications(prevNotifications => 
@@ -164,14 +174,12 @@ const Notifications = () => {
     });
   };
   
-  // Filter notifications based on active tab
   const filteredNotifications = React.useMemo(() => {
     if (activeTab === "all") return notifications;
     if (activeTab === "unread") return notifications.filter(notif => !notif.read);
     return notifications.filter(notif => notif.type === activeTab);
   }, [notifications, activeTab]);
   
-  // Count unread notifications
   const unreadCount = notifications.filter(notif => !notif.read).length;
 
   return (

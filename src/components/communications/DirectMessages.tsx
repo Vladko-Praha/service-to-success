@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -146,7 +145,11 @@ const mockActiveConversation: {
   ]
 };
 
-const DirectMessages = () => {
+interface DirectMessagesProps {
+  selectedMessageId?: string | null;
+}
+
+const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) => {
   const { toast } = useToast();
   const [conversations, setConversations] = React.useState(mockConversations);
   const [activeConversation, setActiveConversation] = React.useState(mockActiveConversation);
@@ -159,6 +162,26 @@ const DirectMessages = () => {
     // Scroll to bottom of messages
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeConversation.messages]);
+
+  React.useEffect(() => {
+    if (selectedMessageId) {
+      // Find the conversation that contains the selected message
+      const conversation = conversations.find(conv => 
+        mockActiveConversation.messages.some(msg => msg.id === selectedMessageId)
+      );
+      
+      if (conversation) {
+        // Mark messages as read
+        const updatedConversations = conversations.map(conv => 
+          conv.id === conversation.id ? { ...conv, unread: 0 } : conv
+        );
+        setConversations(updatedConversations);
+
+        // Focus on the conversation with the selected message
+        setActiveConversation(mockActiveConversation);
+      }
+    }
+  }, [selectedMessageId]);
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;

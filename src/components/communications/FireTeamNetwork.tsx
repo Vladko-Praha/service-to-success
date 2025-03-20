@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -118,13 +117,24 @@ const mockTeams: Team[] = [
   }
 ];
 
-const FireTeamNetwork = () => {
+interface FireTeamNetworkProps {
+  selectedPostId?: string | null;
+}
+
+const FireTeamNetwork: React.FC<FireTeamNetworkProps> = ({ selectedPostId }) => {
   const { toast } = useToast();
   const [posts, setPosts] = React.useState(mockPosts);
   const [teams, setTeams] = React.useState(mockTeams);
   const [newPost, setNewPost] = React.useState("");
   const [searchTerm, setSearchTerm] = React.useState("");
   const [activeTab, setActiveTab] = React.useState("feed");
+
+  React.useEffect(() => {
+    if (selectedPostId) {
+      setActiveTab("feed");
+      console.log("Selected post ID:", selectedPostId);
+    }
+  }, [selectedPostId]);
 
   const handlePostLike = (postId: string) => {
     setPosts(prevPosts => 
@@ -167,7 +177,6 @@ const FireTeamNetwork = () => {
   };
 
   const handleJoinTeam = (teamId: string) => {
-    // This would make an API call in a real app
     toast({
       title: "Team Joined",
       description: "You have successfully joined the team. You can now access all team content.",
