@@ -1,4 +1,5 @@
-import React from "react";
+
+import React, { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -181,21 +182,26 @@ interface DirectMessagesProps {
 
 const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) => {
   const { toast } = useToast();
-  const [conversations, setConversations] = React.useState(mockConversations);
-  const [activeConversationId, setActiveConversationId] = React.useState("1");
-  const [newMessage, setNewMessage] = React.useState("");
-  const [searchTerm, setSearchTerm] = React.useState("");
-  const [messages, setMessages] = React.useState<Message[]>(mockMessages["1"]);
+  const [conversations, setConversations] = useState(mockConversations);
+  const [activeConversationId, setActiveConversationId] = useState("1");
+  const [newMessage, setNewMessage] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [messages, setMessages] = useState<Message[]>(mockMessages["1"]);
   
-  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageElementRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const activeConversation = conversations.find(c => c.id === activeConversationId);
 
-  React.useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  // Scroll to bottom of messages when messages change
+  useEffect(() => {
+    if (!selectedMessageId) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, selectedMessageId]);
 
-  React.useEffect(() => {
+  // Load messages for active conversation
+  useEffect(() => {
     if (activeConversationId && mockMessages[activeConversationId]) {
       setMessages(mockMessages[activeConversationId]);
     } else {
@@ -203,38 +209,49 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
     }
   }, [activeConversationId]);
 
-  React.useEffect(() => {
+  // Handle selected message from search
+  useEffect(() => {
     if (selectedMessageId) {
       console.log("Looking for message with ID:", selectedMessageId);
+      
+      // Find which conversation contains this message
+      let foundConversationId = null;
       
       for (const [convId, msgList] of Object.entries(mockMessages)) {
         const foundMessage = msgList.find(msg => msg.id === selectedMessageId);
         
         if (foundMessage) {
           console.log("Found message in conversation:", convId);
-          setActiveConversationId(convId);
-          
-          const updatedConversations = conversations.map(conv => 
-            conv.id === convId ? { ...conv, unread: 0 } : conv
-          );
-          setConversations(updatedConversations);
-          
-          setTimeout(() => {
-            const messageElement = document.getElementById(`message-${selectedMessageId}`);
-            if (messageElement) {
-              messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
-              messageElement.classList.add("bg-military-sand/30");
-              setTimeout(() => {
-                messageElement.classList.remove("bg-military-sand/30");
-              }, 2000);
-            }
-          }, 100);
-          
+          foundConversationId = convId;
           break;
         }
       }
+      
+      if (foundConversationId) {
+        // Set the active conversation
+        setActiveConversationId(foundConversationId);
+        
+        // Mark conversation as read
+        setConversations(prevConversations => 
+          prevConversations.map(conv => 
+            conv.id === foundConversationId ? { ...conv, unread: 0 } : conv
+          )
+        );
+        
+        // Scroll to the message after a short delay to allow rendering
+        setTimeout(() => {
+          const messageElement = document.getElementById(`message-${selectedMessageId}`);
+          if (messageElement) {
+            messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+            messageElement.classList.add("bg-military-sand/30");
+            setTimeout(() => {
+              messageElement.classList.remove("bg-military-sand/30");
+            }, 2000);
+          }
+        }, 300);
+      }
     }
-  }, [selectedMessageId, conversations]);
+  }, [selectedMessageId]);
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
@@ -251,11 +268,14 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
       read: true
     };
 
+    // Update the messages for the active conversation
     const updatedMessages = [...messages, newMsg];
     setMessages(updatedMessages);
     
+    // Update the mock messages data
     mockMessages[activeConversationId] = updatedMessages;
 
+    // Update the conversation list
     setConversations(prev => 
       prev.map(conv => 
         conv.id === activeConversationId 
@@ -277,11 +297,13 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
   const handleSelectConversation = (conversation: Conversation) => {
     if (conversation.id === activeConversationId) return;
 
+    // Mark conversation as read
     const updatedConversations = conversations.map(conv => 
       conv.id === conversation.id ? { ...conv, unread: 0 } : conv
     );
     setConversations(updatedConversations);
 
+    // Set active conversation
     setActiveConversationId(conversation.id);
   };
 
@@ -387,6 +409,7 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
               <div 
                 key={message.id}
                 id={`message-${message.id}`}
+                ref={el => messageElementRefs.current[message.id] = el}
                 className={`flex ${message.sender.id === 'current-user' ? 'justify-end' : 'justify-start'} transition-colors duration-300`}
               >
                 <div className={`max-w-[80%] ${message.sender.id === 'current-user' ? 'bg-military-navy text-white' : 'bg-military-beige'} p-3 rounded-lg`}>
