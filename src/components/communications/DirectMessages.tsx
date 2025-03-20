@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -21,12 +20,30 @@ import {
   Code,
   List,
   ListOrdered,
-  CheckCheck
+  CheckCheck,
+  Star,
+  Trash,
+  Archive,
+  Label,
+  MoreHorizontal,
+  RefreshCw,
+  Clock,
+  Reply,
+  Forward,
+  Download
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type MessageStatus = "sending" | "sent" | "delivered" | "read";
 
@@ -41,6 +58,8 @@ type Message = {
   content: string;
   timestamp: string;
   status: MessageStatus;
+  isStarred?: boolean;
+  isImportant?: boolean;
   attachments?: {
     id: string;
     name: string;
@@ -62,6 +81,9 @@ type Conversation = {
   lastMessage: string;
   timestamp: string;
   unread: number;
+  isStarred?: boolean;
+  isImportant?: boolean;
+  labels?: string[];
 };
 
 const mockConversations: Conversation[] = [
@@ -223,6 +245,70 @@ const mockMessages: Record<string, Message[]> = {
   ]
 };
 
+const ConversationListItem = ({ 
+  conversation, 
+  isActive,
+  onSelect
+}: { 
+  conversation: Conversation,
+  isActive: boolean,
+  onSelect: () => void
+}) => {
+  const [isStarred, setIsStarred] = useState(conversation.isStarred || false);
+  
+  const handleStarClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsStarred(!isStarred);
+  };
+  
+  return (
+    <div 
+      className={`flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer transition-colors ${
+        isActive ? 'bg-military-sand/50 font-medium' : ''
+      } ${conversation.unread > 0 ? 'font-semibold' : ''}`}
+      onClick={onSelect}
+    >
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <button
+          className="text-gray-400 hover:text-amber-400 transition-colors"
+          onClick={handleStarClick}
+          aria-label="Star conversation"
+        >
+          <Star className={`h-4 w-4 ${isStarred ? 'fill-amber-400 text-amber-400' : ''}`} />
+        </button>
+        
+        <div className="relative">
+          <Avatar className="h-9 w-9 bg-military-navy">
+            <User className="h-5 w-5 text-white" />
+          </Avatar>
+          <div className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white ${
+            conversation.contact.status === 'online' ? 'bg-green-500' : 
+            conversation.contact.status === 'away' ? 'bg-amber-500' : 'bg-gray-400'
+          }`} />
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex justify-between items-baseline w-full">
+            <h4 className="text-sm truncate">{conversation.contact.name}</h4>
+            <span className="text-xs text-gray-500 whitespace-nowrap ml-2">{conversation.timestamp}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            {conversation.contact.isTyping ? (
+              <span className="text-xs italic text-military-navy">Typing...</span>
+            ) : (
+              <p className="text-xs text-gray-600 truncate">{conversation.lastMessage}</p>
+            )}
+          </div>
+        </div>
+        
+        {conversation.unread > 0 && (
+          <Badge className="bg-military-navy ml-2 rounded-full text-xs h-5 w-5 flex items-center justify-center p-0">{conversation.unread}</Badge>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const ConversationList = ({ 
   conversations, 
   activeConversationId, 
@@ -239,48 +325,23 @@ const ConversationList = ({
   );
 
   return (
-    <ScrollArea className="h-[574px]">
-      {filteredConversations.map((conversation) => (
-        <div 
-          key={conversation.id}
-          className={`p-3 hover:bg-military-beige cursor-pointer transition-colors border-b ${
-            activeConversationId === conversation.id ? 'bg-military-beige' : ''
-          }`}
-          onClick={() => onSelectConversation(conversation)}
-        >
-          <div className="flex items-start gap-3">
-            <div className="relative">
-              <Avatar className="h-10 w-10 bg-military-navy">
-                <User className="h-6 w-6 text-white" />
-              </Avatar>
-              <div className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white ${
-                conversation.contact.status === 'online' ? 'bg-green-500' : 
-                conversation.contact.status === 'away' ? 'bg-amber-500' : 'bg-gray-400'
-              }`} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium text-sm truncate">{conversation.contact.name}</h4>
-                <span className="text-xs text-muted-foreground">{conversation.timestamp}</span>
-              </div>
-              {conversation.contact.role && (
-                <p className="text-xs text-muted-foreground">{conversation.contact.role}</p>
-              )}
-              <div className="flex items-center gap-1 mt-1">
-                {conversation.contact.isTyping ? (
-                  <span className="text-xs italic text-military-navy">Typing...</span>
-                ) : (
-                  <p className="text-sm truncate">{conversation.lastMessage}</p>
-                )}
-              </div>
-            </div>
-            {conversation.unread > 0 && (
-              <Badge className="bg-military-navy">{conversation.unread}</Badge>
-            )}
-          </div>
-        </div>
-      ))}
-    </ScrollArea>
+    <div className="flex flex-col h-full">
+      <div className="p-2 flex items-center justify-between border-b">
+        <h3 className="text-sm font-medium text-gray-700">Inbox</h3>
+        <RefreshCw className="h-4 w-4 text-gray-500" />
+      </div>
+      
+      <ScrollArea className="h-[calc(620px-80px)]">
+        {filteredConversations.map((conversation) => (
+          <ConversationListItem
+            key={conversation.id}
+            conversation={conversation}
+            isActive={activeConversationId === conversation.id}
+            onSelect={() => onSelectConversation(conversation)}
+          />
+        ))}
+      </ScrollArea>
+    </div>
   );
 };
 
@@ -291,10 +352,12 @@ const ConversationHeader = ({
   activeConversation: Conversation | undefined,
   onFilesClick: () => void
 }) => {
+  const { toast } = useToast();
+  
   if (!activeConversation) return <div>Select a conversation</div>;
   
   return (
-    <div className="p-3 border-b flex items-center justify-between bg-military-sand/30">
+    <div className="p-3 border-b flex items-center justify-between bg-white">
       <div className="flex items-center gap-3">
         <Avatar className="h-10 w-10 bg-military-navy">
           <User className="h-6 w-6 text-white" />
@@ -312,16 +375,115 @@ const ConversationHeader = ({
           )}
         </div>
       </div>
-      <div>
+      
+      <div className="flex items-center gap-2">
         <Button 
-          variant="outline" 
+          variant="ghost" 
+          size="sm"
+          onClick={() => toast({
+            title: "Quick reply",
+            description: "This feature will be available soon."
+          })}
+        >
+          <Reply className="h-4 w-4" />
+        </Button>
+        
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={() => toast({
+            title: "Forward message",
+            description: "This feature will be available soon."
+          })}
+        >
+          <Forward className="h-4 w-4" />
+        </Button>
+        
+        <Button 
+          variant="ghost" 
           size="sm"
           onClick={onFilesClick}
         >
-          <FileText className="h-4 w-4 mr-1" />
-          Files
+          <FileText className="h-4 w-4" />
         </Button>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => toast({
+              title: "Archive conversation",
+              description: "This feature will be available soon."
+            })}>
+              <Archive className="h-4 w-4 mr-2" />
+              Archive
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => toast({
+              title: "Delete conversation",
+              description: "This feature will be available soon."
+            })}>
+              <Trash className="h-4 w-4 mr-2" />
+              Delete
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => toast({
+              title: "Mark as unread",
+              description: "This feature will be available soon."
+            })}>
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Mark as unread
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => toast({
+              title: "Add label",
+              description: "This feature will be available soon."
+            })}>
+              <Label className="h-4 w-4 mr-2" />
+              Add label
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+    </div>
+  );
+};
+
+const MessageAttachment = ({ 
+  attachment,
+  isCurrentUser
+}: {
+  attachment: { id: string, name: string, type: string, url: string },
+  isCurrentUser: boolean
+}) => {
+  const { toast } = useToast();
+  
+  const handleDownload = () => {
+    toast({
+      title: "Download started",
+      description: `Downloading ${attachment.name}`
+    });
+  };
+  
+  return (
+    <div 
+      className={`flex items-center gap-2 p-2 rounded ${
+        isCurrentUser ? 'bg-military-navy/80' : 'bg-gray-100'
+      }`}
+    >
+      {attachment.type === 'pdf' && <FileText className="h-4 w-4" />}
+      {attachment.type === 'image' && <Image className="h-4 w-4" />}
+      {attachment.type === 'document' && <FileText className="h-4 w-4" />}
+      <span className="text-xs truncate flex-1">{attachment.name}</span>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-6 w-6 p-0"
+        onClick={handleDownload}
+      >
+        <Download className="h-3 w-3" />
+      </Button>
     </div>
   );
 };
@@ -329,46 +491,114 @@ const ConversationHeader = ({
 const MessageBubble = ({ 
   message, 
   isCurrentUser,
-  isHighlighted
+  isHighlighted,
+  onStar
 }: { 
   message: Message, 
   isCurrentUser: boolean,
-  isHighlighted?: boolean
+  isHighlighted?: boolean,
+  onStar?: (messageId: string) => void
 }) => {
+  const [isStarred, setIsStarred] = useState(message.isStarred || false);
+  const { toast } = useToast();
+  
+  const handleStarClick = () => {
+    setIsStarred(!isStarred);
+    if (onStar) {
+      onStar(message.id);
+    }
+  };
+  
+  const handleReply = () => {
+    toast({
+      title: "Reply to message",
+      description: "This feature will be available soon."
+    });
+  };
+  
+  const handleForward = () => {
+    toast({
+      title: "Forward message",
+      description: "This feature will be available soon."
+    });
+  };
+  
   return (
     <div 
       id={`message-${message.id}`}
-      className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} transition-colors duration-300 mb-4 ${isHighlighted ? 'bg-military-sand/30 p-2 rounded-md' : ''}`}
+      className={`group flex ${isCurrentUser ? 'justify-end' : 'justify-start'} transition-colors duration-300 mb-4 ${isHighlighted ? 'bg-military-sand/30 p-2 rounded-md' : ''}`}
     >
-      <div className={`max-w-[80%] ${isCurrentUser ? 'bg-military-navy text-white' : 'bg-military-beige'} p-3 rounded-lg`}>
-        {message.content && <p className="text-sm whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: message.content }} />}
-        
-        {message.attachments && message.attachments.length > 0 && (
-          <div className="mt-2 space-y-2">
-            {message.attachments.map(attachment => (
-              <div 
-                key={attachment.id}
-                className={`flex items-center gap-2 p-2 rounded ${isCurrentUser ? 'bg-military-navy/80' : 'bg-military-beige/80'}`}
-              >
-                {attachment.type === 'pdf' && <FileText className="h-4 w-4" />}
-                {attachment.type === 'image' && <Image className="h-4 w-4" />}
-                {attachment.type === 'document' && <FileText className="h-4 w-4" />}
-                <span className="text-xs truncate">{attachment.name}</span>
-              </div>
-            ))}
-          </div>
-        )}
-        
-        <div className={`flex justify-end items-center gap-1 mt-1 text-xs ${isCurrentUser ? 'text-military-sand/70' : 'text-muted-foreground'}`}>
-          {message.timestamp}
-          {isCurrentUser && (
-            <span className="ml-1">
-              {message.status === "read" && <CheckCheck className="h-3 w-3 text-green-400" />}
-              {message.status === "delivered" && <CheckCheck className="h-3 w-3" />}
-              {message.status === "sent" && <CheckCheck className="h-3 w-3 opacity-70" />}
-              {message.status === "sending" && <span className="text-[10px] opacity-70">•••</span>}
-            </span>
+      {!isCurrentUser && (
+        <Avatar className="h-8 w-8 mr-2 mt-1 bg-military-navy flex-shrink-0">
+          <User className="h-4 w-4 text-white" />
+        </Avatar>
+      )}
+      
+      <div className="flex flex-col">
+        <div className={`flex max-w-[80%] ${isCurrentUser ? 'bg-military-navy text-white' : 'bg-gray-100'} p-3 rounded-lg`}>
+          {!isCurrentUser && (
+            <div className="font-medium text-xs mb-1">{message.sender.name}</div>
           )}
+          
+          {message.content && <p className="text-sm whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: message.content }} />}
+          
+          {message.attachments && message.attachments.length > 0 && (
+            <div className="mt-2 space-y-2">
+              {message.attachments.map(attachment => (
+                <MessageAttachment 
+                  key={attachment.id}
+                  attachment={attachment}
+                  isCurrentUser={isCurrentUser}
+                />
+              ))}
+            </div>
+          )}
+          
+          <div className={`flex justify-end items-center gap-1 mt-1 text-xs ${isCurrentUser ? 'text-military-sand/70' : 'text-muted-foreground'}`}>
+            {message.timestamp}
+            {isCurrentUser && (
+              <span className="ml-1">
+                {message.status === "read" && <CheckCheck className="h-3 w-3 text-green-400" />}
+                {message.status === "delivered" && <CheckCheck className="h-3 w-3" />}
+                {message.status === "sent" && <CheckCheck className="h-3 w-3 opacity-70" />}
+                {message.status === "sending" && <span className="text-[10px] opacity-70">•••</span>}
+              </span>
+            )}
+          </div>
+        </div>
+        
+        <div className="flex items-center mt-1 gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-6 w-6 p-0" 
+            onClick={handleReply}
+            aria-label="Reply"
+          >
+            <Reply className="h-3 w-3" />
+          </Button>
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-6 w-6 p-0" 
+            onClick={handleForward}
+            aria-label="Forward"
+          >
+            <Forward className="h-3 w-3" />
+          </Button>
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-6 w-6 p-0" 
+            onClick={handleStarClick}
+            aria-label="Star message"
+          >
+            <Star className={`h-3 w-3 ${isStarred ? 'fill-amber-400 text-amber-400' : ''}`} />
+          </Button>
+          
+          <span className="text-xs text-gray-400">{message.timestamp}</span>
         </div>
       </div>
     </div>
@@ -696,6 +926,14 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
       description: "View and manage files shared in this conversation."
     });
   };
+  
+  const handleStarMessage = (messageId: string) => {
+    setMessages(current => 
+      current.map(msg => 
+        msg.id === messageId ? { ...msg, isStarred: !msg.isStarred } : msg
+      )
+    );
+  };
 
   useEffect(() => {
     const typingInterval = setInterval(() => {
@@ -719,14 +957,15 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
   }, []);
 
   return (
-    <div className="flex h-[620px] border rounded-lg overflow-hidden">
-      <div className="w-1/3 border-r bg-military-sand/50">
-        <div className="p-3 border-b">
+    <div className="flex h-[620px] border rounded-lg overflow-hidden bg-white">
+      {/* Left sidebar - Gmail style conversations list */}
+      <div className="w-1/3 border-r flex flex-col">
+        <div className="p-2 border-b">
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search conversations..."
-              className="pl-8"
+              placeholder="Search messages..."
+              className="pl-8 h-9"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -740,7 +979,8 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
         />
       </div>
 
-      <div className="flex-1 flex flex-col">
+      {/* Right side - Conversation view */}
+      <div className="flex-1 flex flex-col bg-white">
         <ConversationHeader 
           activeConversation={activeConversation}
           onFilesClick={handleFilesClick}
@@ -754,21 +994,9 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
                 message={message}
                 isCurrentUser={message.sender.id === 'current-user'}
                 isHighlighted={message.id === highlightedMessageId}
+                onStar={handleStarMessage}
               />
             ))}
             <div ref={messagesEndRef} />
           </div>
-        </ScrollArea>
-
-        <MessageComposer
-          newMessage={newMessage}
-          setNewMessage={setNewMessage}
-          handleSendMessage={handleSendMessage}
-          handleKeyDown={handleKeyDown}
-        />
-      </div>
-    </div>
-  );
-};
-
-export default DirectMessages;
+        </Scroll
