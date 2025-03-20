@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -328,17 +329,16 @@ const ConversationHeader = ({
 const MessageBubble = ({ 
   message, 
   isCurrentUser,
-  forwardedRef 
+  isHighlighted
 }: { 
   message: Message, 
   isCurrentUser: boolean,
-  forwardedRef?: React.RefObject<HTMLDivElement> | null
+  isHighlighted?: boolean
 }) => {
   return (
     <div 
       id={`message-${message.id}`}
-      ref={forwardedRef}
-      className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} transition-colors duration-300 mb-4`}
+      className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} transition-colors duration-300 mb-4 ${isHighlighted ? 'bg-military-sand/30 p-2 rounded-md' : ''}`}
     >
       <div className={`max-w-[80%] ${isCurrentUser ? 'bg-military-navy text-white' : 'bg-military-beige'} p-3 rounded-lg`}>
         {message.content && <p className="text-sm whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: message.content }} />}
@@ -553,9 +553,10 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
   const [newMessage, setNewMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [messages, setMessages] = useState<Message[]>(mockMessages["1"]);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messageElementRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const activeConversation = conversations.find(c => c.id === activeConversationId);
 
@@ -591,6 +592,7 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
       
       if (foundConversationId) {
         setActiveConversationId(foundConversationId);
+        setHighlightedMessageId(selectedMessageId);
         
         setConversations(prevConversations => 
           prevConversations.map(conv => 
@@ -602,9 +604,10 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
           const messageElement = document.getElementById(`message-${selectedMessageId}`);
           if (messageElement) {
             messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
-            messageElement.classList.add("bg-military-sand/30");
+            
+            // Clear the highlight after a delay
             setTimeout(() => {
-              messageElement.classList.remove("bg-military-sand/30");
+              setHighlightedMessageId(null);
             }, 2000);
           }
         }, 500);
@@ -744,13 +747,13 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
         />
 
         <ScrollArea className="flex-1 p-4">
-          <div className="space-y-4">
+          <div className="space-y-4" ref={messagesContainerRef}>
             {messages.map((message) => (
               <MessageBubble 
                 key={message.id}
                 message={message}
                 isCurrentUser={message.sender.id === 'current-user'}
-                forwardedRef={message.id === selectedMessageId ? messagesEndRef : null}
+                isHighlighted={message.id === highlightedMessageId}
               />
             ))}
             <div ref={messagesEndRef} />
@@ -769,4 +772,3 @@ const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) =>
 };
 
 export default DirectMessages;
-
