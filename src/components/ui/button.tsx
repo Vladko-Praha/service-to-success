@@ -20,6 +20,11 @@ const buttonVariants = cva(
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
         profile: "bg-military-navy text-white hover:bg-military-navy/90",
+        // New military-themed variants
+        "mission-critical": "bg-military-red text-white hover:bg-military-red/90",
+        "high-priority": "bg-[#FFB300] text-white hover:bg-[#FFB300]/90",
+        "standard": "bg-military-olive text-white hover:bg-military-olive/90",
+        "informational": "bg-military-navy text-white hover:bg-military-navy/90",
       },
       size: {
         default: "h-10 px-4 py-2",
