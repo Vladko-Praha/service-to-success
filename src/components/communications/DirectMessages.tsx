@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -95,21 +94,23 @@ type Conversation = {
   isStarred?: boolean;
   isImportant?: boolean;
   labels?: string[];
+  subject?: string; // Added subject field for Gmail-like view
 };
 
-// Initial mock conversations data
+// Initial mock conversations data with subjects
 const initialMockConversations: Conversation[] = [
   {
     id: "1",
     contact: {
       id: "user1",
-      name: "Captain Sarah Johnson",
+      name: "Samsung",
       status: "online",
       role: "Training Coordinator",
       isTyping: false
     },
+    subject: "We've missed you. Ready to win? Enter our $5k Bespoke AI sweepstakes",
     lastMessage: "When will you complete the market analysis assignment?",
-    timestamp: "10:32 AM",
+    timestamp: "23:11",
     unread: 2,
     isImportant: true
   },
@@ -117,41 +118,58 @@ const initialMockConversations: Conversation[] = [
     id: "2",
     contact: {
       id: "user2",
-      name: "Sgt. Michael Brooks",
+      name: "The Substack Post",
       status: "online",
       role: "Business Mentor",
-      isTyping: true
+      isTyping: false
     },
+    subject: "Substack on Film - Watch now (2 mins) | A new series celebrating writers and ...",
     lastMessage: "I've reviewed your business plan draft",
-    timestamp: "Yesterday",
-    unread: 1
+    timestamp: "21:06",
+    unread: 0
   },
   {
     id: "3",
     contact: {
       id: "user3",
-      name: "Lt. Jessica Martinez",
+      name: "Rohlik.cz",
       status: "away",
       role: "Finance Advisor",
       isTyping: false
     },
+    subject: "Udržitelné, certifikované a dokonale chlazené",
     lastMessage: "Let's schedule a funding strategy call",
-    timestamp: "Monday",
+    timestamp: "18:04",
     unread: 0,
-    isStarred: true
+    isStarred: false
   },
   {
     id: "4",
     contact: {
       id: "user4",
-      name: "Lt. Col. David Clark",
+      name: "Kajabi",
       status: "offline",
       role: "Program Director",
       isTyping: false
     },
+    subject: "Step 2: Time to Make Your Brand Stand Out - Unleash your creativity and make...",
     lastMessage: "Congratulations on completing Phase 1!",
-    timestamp: "3/20/25",
+    timestamp: "17:56",
     unread: 0
+  },
+  {
+    id: "5",
+    contact: {
+      id: "user5",
+      name: "Instagram",
+      status: "online",
+      role: "Social Media",
+      isTyping: false
+    },
+    subject: "Máte 1 nepřečtenou zprávu. - Máte nepřečtené zpr...",
+    lastMessage: "You have 1 unread message",
+    timestamp: "15:30",
+    unread: 1
   }
 ];
 
@@ -272,9 +290,10 @@ const ComposeButton = ({ onClick }: { onClick: () => void }) => {
   );
 };
 
-const SidebarNav = ({ activeView, setActiveView }: { 
+const SidebarNav = ({ activeView, setActiveView, counts }: { 
   activeView: string;
   setActiveView: (view: string) => void;
+  counts: { inbox: number; drafts: number; };
 }) => {
   return (
     <div className="py-2">
@@ -286,7 +305,9 @@ const SidebarNav = ({ activeView, setActiveView }: {
         >
           <Inbox className="h-4 w-4 mr-3" />
           Inbox
-          <Badge className="ml-auto bg-gray-700">3</Badge>
+          {counts.inbox > 0 && (
+            <Badge className="ml-auto bg-gray-700">{counts.inbox}</Badge>
+          )}
         </Button>
         <Button 
           variant="ghost" 
@@ -327,7 +348,9 @@ const SidebarNav = ({ activeView, setActiveView }: {
         >
           <FilePlus className="h-4 w-4 mr-3" />
           Drafts
-          <Badge className="ml-auto bg-gray-500">5</Badge>
+          {counts.drafts > 0 && (
+            <Badge className="ml-auto bg-gray-500">{counts.drafts}</Badge>
+          )}
         </Button>
         <Button variant="ghost" className="w-full justify-start">
           <ChevronDown className="h-4 w-4 mr-3" />
@@ -338,7 +361,8 @@ const SidebarNav = ({ activeView, setActiveView }: {
   );
 };
 
-const ConversationListItem = ({ 
+// Gmail-like inbox list item
+const InboxListItem = ({ 
   conversation, 
   isActive,
   isSelected,
@@ -394,14 +418,14 @@ const ConversationListItem = ({
         </button>
         
         <div className="flex-1 min-w-0 flex">
-          <div className="w-1/4 truncate font-medium">
+          <div className="w-[180px] truncate font-medium">
             {conversation.contact.name}
           </div>
           <div className="flex-1 truncate">
             {conversation.contact.isTyping ? (
               <span className="text-blue-600 italic">Typing...</span>
             ) : (
-              <span className="text-gray-700">{conversation.lastMessage}</span>
+              <span className="text-gray-700">{conversation.subject}</span>
             )}
           </div>
           <span className="text-xs text-gray-500 whitespace-nowrap ml-2">{conversation.timestamp}</span>
@@ -415,7 +439,8 @@ const ConversationListItem = ({
   );
 };
 
-const ConversationList = ({ 
+// Gmail-like inbox list
+const InboxList = ({ 
   conversations, 
   activeConversationId, 
   selectedConversations,
@@ -441,7 +466,8 @@ const ConversationList = ({
   isSelectAll: boolean
 }) => {
   const filteredConversations = conversations.filter(
-    conv => conv.contact.name.toLowerCase().includes(searchTerm.toLowerCase())
+    conv => conv.contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (conv.subject && conv.subject.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -481,7 +507,7 @@ const ConversationList = ({
       
       <ScrollArea className="flex-1">
         {filteredConversations.map((conversation) => (
-          <ConversationListItem
+          <InboxListItem
             key={conversation.id}
             conversation={conversation}
             isActive={activeConversationId === conversation.id}
@@ -915,559 +941,4 @@ const MessageComposer = ({
                 className="text-muted-foreground hover:text-military-navy"
                 onClick={handleEmojiClick}
               >
-                <Smile className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-        <Button 
-          size="icon" 
-          onClick={handleSendMessage}
-          disabled={!newMessage.trim()}
-          className="bg-military-navy hover:bg-military-navy/90"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-interface DirectMessagesProps {
-  selectedMessageId?: string | null;
-}
-
-const DirectMessages: React.FC<DirectMessagesProps> = ({ selectedMessageId }) => {
-  const { toast } = useToast();
-  const [conversations, setConversations] = useState(initialMockConversations);
-  const [activeConversationId, setActiveConversationId] = useState("1");
-  const [newMessage, setNewMessage] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
-  const [selectedConversations, setSelectedConversations] = useState<string[]>([]);
-  const [showCompose, setShowCompose] = useState(false);
-  const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
-  const [activeView, setActiveView] = useState("inbox");
-  const [mockMessages, setMockMessages] = useState(initialMockMessages);
-  const [isSelectAll, setIsSelectAll] = useState(false);
-  const [composeData, setComposeData] = useState({
-    to: "",
-    subject: "",
-    content: ""
-  });
-  
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-
-  const activeConversation = conversations.find(c => c.id === activeConversationId);
-
-  // Load messages when active conversation changes
-  useEffect(() => {
-    if (activeConversationId && mockMessages[activeConversationId]) {
-      setMessages(mockMessages[activeConversationId]);
-    } else {
-      setMessages([]);
-    }
-  }, [activeConversationId, mockMessages]);
-
-  // Scroll to end of messages or highlight selected message
-  useEffect(() => {
-    if (!selectedMessageId) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, selectedMessageId]);
-
-  // Handle selected message highlighting
-  useEffect(() => {
-    if (selectedMessageId) {
-      console.log("Looking for message with ID:", selectedMessageId);
-      
-      let foundConversationId = null;
-      
-      for (const [convId, msgList] of Object.entries(mockMessages)) {
-        const foundMessage = msgList.find(msg => msg.id === selectedMessageId);
-        
-        if (foundMessage) {
-          console.log("Found message in conversation:", convId);
-          foundConversationId = convId;
-          break;
-        }
-      }
-      
-      if (foundConversationId) {
-        setActiveConversationId(foundConversationId);
-        setHighlightedMessageId(selectedMessageId);
-        
-        setConversations(prevConversations => 
-          prevConversations.map(conv => 
-            conv.id === foundConversationId ? { ...conv, unread: 0 } : conv
-          )
-        );
-        
-        setTimeout(() => {
-          const messageElement = document.getElementById(`message-${selectedMessageId}`);
-          if (messageElement) {
-            messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
-            
-            // Clear the highlight after a delay
-            setTimeout(() => {
-              setHighlightedMessageId(null);
-            }, 2000);
-          }
-        }, 500);
-      }
-    }
-  }, [selectedMessageId, mockMessages]);
-
-  // Filter conversations based on current view
-  const filteredConversations = conversations.filter(conv => {
-    if (activeView === "inbox") return true;
-    if (activeView === "starred") return conv.isStarred;
-    if (activeView === "important") return conv.isImportant;
-    return true;
-  });
-
-  // Handle sending a new message
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
-
-    // If in compose mode, send a new message
-    if (showCompose) {
-      if (!composeData.to.trim()) {
-        toast({
-          title: "Recipient required",
-          description: "Please enter a recipient for your message",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      toast({
-        title: "Message sent",
-        description: `Your message has been sent to ${composeData.to}`
-      });
-      
-      setShowCompose(false);
-      setComposeData({
-        to: "",
-        subject: "",
-        content: ""
-      });
-      return;
-    }
-
-    // Regular message in existing conversation
-    const newMsg: Message = {
-      id: `msg${Date.now()}`,
-      sender: {
-        id: "current-user",
-        name: "You",
-        status: "online"
-      },
-      content: newMessage.trim(),
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      status: "sending"
-    };
-
-    // Update messages in the current conversation
-    const updatedMessages = [...messages, newMsg];
-    setMessages(updatedMessages);
-    
-    // Update the mock messages store
-    setMockMessages(prev => ({
-      ...prev,
-      [activeConversationId]: updatedMessages
-    }));
-
-    // Update the conversation list with the new message
-    setConversations(prev => 
-      prev.map(conv => 
-        conv.id === activeConversationId 
-          ? { ...conv, lastMessage: newMessage.trim(), timestamp: 'Just now', unread: 0 } 
-          : conv
-      )
-    );
-
-    // Clear the message input and reply state
-    setNewMessage("");
-    setReplyToMessage(null);
-    
-    // Simulate message status updates
-    simulateMessageStatusUpdates(newMsg.id);
-  };
-
-  // Simulate message status progression
-  const simulateMessageStatusUpdates = (messageId: string) => {
-    // Change status to "sent" after a short delay
-    setTimeout(() => {
-      setMessages(current => 
-        current.map(msg => 
-          msg.id === messageId ? { ...msg, status: "sent" } : msg
-        )
-      );
-      
-      setMockMessages(prev => ({
-        ...prev,
-        [activeConversationId]: prev[activeConversationId].map(msg => 
-          msg.id === messageId ? { ...msg, status: "sent" } : msg
-        )
-      }));
-      
-      // Change status to "delivered" after another delay
-      setTimeout(() => {
-        setMessages(current => 
-          current.map(msg => 
-            msg.id === messageId ? { ...msg, status: "delivered" } : msg
-          )
-        );
-        
-        setMockMessages(prev => ({
-          ...prev,
-          [activeConversationId]: prev[activeConversationId].map(msg => 
-            msg.id === messageId ? { ...msg, status: "delivered" } : msg
-          )
-        }));
-        
-        // If recipient is online, change to "read" after a longer delay
-        if (activeConversation?.contact.status === "online") {
-          setTimeout(() => {
-            setMessages(current => 
-              current.map(msg => 
-                msg.id === messageId ? { ...msg, status: "read" } : msg
-              )
-            );
-            
-            setMockMessages(prev => ({
-              ...prev,
-              [activeConversationId]: prev[activeConversationId].map(msg => 
-                msg.id === messageId ? { ...msg, status: "read" } : msg
-              )
-            }));
-          }, 3000);
-        }
-      }, 1000);
-    }, 500);
-  };
-
-  // Handle Enter key for sending messages
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  // Select a conversation
-  const handleSelectConversation = (conversation: Conversation) => {
-    if (conversation.id === activeConversationId) return;
-
-    // Mark conversation as read
-    const updatedConversations = conversations.map(conv => 
-      conv.id === conversation.id ? { ...conv, unread: 0 } : conv
-    );
-    setConversations(updatedConversations);
-
-    setActiveConversationId(conversation.id);
-    setShowCompose(false);
-    setReplyToMessage(null);
-  };
-
-  // Handle checkbox selection for bulk actions
-  const handleCheckboxChange = (id: string, checked: boolean) => {
-    if (checked) {
-      setSelectedConversations(prev => [...prev, id]);
-    } else {
-      setSelectedConversations(prev => prev.filter(convId => convId !== id));
-      setIsSelectAll(false);
-    }
-  };
-
-  // Star a message
-  const handleStarMessage = (messageId: string) => {
-    setMessages(current => 
-      current.map(msg => 
-        msg.id === messageId ? { ...msg, isStarred: !msg.isStarred } : msg
-      )
-    );
-    
-    setMockMessages(prev => ({
-      ...prev,
-      [activeConversationId]: prev[activeConversationId].map(msg => 
-        msg.id === messageId ? { ...msg, isStarred: !msg.isStarred } : msg
-      )
-    }));
-    
-    toast({
-      title: "Message starred",
-      description: "The message has been starred."
-    });
-  };
-
-  // Star a conversation
-  const handleStarConversation = (id: string) => {
-    setConversations(prev => 
-      prev.map(conv => 
-        conv.id === id ? { ...conv, isStarred: !conv.isStarred } : conv
-      )
-    );
-    
-    toast({
-      title: "Conversation updated",
-      description: "Star status changed successfully."
-    });
-  };
-
-  // Mark a conversation as important
-  const handleImportantConversation = (id: string) => {
-    setConversations(prev => 
-      prev.map(conv => 
-        conv.id === id ? { ...conv, isImportant: !conv.isImportant } : conv
-      )
-    );
-    
-    toast({
-      title: "Conversation updated",
-      description: "Importance status changed successfully."
-    });
-  };
-
-  // Reply to a message
-  const handleReplyMessage = (messageId: string) => {
-    const messageToReply = messages.find(msg => msg.id === messageId);
-    if (messageToReply) {
-      setReplyToMessage(messageToReply);
-      toast({
-        title: "Reply started",
-        description: `Replying to ${messageToReply.sender.name}`
-      });
-    }
-  };
-
-  // Forward a message
-  const handleForwardMessage = (messageId: string) => {
-    const messageToForward = messages.find(msg => msg.id === messageId);
-    if (messageToForward) {
-      setShowCompose(true);
-      setComposeData({
-        to: "",
-        subject: "Fwd: Message from " + messageToForward.sender.name,
-        content: `---------- Forwarded message ----------\nFrom: ${messageToForward.sender.name}\nDate: ${messageToForward.timestamp}\n\n${messageToForward.content}`
-      });
-      
-      toast({
-        title: "Forward started",
-        description: `Forwarding message from ${messageToForward.sender.name}`
-      });
-    }
-  };
-
-  // Show compose new message form
-  const handleComposeClick = () => {
-    setShowCompose(true);
-    setReplyToMessage(null);
-    setComposeData({
-      to: "",
-      subject: "",
-      content: ""
-    });
-  };
-
-  // Handle archive operation
-  const handleArchive = () => {
-    toast({
-      title: "Conversation archived",
-      description: "This conversation has been moved to the archive."
-    });
-    
-    // Remove conversation from the list
-    const updatedConversations = conversations.filter(conv => conv.id !== activeConversationId);
-    setConversations(updatedConversations);
-    
-    // Set the first available conversation as active, or none if empty
-    if (updatedConversations.length > 0) {
-      setActiveConversationId(updatedConversations[0].id);
-    } else {
-      setActiveConversationId("");
-    }
-  };
-
-  // Handle delete operation
-  const handleDelete = () => {
-    toast({
-      title: "Conversation deleted",
-      description: "This conversation has been deleted."
-    });
-    
-    // Remove conversation from the list
-    const updatedConversations = conversations.filter(conv => conv.id !== activeConversationId);
-    setConversations(updatedConversations);
-    
-    // Set the first available conversation as active, or none if empty
-    if (updatedConversations.length > 0) {
-      setActiveConversationId(updatedConversations[0].id);
-    } else {
-      setActiveConversationId("");
-    }
-  };
-
-  // Handle select all checkboxes
-  const handleSelectAll = (checked: boolean) => {
-    setIsSelectAll(checked);
-    if (checked) {
-      setSelectedConversations(filteredConversations.map(conv => conv.id));
-    } else {
-      setSelectedConversations([]);
-    }
-  };
-
-  // Handle refresh button
-  const handleRefresh = () => {
-    toast({
-      title: "Refreshed",
-      description: "Your messages have been refreshed."
-    });
-    
-    // Simulate a refresh by making a copy of the current state
-    setMessages([...messages]);
-  };
-
-  // Handle go back from thread view
-  const handleGoBack = () => {
-    // Just a visual effect, doesn't actually navigate back
-    toast({
-      title: "Navigation",
-      description: "Going back to conversation list."
-    });
-  };
-
-  return (
-    <div className="flex h-[620px] border rounded-lg overflow-hidden bg-white">
-      {/* Left sidebar - Navigation + conversations list */}
-      <div className="w-[250px] border-r flex flex-col bg-white">
-        <div className="p-3">
-          <ComposeButton onClick={handleComposeClick} />
-        </div>
-        
-        <SidebarNav activeView={activeView} setActiveView={setActiveView} />
-        
-        <Separator className="my-2" />
-        
-        <div className="relative flex-1">
-          <div className="absolute inset-0 flex flex-col">
-            <div className="p-2">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search mail"
-                  className="pl-8 h-9"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
-            
-            <div className="flex-1 overflow-hidden">
-              <ConversationList 
-                conversations={filteredConversations}
-                activeConversationId={activeConversationId}
-                selectedConversations={selectedConversations}
-                onSelectConversation={handleSelectConversation}
-                onCheckboxChange={handleCheckboxChange}
-                onStar={handleStarConversation}
-                onImportant={handleImportantConversation}
-                onSelectAll={handleSelectAll}
-                onRefresh={handleRefresh}
-                searchTerm={searchTerm}
-                isSelectAll={isSelectAll}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Right side - Mail view */}
-      <div className="flex-1 flex flex-col bg-white">
-        {showCompose ? (
-          <div className="flex flex-col h-full">
-            <div className="p-3 bg-gray-100 border-b flex justify-between items-center">
-              <h3 className="font-medium">New Message</h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-7 w-7 p-0"
-                onClick={() => setShowCompose(false)}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
-              </Button>
-            </div>
-            
-            <div className="p-4 flex-1">
-              <div className="mb-4">
-                <Input 
-                  placeholder="To" 
-                  className="mb-2" 
-                  value={composeData.to}
-                  onChange={(e) => setComposeData({...composeData, to: e.target.value})}
-                />
-                <Input 
-                  placeholder="Subject" 
-                  value={composeData.subject}
-                  onChange={(e) => setComposeData({...composeData, subject: e.target.value})}
-                />
-              </div>
-              
-              <Textarea 
-                placeholder="Compose email" 
-                className="min-h-[300px]"
-                value={composeData.content}
-                onChange={(e) => setComposeData({...composeData, content: e.target.value})}
-              />
-            </div>
-            
-            <div className="border-t p-3 flex justify-between">
-              <Button onClick={handleSendMessage} disabled={!composeData.to.trim()}>Send</Button>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => {
-                  setShowCompose(false);
-                  toast({
-                    title: "Draft discarded",
-                    description: "Your message draft has been discarded."
-                  });
-                }}
-              >
-                <Trash className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <ThreadView
-              messages={messages}
-              activeConversation={activeConversation}
-              highlightedMessageId={highlightedMessageId}
-              onStarMessage={handleStarMessage}
-              onReplyMessage={handleReplyMessage}
-              onForwardMessage={handleForwardMessage}
-              onGoBack={handleGoBack}
-              onArchive={handleArchive}
-              onDelete={handleDelete}
-            />
-            
-            <MessageComposer
-              newMessage={newMessage}
-              setNewMessage={setNewMessage}
-              handleSendMessage={handleSendMessage}
-              handleKeyDown={handleKeyDown}
-              replyToMessage={replyToMessage}
-            />
-          </>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default DirectMessages;
+                <Smile className="h-4

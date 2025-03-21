@@ -15,7 +15,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 const CommunicationHub = () => {
   const [activeTab, setActiveTab] = useState("messages");
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
-  const [isNoticeBoardOpen, setIsNoticeBoardOpen] = useState(true);
+  const [isNoticeBoardOpen, setIsNoticeBoardOpen] = useState(false); // Default to collapsed
   const location = useLocation();
 
   // Handle URL parameters for deep linking
