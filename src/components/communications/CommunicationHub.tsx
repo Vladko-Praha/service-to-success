@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CommandNoticeBoard from "./CommandNoticeBoard";
-import { MessageSquare, Users, Bell, MailOpen } from "lucide-react";
+import { MessageSquare, Users, Bell, MailOpen, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import DirectMessages from "./DirectMessages";
 import FireTeamNetwork from "./FireTeamNetwork";
@@ -10,10 +10,12 @@ import Notifications from "./Notifications";
 import Broadcasts from "./Broadcasts";
 import CommunicationsSearch, { SearchResult } from "./CommunicationsSearch";
 import { useLocation } from "react-router-dom";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const CommunicationHub = () => {
   const [activeTab, setActiveTab] = useState("messages");
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  const [isNoticeBoardOpen, setIsNoticeBoardOpen] = useState(true);
   const location = useLocation();
 
   // Handle URL parameters for deep linking
@@ -24,6 +26,8 @@ const CommunicationHub = () => {
     
     if (tabParam && ["messages", "fireteam", "notifications", "broadcasts"].includes(tabParam)) {
       setActiveTab(tabParam);
+      // Collapse notice board when changing tabs via URL
+      setIsNoticeBoardOpen(false);
     }
     
     if (messageId) {
@@ -43,6 +47,12 @@ const CommunicationHub = () => {
     console.log("Setting selected message ID to:", result.id);
   };
 
+  // Collapse notice board when changing tabs
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setIsNoticeBoardOpen(false);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -52,9 +62,31 @@ const CommunicationHub = () => {
         <CommunicationsSearch onResultSelect={handleSearchResultSelect} />
       </div>
       
-      <CommandNoticeBoard className="mb-6" />
+      <Collapsible 
+        open={isNoticeBoardOpen}
+        onOpenChange={setIsNoticeBoardOpen}
+        className="border rounded-md bg-military-beige/20 overflow-hidden"
+      >
+        <div className="flex justify-between items-center p-2 bg-military-beige/30">
+          <span className="font-medium text-military-navy ml-2">Command Notice Board</span>
+          <CollapsibleTrigger asChild>
+            <button className="p-1 rounded-md hover:bg-military-beige/50 transition-colors">
+              {isNoticeBoardOpen ? (
+                <ChevronUp className="h-4 w-4 text-military-navy" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-military-navy" />
+              )}
+            </button>
+          </CollapsibleTrigger>
+        </div>
+        <CollapsibleContent>
+          <div className="p-2">
+            <CommandNoticeBoard />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid grid-cols-4 bg-military-beige/30">
           <TabsTrigger 
             value="messages" 
