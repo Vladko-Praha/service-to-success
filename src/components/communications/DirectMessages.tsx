@@ -1194,7 +1194,7 @@ const DirectMessages = ({ selectedMessageId }: { selectedMessageId: string | nul
     setTimeout(() => {
       setMessages(prevMessages => {
         const updatedMessages = prevMessages[activeConversationId].map(msg =>
-          msg.id === newMessageObj.id ? { ...msg, status: "sent" } : msg
+          msg.id === newMessageObj.id ? { ...msg, status: "sent" as MessageStatus } : msg
         );
 
         return {
@@ -1206,7 +1206,7 @@ const DirectMessages = ({ selectedMessageId }: { selectedMessageId: string | nul
       setTimeout(() => {
         setMessages(prevMessages => {
           const updatedMessages = prevMessages[activeConversationId].map(msg =>
-            msg.id === newMessageObj.id ? { ...msg, status: "delivered" } : msg
+            msg.id === newMessageObj.id ? { ...msg, status: "delivered" as MessageStatus } : msg
           );
 
           return {
@@ -1218,7 +1218,7 @@ const DirectMessages = ({ selectedMessageId }: { selectedMessageId: string | nul
         setTimeout(() => {
           setMessages(prevMessages => {
             const updatedMessages = prevMessages[activeConversationId].map(msg =>
-              msg.id === newMessageObj.id ? { ...msg, status: "read" } : msg
+              msg.id === newMessageObj.id ? { ...msg, status: "read" as MessageStatus } : msg
             );
 
             return {
