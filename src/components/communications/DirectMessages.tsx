@@ -1392,13 +1392,17 @@ const DirectMessages = ({ selectedMessageId }: { selectedMessageId: string | nul
             </div>
             <div className="flex flex-col">
               <div className="p-3 pb-2 border-b">
-                <Input
-                  placeholder="Search messages..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="max-w-sm"
-                  startIcon={<Search className="h-4 w-4 text-muted-foreground" />}
-                />
+                <div className="relative max-w-sm">
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <Input
+                    placeholder="Search messages..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 max-w-sm"
+                  />
+                </div>
               </div>
               <InboxList
                 conversations={filteredConversations}
