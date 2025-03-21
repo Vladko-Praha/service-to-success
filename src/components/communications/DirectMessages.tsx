@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
+import {
   MessageSquare, 
   Search, 
   Send, 
@@ -1394,10 +1394,10 @@ const DirectMessages = ({ selectedMessageId }: { selectedMessageId: string | nul
               <div className="p-3 pb-2 border-b">
                 <Input
                   placeholder="Search messages..."
-                  prefix={<Search className="h-4 w-4 text-muted-foreground" />}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="max-w-sm"
+                  startIcon={<Search className="h-4 w-4 text-muted-foreground" />}
                 />
               </div>
               <InboxList
