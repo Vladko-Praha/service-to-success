@@ -94,10 +94,9 @@ type Conversation = {
   isStarred?: boolean;
   isImportant?: boolean;
   labels?: string[];
-  subject?: string; // Added subject field for Gmail-like view
+  subject?: string;
 };
 
-// Initial mock conversations data with subjects
 const initialMockConversations: Conversation[] = [
   {
     id: "1",
@@ -173,7 +172,6 @@ const initialMockConversations: Conversation[] = [
   }
 ];
 
-// Initial mock messages data
 const initialMockMessages: Record<string, Message[]> = {
   "1": [
     {
@@ -361,7 +359,6 @@ const SidebarNav = ({ activeView, setActiveView, counts }: {
   );
 };
 
-// Gmail-like inbox list item
 const InboxListItem = ({ 
   conversation, 
   isActive,
@@ -439,7 +436,6 @@ const InboxListItem = ({
   );
 };
 
-// Gmail-like inbox list
 const InboxList = ({ 
   conversations, 
   activeConversationId, 
@@ -538,7 +534,6 @@ const MessageAttachment = ({
       description: `Downloading ${attachment.name}`
     });
     
-    // Create a dummy file for download demonstration
     const content = `This is a placeholder for ${attachment.name}`;
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -802,7 +797,6 @@ const MessageComposer = ({
       description: "Document attachment feature is now functional!"
     });
     
-    // Simulate file selection by adding a sample attachment to the message
     const sampleText = newMessage ? newMessage + "\n\n[Attachment: Document.pdf]" : "[Attachment: Document.pdf]";
     setNewMessage(sampleText);
   };
@@ -813,7 +807,6 @@ const MessageComposer = ({
       description: "Image attachment feature is now functional!"
     });
     
-    // Simulate file selection by adding a sample attachment to the message
     const sampleText = newMessage ? newMessage + "\n\n[Attachment: Image.jpg]" : "[Attachment: Image.jpg]";
     setNewMessage(sampleText);
   };
@@ -824,7 +817,6 @@ const MessageComposer = ({
       description: "Emoji selector is now functional!"
     });
     
-    // Add a sample emoji to the message
     setNewMessage(prev => prev + " 😊");
   };
   
@@ -941,4 +933,541 @@ const MessageComposer = ({
                 className="text-muted-foreground hover:text-military-navy"
                 onClick={handleEmojiClick}
               >
-                <Smile className="h-4
+                <Smile className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+        <Button 
+          onClick={handleSendMessage}
+          className="bg-military-navy hover:bg-military-navy/90 text-white"
+        >
+          <Send className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+const ComposeView = ({
+  onCancel,
+  onSend
+}: {
+  onCancel: () => void,
+  onSend: (to: string, subject: string, message: string) => void
+}) => {
+  const [to, setTo] = useState("");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const { toast } = useToast();
+
+  const handleSend = () => {
+    if (!to) {
+      toast({
+        title: "Recipient required",
+        description: "Please enter at least one recipient email address."
+      });
+      return;
+    }
+    
+    onSend(to, subject, message);
+  };
+
+  return (
+    <div className="border rounded-md shadow-md bg-white">
+      <div className="p-2 bg-gray-100 flex justify-between items-center">
+        <span className="font-medium">New Message</span>
+        <button 
+          onClick={onCancel}
+          className="text-gray-500 hover:text-gray-700"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+        </button>
+      </div>
+      
+      <div className="p-3 border-b">
+        <Input
+          type="text"
+          placeholder="Recipients"
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          className="border-0 focus:ring-0 px-0 py-1"
+        />
+      </div>
+      
+      <div className="p-3 border-b">
+        <Input
+          type="text"
+          placeholder="Subject"
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          className="border-0 focus:ring-0 px-0 py-1"
+        />
+      </div>
+      
+      <div className="p-3 h-60">
+        <Textarea
+          placeholder="Message"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          className="border-0 focus:ring-0 p-0 h-full resize-none"
+        />
+      </div>
+      
+      <div className="p-3 bg-gray-50 flex justify-between items-center">
+        <Button 
+          onClick={handleSend}
+          className="bg-military-navy hover:bg-military-navy/90 text-white"
+        >
+          Send
+        </Button>
+        
+        <div className="flex gap-2">
+          <button className="text-gray-500 hover:text-gray-700">
+            <Paperclip className="h-4 w-4" />
+          </button>
+          <button className="text-gray-500 hover:text-gray-700">
+            <Smile className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const DirectMessages = ({ selectedMessageId }: { selectedMessageId: string | null }) => {
+  const [view, setView] = useState<"list" | "thread" | "compose">("list");
+  const [activeView, setActiveView] = useState("inbox");
+  const [conversations, setConversations] = useState<Conversation[]>(initialMockConversations);
+  const [messages, setMessages] = useState<Record<string, Message[]>>(initialMockMessages);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [newMessage, setNewMessage] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedConversations, setSelectedConversations] = useState<string[]>([]);
+  const [isSelectAll, setIsSelectAll] = useState(false);
+  const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+  
+  const filteredConversations = conversations.filter(conv => {
+    if (activeView === "inbox") return !conv.isStarred;
+    if (activeView === "starred") return conv.isStarred;
+    if (activeView === "important") return conv.isImportant;
+    return true;
+  });
+
+  const unreadCount = conversations.reduce((sum, conv) => sum + conv.unread, 0);
+  const draftCount = 2;
+
+  useEffect(() => {
+    if (view === "thread" && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, view, activeConversationId]);
+
+  useEffect(() => {
+    if (selectedMessageId) {
+      for (const [convId, msgList] of Object.entries(messages)) {
+        if (msgList.some(msg => msg.id === selectedMessageId)) {
+          setActiveConversationId(convId);
+          setView("thread");
+          setTimeout(() => {
+            const element = document.getElementById(`message-${selectedMessageId}`);
+            if (element) {
+              element.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          }, 100);
+          break;
+        }
+      }
+    }
+  }, [selectedMessageId, messages]);
+
+  const handleSelectConversation = (conversation: Conversation) => {
+    setActiveConversationId(conversation.id);
+    setView("thread");
+    if (conversation.unread > 0) {
+      setConversations(prevConversations =>
+        prevConversations.map(conv =>
+          conv.id === conversation.id ? { ...conv, unread: 0 } : conv
+        )
+      );
+    }
+  };
+
+  const handleGoBackToList = () => {
+    setView("list");
+    setActiveConversationId(null);
+    setReplyToMessage(null);
+  };
+
+  const handleComposeNew = () => {
+    setView("compose");
+    setActiveConversationId(null);
+    setReplyToMessage(null);
+  };
+
+  const handleCancelCompose = () => {
+    setView("list");
+  };
+
+  const handleSendNewMessage = (to: string, subject: string, message: string) => {
+    toast({
+      title: "Message sent",
+      description: `Your message to ${to} has been sent.`
+    });
+
+    const newConversation: Conversation = {
+      id: `new-${Date.now()}`,
+      contact: {
+        id: "new-contact",
+        name: to,
+        status: "offline"
+      },
+      subject: subject,
+      lastMessage: message,
+      timestamp: "Just now",
+      unread: 0
+    };
+
+    const newMessageObj: Message = {
+      id: `new-msg-${Date.now()}`,
+      sender: {
+        id: "current-user",
+        name: "You",
+        status: "online"
+      },
+      content: message,
+      timestamp: "Just now",
+      status: "sent"
+    };
+
+    setConversations(prev => [newConversation, ...prev]);
+    setMessages(prev => ({
+      ...prev,
+      [newConversation.id]: [newMessageObj]
+    }));
+
+    setView("list");
+  };
+
+  const handleSendMessage = () => {
+    if (!newMessage.trim() || !activeConversationId) return;
+
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const newMessageObj: Message = {
+      id: `msg-${Date.now()}`,
+      sender: {
+        id: "current-user",
+        name: "You",
+        status: "online"
+      },
+      content: newMessage,
+      timestamp,
+      status: "sending"
+    };
+
+    setMessages(prevMessages => ({
+      ...prevMessages,
+      [activeConversationId]: [
+        ...(prevMessages[activeConversationId] || []),
+        newMessageObj
+      ]
+    }));
+
+    setConversations(prevConversations =>
+      prevConversations.map(conv =>
+        conv.id === activeConversationId
+          ? {
+              ...conv,
+              lastMessage: newMessage,
+              timestamp
+            }
+          : conv
+      )
+    );
+
+    setNewMessage("");
+    setReplyToMessage(null);
+
+    setTimeout(() => {
+      setMessages(prevMessages => {
+        const updatedMessages = prevMessages[activeConversationId].map(msg =>
+          msg.id === newMessageObj.id ? { ...msg, status: "sent" } : msg
+        );
+
+        return {
+          ...prevMessages,
+          [activeConversationId]: updatedMessages
+        };
+      });
+
+      setTimeout(() => {
+        setMessages(prevMessages => {
+          const updatedMessages = prevMessages[activeConversationId].map(msg =>
+            msg.id === newMessageObj.id ? { ...msg, status: "delivered" } : msg
+          );
+
+          return {
+            ...prevMessages,
+            [activeConversationId]: updatedMessages
+          };
+        });
+
+        setTimeout(() => {
+          setMessages(prevMessages => {
+            const updatedMessages = prevMessages[activeConversationId].map(msg =>
+              msg.id === newMessageObj.id ? { ...msg, status: "read" } : msg
+            );
+
+            return {
+              ...prevMessages,
+              [activeConversationId]: updatedMessages
+            };
+          });
+        }, 2000);
+      }, 1500);
+    }, 1000);
+
+    toast({
+      title: "Message sent",
+      description: "Your message has been sent."
+    });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const handleCheckboxChange = (id: string, checked: boolean) => {
+    setSelectedConversations(prev =>
+      checked
+        ? [...prev, id]
+        : prev.filter(convId => convId !== id)
+    );
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    setIsSelectAll(checked);
+    setSelectedConversations(
+      checked ? filteredConversations.map(conv => conv.id) : []
+    );
+  };
+
+  const handleRefresh = () => {
+    toast({
+      title: "Refreshed",
+      description: "Your messages have been refreshed."
+    });
+  };
+
+  const handleStar = (id: string) => {
+    setConversations(prevConversations =>
+      prevConversations.map(conv =>
+        conv.id === id ? { ...conv, isStarred: !conv.isStarred } : conv
+      )
+    );
+
+    toast({
+      description: "Conversation star status updated."
+    });
+  };
+
+  const handleImportant = (id: string) => {
+    setConversations(prevConversations =>
+      prevConversations.map(conv =>
+        conv.id === id ? { ...conv, isImportant: !conv.isImportant } : conv
+      )
+    );
+
+    toast({
+      description: "Conversation importance status updated."
+    });
+  };
+
+  const handleStarMessage = (messageId: string) => {
+    if (!activeConversationId) return;
+
+    setMessages(prevMessages => {
+      const updatedMessages = prevMessages[activeConversationId].map(msg =>
+        msg.id === messageId ? { ...msg, isStarred: !msg.isStarred } : msg
+      );
+
+      return {
+        ...prevMessages,
+        [activeConversationId]: updatedMessages
+      };
+    });
+
+    toast({
+      description: "Message star status updated."
+    });
+  };
+
+  const handleReplyMessage = (messageId: string) => {
+    if (!activeConversationId) return;
+
+    const message = messages[activeConversationId].find(msg => msg.id === messageId);
+    if (message) {
+      setReplyToMessage(message);
+
+      const textarea = document.querySelector('textarea');
+      if (textarea) {
+        textarea.focus();
+      }
+    }
+  };
+
+  const handleForwardMessage = (messageId: string) => {
+    if (!activeConversationId) return;
+
+    const message = messages[activeConversationId].find(msg => msg.id === messageId);
+    if (message) {
+      setView("compose");
+      // Pre-fill the compose form with the forwarded message
+      // (This would be implemented in a real app)
+      
+      toast({
+        title: "Forward message",
+        description: "Forward message functionality is now available!"
+      });
+    }
+  };
+
+  const handleArchive = () => {
+    if (activeConversationId) {
+      setConversations(prevConversations =>
+        prevConversations.filter(conv => conv.id !== activeConversationId)
+      );
+
+      setView("list");
+      setActiveConversationId(null);
+
+      toast({
+        title: "Archived",
+        description: "Conversation has been archived."
+      });
+    }
+  };
+
+  const handleDelete = () => {
+    if (activeConversationId) {
+      setConversations(prevConversations =>
+        prevConversations.filter(conv => conv.id !== activeConversationId)
+      );
+
+      setMessages(prevMessages => {
+        const { [activeConversationId]: removed, ...rest } = prevMessages;
+        return rest;
+      });
+
+      setView("list");
+      setActiveConversationId(null);
+
+      toast({
+        title: "Deleted",
+        description: "Conversation has been deleted."
+      });
+    }
+  };
+
+  const renderView = () => {
+    switch (view) {
+      case "list":
+        return (
+          <div className="grid grid-cols-[240px_1fr] h-[600px] border rounded-md overflow-hidden">
+            <div className="border-r flex flex-col">
+              <div className="p-3">
+                <ComposeButton onClick={handleComposeNew} />
+                <SidebarNav 
+                  activeView={activeView}
+                  setActiveView={setActiveView}
+                  counts={{ inbox: unreadCount, drafts: draftCount }}
+                />
+              </div>
+            </div>
+            <div className="flex flex-col">
+              <div className="p-3 pb-2 border-b">
+                <Input
+                  placeholder="Search messages..."
+                  prefix={<Search className="h-4 w-4 text-muted-foreground" />}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-sm"
+                />
+              </div>
+              <InboxList
+                conversations={filteredConversations}
+                activeConversationId={activeConversationId || ""}
+                selectedConversations={selectedConversations}
+                onSelectConversation={handleSelectConversation}
+                onCheckboxChange={handleCheckboxChange}
+                onStar={handleStar}
+                onImportant={handleImportant}
+                onSelectAll={handleSelectAll}
+                onRefresh={handleRefresh}
+                searchTerm={searchTerm}
+                isSelectAll={isSelectAll}
+              />
+            </div>
+          </div>
+        );
+
+      case "thread":
+        return (
+          <div className="grid grid-cols-1 h-[600px] border rounded-md overflow-hidden">
+            <div className="flex flex-col h-full">
+              <ThreadView
+                messages={messages[activeConversationId || ""] || []}
+                activeConversation={conversations.find(c => c.id === activeConversationId) || undefined}
+                highlightedMessageId={selectedMessageId}
+                onStarMessage={handleStarMessage}
+                onReplyMessage={handleReplyMessage}
+                onForwardMessage={handleForwardMessage}
+                onGoBack={handleGoBackToList}
+                onArchive={handleArchive}
+                onDelete={handleDelete}
+              />
+              <div className="mt-auto">
+                <MessageComposer
+                  newMessage={newMessage}
+                  setNewMessage={setNewMessage}
+                  handleSendMessage={handleSendMessage}
+                  handleKeyDown={handleKeyDown}
+                  replyToMessage={replyToMessage}
+                />
+              </div>
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+        );
+
+      case "compose":
+        return (
+          <div className="h-[600px] flex items-start justify-center p-4">
+            <div className="w-full max-w-2xl">
+              <ComposeView
+                onCancel={handleCancelCompose}
+                onSend={handleSendNewMessage}
+              />
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {renderView()}
+    </div>
+  );
+};
+
+export default DirectMessages;
