@@ -1,11 +1,46 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Book, Calendar, FileText, FolderPlus, BarChart2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 
 const CurriculumCommandPost = () => {
+  const { toast } = useToast();
+  const [selectedModule, setSelectedModule] = useState<number | null>(null);
+
+  const handleManageModule = (moduleIndex: number) => {
+    setSelectedModule(moduleIndex);
+    
+    toast({
+      title: `Module ${moduleIndex + 1} Selected`,
+      description: `Now managing ${getModuleName(moduleIndex)}`,
+    });
+  };
+
+  const handleNewModule = () => {
+    toast({
+      title: "Create New Module",
+      description: "Module creation interface will be available soon.",
+    });
+  };
+
+  const getModuleName = (index: number) => {
+    const moduleNames = [
+      'Military to Business Mindset',
+      'Mission Analysis & Opportunity Identification',
+      'Market Research Operations',
+      'Business Model Development',
+      'Financial Planning & Strategy',
+      'Marketing & Customer Acquisition',
+      'Operational Planning',
+      'Launch Preparation & Execution'
+    ];
+    
+    return moduleNames[index] || `Module ${index + 1}`;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -13,7 +48,10 @@ const CurriculumCommandPost = () => {
           Curriculum Command Post
         </h2>
         <div className="flex items-center gap-2">
-          <Button className="bg-military-olive hover:bg-military-olive/90">
+          <Button 
+            className="bg-military-olive hover:bg-military-olive/90"
+            onClick={handleNewModule}
+          >
             <FolderPlus className="mr-2 h-4 w-4" />
             New Module
           </Button>
@@ -31,7 +69,7 @@ const CurriculumCommandPost = () => {
         <TabsContent value="modules">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 8 }).map((_, index) => (
-              <Card key={index}>
+              <Card key={index} className={selectedModule === index ? "ring-2 ring-military-olive" : ""}>
                 <CardHeader className={`${index < 3 ? 'bg-military-navy/10' : ''}`}>
                   <div className="flex items-center justify-between">
                     <CardTitle>Module {index + 1}</CardTitle>
@@ -73,7 +111,13 @@ const CurriculumCommandPost = () => {
                     <span className="text-sm text-muted-foreground">
                       {index < 3 ? 'Completion rate: 98%' : index === 3 ? 'In progress' : 'Not started'}
                     </span>
-                    <Button variant="outline" size="sm">Manage</Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleManageModule(index)}
+                    >
+                      Manage
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -88,7 +132,20 @@ const CurriculumCommandPost = () => {
               <CardDescription>Create, edit, and track assignments</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Select a module above to manage its assignments.</p>
+              {selectedModule !== null ? (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">
+                    Managing Assignments for Module {selectedModule + 1}: {getModuleName(selectedModule)}
+                  </h3>
+                  <div className="border rounded-lg p-4 bg-military-beige/10">
+                    <p className="text-sm text-muted-foreground">
+                      Assignment management interface for this module will be available soon.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-muted-foreground">Select a module above to manage its assignments.</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -100,7 +157,20 @@ const CurriculumCommandPost = () => {
               <CardDescription>Manage educational resources and materials</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Select a module above to manage its resources.</p>
+              {selectedModule !== null ? (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">
+                    Managing Resources for Module {selectedModule + 1}: {getModuleName(selectedModule)}
+                  </h3>
+                  <div className="border rounded-lg p-4 bg-military-beige/10">
+                    <p className="text-sm text-muted-foreground">
+                      Resource management interface for this module will be available soon.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-muted-foreground">Select a module above to manage its resources.</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
