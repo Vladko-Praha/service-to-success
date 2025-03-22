@@ -101,7 +101,7 @@ const TrainingCenterSidebar = ({
   };
 
   const navigationCategories = [
-    { id: "lessons", icon: BookOpen, label: "Lessons" },
+    { id: "lessons", icon: BookOpen, label: "Modules" },
     { id: "assignments", icon: ClipboardList, label: "Assignments" },
     { id: "discussions", icon: MessageSquare, label: "Discussions" },
     { id: "quizzes", icon: FileQuestion, label: "Quizzes" },
