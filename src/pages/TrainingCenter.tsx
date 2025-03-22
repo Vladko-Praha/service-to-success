@@ -4,16 +4,12 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import TrainingCenterSidebar from "@/components/training/TrainingCenterSidebar";
 import TrainingContent from "@/components/training/TrainingContent";
-import AssignmentContent from "@/components/training/AssignmentContent";
-import DiscussionContent from "@/components/training/DiscussionContent";
-import CollaborationContent from "@/components/training/CollaborationContent";
 import { trainingData } from "@/components/training/trainingData";
 
 const TrainingCenter = () => {
   const [activeSection, setActiveSection] = useState("business-establishment");
   const [activeModule, setActiveModule] = useState("module-1");
   const [activeClass, setActiveClass] = useState("class-1");
-  const [activeTab, setActiveTab] = useState("lessons");
   const [completedLessonsCount, setCompletedLessonsCount] = useState(0);
   const [totalLessonsCount, setTotalLessonsCount] = useState(0);
 
@@ -34,35 +30,6 @@ const TrainingCenter = () => {
     }
   }, []);
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case "lessons":
-        return (
-          <TrainingContent 
-            activeSection={activeSection}
-            activeModule={activeModule}
-            activeClass={activeClass}
-            setActiveSection={setActiveSection}
-            setActiveModule={setActiveModule}
-            setActiveClass={setActiveClass}
-          />
-        );
-      case "assignments":
-        return (
-          <AssignmentContent
-            activeSection={activeSection}
-            activeModule={activeModule}
-          />
-        );
-      case "discussions":
-        return <DiscussionContent />;
-      case "collaborations":
-        return <CollaborationContent />;
-      default:
-        return null;
-    }
-  };
-
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-military-beige">
@@ -73,8 +40,6 @@ const TrainingCenter = () => {
           setActiveModule={setActiveModule}
           activeClass={activeClass}
           setActiveClass={setActiveClass}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
         />
         <div className="flex-1 flex flex-col">
           <DashboardHeader />
@@ -89,7 +54,14 @@ const TrainingCenter = () => {
             </div>
           </div>
           <main className="flex-1 p-6">
-            {renderContent()}
+            <TrainingContent 
+              activeSection={activeSection}
+              activeModule={activeModule}
+              activeClass={activeClass}
+              setActiveSection={setActiveSection}
+              setActiveModule={setActiveModule}
+              setActiveClass={setActiveClass}
+            />
           </main>
         </div>
       </div>
