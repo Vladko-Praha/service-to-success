@@ -1,9 +1,17 @@
 
 import React from "react";
-import { Bell, Mail, Search } from "lucide-react";
+import { Bell, Mail, Search, BookOpen } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type AdminDashboardHeaderProps = {
   onAction?: (actionName: string) => void;
@@ -24,6 +32,14 @@ const AdminDashboardHeader = ({ onAction = () => {} }: AdminDashboardHeaderProps
           </div>
         </div>
         <div className="flex items-center gap-4">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="relative"
+            onClick={() => onAction("Opened knowledge base")}
+          >
+            <BookOpen className="h-5 w-5" />
+          </Button>
           <Button 
             variant="ghost" 
             size="icon" 

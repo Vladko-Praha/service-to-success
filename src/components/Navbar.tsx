@@ -1,8 +1,15 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Shield, Medal } from 'lucide-react';
+import { Menu, X, Shield, Medal, BookOpen } from 'lucide-react';
 import Login from './Login';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -71,6 +78,28 @@ const Navbar = () => {
               >
                 INTEL CENTER
               </a>
+              
+              {/* Knowledge Base Icon */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="rounded-full p-2 hover:bg-military-navy/50 text-military-sand">
+                    <BookOpen className="h-5 w-5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Knowledge Base</DropdownMenuLabel>
+                  <DropdownMenuItem asChild>
+                    <Link to="/training">Training Materials</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <span>Business Resources</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <span>FAQ & Guides</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
               <Login />
             </>
           ) : null}

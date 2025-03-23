@@ -1,5 +1,5 @@
 
-import { Bell, Settings, User, LogOut } from "lucide-react";
+import { Bell, Settings, User, LogOut, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
@@ -105,6 +105,27 @@ const DashboardHeader = () => {
           <h1 className="text-xl font-bold text-military-navy">COMBAT BUSINESS COMMAND CENTER</h1>
         </div>
         <div className="flex items-center gap-4">
+          {/* Knowledge Base Icon */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="rounded-full p-2 hover:bg-military-navy/10">
+                <BookOpen className="h-5 w-5 text-military-navy" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Knowledge Base</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => navigate("/training")}>
+                <span>Training Materials</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <span>Business Resources</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <span>FAQ & Guides</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="rounded-full p-2 hover:bg-military-navy/10">
