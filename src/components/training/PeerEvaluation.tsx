@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { 
   Users, 
   CheckCircle, 
@@ -15,8 +16,13 @@ import {
   FileText,
   Download,
   Lightbulb,
-  Rocket
+  Rocket,
+  Search,
+  PlusCircle,
+  BookmarkPlus,
+  Loader2
 } from "lucide-react";
+import StudentLibrary, { KnowledgeResource } from "./StudentLibrary";
 
 interface PeerEvaluationProps {
   assignmentId: string;
@@ -39,9 +45,11 @@ type AIFeedback = {
   positiveHighlights: string[];
   improvementAreas: string[];
   additionalResources: {
+    id: string;
     title: string;
     description: string;
     url: string;
+    isNewlyCreated?: boolean;
   }[];
 }
 
@@ -56,6 +64,9 @@ const PeerEvaluation = ({ assignmentId, assignmentTitle }: PeerEvaluationProps) 
   const [showAIFeedback, setShowAIFeedback] = useState(false);
   const [isGeneratingAIFeedback, setIsGeneratingAIFeedback] = useState(false);
   const [aiFeedback, setAIFeedback] = useState<AIFeedback | null>(null);
+  const [isSearchingLibrary, setIsSearchingLibrary] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [isCreatingResource, setIsCreatingResource] = useState(false);
 
   // Mock data for received evaluations
   const [receivedEvaluations, setReceivedEvaluations] = useState<Evaluation[]>([
@@ -112,43 +123,80 @@ const PeerEvaluation = ({ assignmentId, assignmentTitle }: PeerEvaluationProps) 
   const generateAIFeedback = () => {
     setIsGeneratingAIFeedback(true);
     
-    // Simulate AI processing delay
+    // Simulate AI library search first
+    setIsSearchingLibrary(true);
+    
+    // Simulate library search delay
     setTimeout(() => {
-      setIsGeneratingAIFeedback(false);
-      setShowAIFeedback(true);
+      setIsSearchingLibrary(false);
       
-      // Mock AI feedback data
-      setAIFeedback({
-        summary: "The peer evaluation highlights strong organizational skills and implementation planning, while suggesting improvements in metrics definition and visual presentation.",
-        positiveHighlights: [
-          "Excellent structure and organization of ideas",
-          "Strong strategic planning approach",
-          "Clear communication of complex concepts"
-        ],
-        improvementAreas: [
-          "Consider incorporating more quantifiable success metrics",
-          "Enhance visual representation of timeline and milestones",
-          "Expand on resource allocation justification"
-        ],
-        additionalResources: [
-          {
-            title: "Effective Business Metrics",
-            description: "A guide to defining and tracking meaningful business metrics",
-            url: "https://example.com/metrics-guide"
-          },
-          {
-            title: "Visual Communication in Business Plans",
-            description: "How to effectively use visuals in business documentation",
-            url: "https://example.com/visual-communication"
-          },
-          {
-            title: "Resource Allocation Strategies",
-            description: "Best practices for justifying and allocating resources in business plans",
-            url: "https://example.com/resource-allocation"
-          }
-        ]
+      // Simulate AI processing delay
+      setTimeout(() => {
+        setIsGeneratingAIFeedback(false);
+        setShowAIFeedback(true);
+        
+        // Mock AI feedback data
+        setAIFeedback({
+          summary: "The peer evaluation highlights strong organizational skills and implementation planning, while suggesting improvements in metrics definition and visual presentation.",
+          positiveHighlights: [
+            "Excellent structure and organization of ideas",
+            "Strong strategic planning approach",
+            "Clear communication of complex concepts"
+          ],
+          improvementAreas: [
+            "Consider incorporating more quantifiable success metrics",
+            "Enhance visual representation of timeline and milestones",
+            "Expand on resource allocation justification"
+          ],
+          additionalResources: [
+            {
+              id: "res-1",
+              title: "Effective Business Metrics",
+              description: "A guide to defining and tracking meaningful business metrics",
+              url: "https://example.com/metrics-guide"
+            },
+            {
+              id: "res-2",
+              title: "Visual Communication in Business Plans",
+              description: "How to effectively use visuals in business documentation",
+              url: "https://example.com/visual-communication",
+              isNewlyCreated: true
+            },
+            {
+              id: "res-3",
+              title: "Resource Allocation Strategies",
+              description: "Best practices for justifying and allocating resources in business plans",
+              url: "https://example.com/resource-allocation"
+            }
+          ]
+        });
+      }, 2000);
+    }, 1500);
+  };
+
+  // Create new resource based on AI recommendation
+  const handleCreateResource = (resource: {title: string, description: string, url: string}) => {
+    setIsCreatingResource(true);
+    
+    // Simulate creation delay
+    setTimeout(() => {
+      setIsCreatingResource(false);
+      
+      toast({
+        title: "Resource Created",
+        description: `"${resource.title}" has been added to the Student Library`,
       });
-    }, 2000);
+    }, 1500);
+  };
+
+  // Handle resource selection from library
+  const handleSelectLibraryResource = (resource: KnowledgeResource) => {
+    toast({
+      title: "Resource Added",
+      description: `"${resource.title}" has been added to the recommendations`,
+    });
+    
+    setShowLibrary(false);
   };
 
   return (
@@ -234,7 +282,7 @@ const PeerEvaluation = ({ assignmentId, assignmentTitle }: PeerEvaluationProps) 
                     </div>
                     
                     {!showAIFeedback && (
-                      <div className="flex justify-center">
+                      <div className="flex justify-center gap-2">
                         <Button
                           onClick={generateAIFeedback}
                           disabled={isGeneratingAIFeedback}
@@ -243,7 +291,28 @@ const PeerEvaluation = ({ assignmentId, assignmentTitle }: PeerEvaluationProps) 
                           <Bot className="h-4 w-4 mr-2" />
                           {isGeneratingAIFeedback ? "Generating AI Feedback..." : "Get AI Feedback on Evaluation"}
                         </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowLibrary(true)}
+                        >
+                          <BookOpen className="h-4 w-4 mr-2" />
+                          Search Knowledge Base
+                        </Button>
                       </div>
+                    )}
+                    
+                    {isSearchingLibrary && (
+                      <Card className="border-military-olive/30">
+                        <CardContent className="py-6">
+                          <div className="flex flex-col items-center justify-center text-center">
+                            <Search className="h-10 w-10 text-military-olive mb-4 animate-pulse" />
+                            <h3 className="text-lg font-medium">Searching Knowledge Base</h3>
+                            <p className="text-muted-foreground mt-1">
+                              AI Battle Buddy is searching for relevant resources...
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
                     )}
                     
                     {showAIFeedback && aiFeedback && (
@@ -287,10 +356,20 @@ const PeerEvaluation = ({ assignmentId, assignmentTitle }: PeerEvaluationProps) 
                             <Separator />
                             
                             <div className="space-y-3">
-                              <h4 className="font-medium text-military-navy flex items-center gap-2">
-                                <Lightbulb className="h-4 w-4 text-yellow-600" />
-                                Additional Resources
-                              </h4>
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-medium text-military-navy flex items-center gap-2">
+                                  <Lightbulb className="h-4 w-4 text-yellow-600" />
+                                  Additional Resources
+                                </h4>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => setShowLibrary(true)}
+                                >
+                                  <BookOpen className="h-4 w-4 mr-2" />
+                                  Search Knowledge Base
+                                </Button>
+                              </div>
                               <div className="space-y-2">
                                 {aiFeedback.additionalResources.map((resource, idx) => (
                                   <div key={idx} className="border rounded-md p-3">
@@ -298,20 +377,60 @@ const PeerEvaluation = ({ assignmentId, assignmentTitle }: PeerEvaluationProps) 
                                       <div className="flex items-center gap-2">
                                         <BookOpen className="h-4 w-4 text-military-navy" />
                                         <span className="font-medium">{resource.title}</span>
+                                        {resource.isNewlyCreated && (
+                                          <Badge className="bg-green-100 text-green-800 border-green-200">Newly Created</Badge>
+                                        )}
                                       </div>
-                                      <Button 
-                                        variant="outline" 
-                                        size="sm" 
-                                        className="flex items-center gap-1"
-                                        onClick={() => window.open(resource.url, '_blank')}
-                                      >
-                                        <FileText className="h-3 w-3" />
-                                        View
-                                      </Button>
+                                      <div className="flex gap-2">
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm" 
+                                          className="flex items-center gap-1"
+                                          onClick={() => window.open(resource.url, '_blank')}
+                                        >
+                                          <FileText className="h-3 w-3" />
+                                          View
+                                        </Button>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="flex items-center gap-1"
+                                          onClick={() => {
+                                            toast({
+                                              title: "Resource Bookmarked",
+                                              description: `"${resource.title}" has been added to your bookmarks`,
+                                            });
+                                          }}
+                                        >
+                                          <BookmarkPlus className="h-3 w-3" />
+                                          Bookmark
+                                        </Button>
+                                      </div>
                                     </div>
                                     <p className="text-sm text-gray-600 mt-1">{resource.description}</p>
                                   </div>
                                 ))}
+                              </div>
+
+                              {isCreatingResource && (
+                                <div className="rounded-md p-4 bg-military-beige/20 flex items-center justify-center">
+                                  <Loader2 className="h-5 w-5 text-military-olive animate-spin mr-2" />
+                                  <span>Creating new resource for the Knowledge Base...</span>
+                                </div>
+                              )}
+
+                              <div className="flex justify-center mt-2">
+                                <Button 
+                                  variant="outline" 
+                                  onClick={() => handleCreateResource({
+                                    title: "Success Metrics Framework for Veteran Businesses",
+                                    description: "A comprehensive framework for developing and tracking success metrics specifically tailored to veteran-owned businesses.",
+                                    url: "/resources/success-metrics-framework.pdf"
+                                  })}
+                                >
+                                  <PlusCircle className="h-4 w-4 mr-2" />
+                                  Create Missing Resource
+                                </Button>
                               </div>
                             </div>
                           </div>
@@ -399,6 +518,26 @@ const PeerEvaluation = ({ assignmentId, assignmentTitle }: PeerEvaluationProps) 
           )}
         </CardContent>
       </Card>
+
+      {/* Student Library Dialog */}
+      <Dialog open={showLibrary} onOpenChange={setShowLibrary}>
+        <DialogContent className="max-w-5xl h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-military-olive" />
+              Veteran Knowledge Base
+            </DialogTitle>
+            <DialogDescription>
+              Search for additional resources to complement your learning
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            <StudentLibrary 
+              onSelectResource={handleSelectLibraryResource}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
