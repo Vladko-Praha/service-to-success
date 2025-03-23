@@ -5,6 +5,7 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import TrainingCenterSidebar from "@/components/training/TrainingCenterSidebar";
 import TrainingContent from "@/components/training/TrainingContent";
 import { trainingData } from "@/components/training/trainingData";
+import { useNavigate } from "react-router-dom";
 import { 
   BookOpen, 
   ClipboardList, 
@@ -12,11 +13,13 @@ import {
   FileQuestion, 
   Folder, 
   Users,
-  Menu
+  Menu,
+  PlusCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const TrainingCenter = () => {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("business-establishment");
   const [activeModule, setActiveModule] = useState("module-1");
   const [activeClass, setActiveClass] = useState("class-1");
@@ -86,6 +89,14 @@ const TrainingCenter = () => {
                 <div className="bg-military-olive/20 px-3 py-1 rounded-full text-sm">
                   <span className="font-medium">{completedLessonsCount}</span> of <span>{totalLessonsCount}</span> lessons completed
                 </div>
+                <Button 
+                  variant="outline"
+                  className="text-white border-white hover:text-white/80 hover:bg-white/10"
+                  onClick={() => navigate("/lesson-creator")}
+                >
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Create Lesson
+                </Button>
                 <Button 
                   className="md:hidden"
                   variant="ghost" 

@@ -12,6 +12,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import TrainingCenter from "./pages/TrainingCenter";
 import Communications from "./pages/Communications";
+import LessonCreator from "./pages/LessonCreator";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/training" element={<TrainingCenter />} />
           <Route path="/communications" element={<Communications />} />
+          <Route path="/lesson-creator" element={<LessonCreator />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
