@@ -1,17 +1,24 @@
 
 import React, { useState } from "react";
-import { Book, Calendar, FileText, FolderPlus, BarChart2 } from "lucide-react";
+import { Book, Calendar, FileText, FolderPlus, BarChart2, ClipboardList, FileQuestion } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 const CurriculumCommandPost = () => {
   const { toast } = useToast();
   const [selectedModule, setSelectedModule] = useState<number | null>(null);
+  const [isModuleDialogOpen, setIsModuleDialogOpen] = useState(false);
 
   const handleManageModule = (moduleIndex: number) => {
     setSelectedModule(moduleIndex);
+    setIsModuleDialogOpen(true);
     
     toast({
       title: `Module ${moduleIndex + 1} Selected`,
@@ -39,6 +46,46 @@ const CurriculumCommandPost = () => {
     ];
     
     return moduleNames[index] || `Module ${index + 1}`;
+  };
+
+  // Sample data for the module content
+  const getModuleLessons = (moduleIndex: number) => {
+    const lessonCounts = [5, 6, 4, 7, 5, 6, 4, 5];
+    const count = lessonCounts[moduleIndex] || 4;
+    
+    return Array.from({ length: count }).map((_, i) => ({
+      id: `lesson-${moduleIndex}-${i}`,
+      title: `Lesson ${i + 1}: ${i === 0 ? 'Introduction to ' : ''}${getModuleName(moduleIndex).split(' & ')[i % 2 || 0]}`,
+      status: i < 2 ? 'Published' : i === 2 ? 'Draft' : 'Planned',
+      duration: `${15 + i * 5} min`,
+      createdAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toLocaleDateString(),
+    }));
+  };
+
+  const getModuleQuizzes = (moduleIndex: number) => {
+    const quizCount = Math.max(2, moduleIndex % 3 + 1);
+    
+    return Array.from({ length: quizCount }).map((_, i) => ({
+      id: `quiz-${moduleIndex}-${i}`,
+      title: `${getModuleName(moduleIndex)} Assessment ${i + 1}`,
+      status: i === 0 ? 'Published' : 'Draft',
+      questions: 5 + i * 3,
+      passingScore: '70%',
+      timeLimit: `${10 + i * 5} min`,
+    }));
+  };
+
+  const getModuleAssignments = (moduleIndex: number) => {
+    const assignmentCount = Math.max(2, (moduleIndex % 4) + 2);
+    
+    return Array.from({ length: assignmentCount }).map((_, i) => ({
+      id: `assignment-${moduleIndex}-${i}`,
+      title: `Assignment ${i + 1}: ${i === 0 ? 'Apply ' : 'Develop '}${getModuleName(moduleIndex).split(' & ')[0]}`,
+      status: i === 0 ? 'Published' : i === 1 ? 'Draft' : 'Planned',
+      dueDate: new Date(Date.now() + (i + 1) * 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+      points: (i + 1) * 10,
+      type: i % 2 === 0 ? 'Individual' : 'Group',
+    }));
   };
 
   return (
@@ -228,6 +275,169 @@ const CurriculumCommandPost = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Module Management Dialog */}
+      <Dialog open={isModuleDialogOpen} onOpenChange={setIsModuleDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {selectedModule !== null && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold">
+                  Module {selectedModule + 1}: {getModuleName(selectedModule)}
+                </DialogTitle>
+              </DialogHeader>
+              
+              <Tabs defaultValue="lessons" className="mt-4">
+                <TabsList className="mb-4 grid grid-cols-3 gap-2">
+                  <TabsTrigger value="lessons" className="flex items-center">
+                    <FileText className="mr-2 h-4 w-4" />
+                    Lessons
+                  </TabsTrigger>
+                  <TabsTrigger value="quizzes" className="flex items-center">
+                    <FileQuestion className="mr-2 h-4 w-4" />
+                    Quizzes
+                  </TabsTrigger>
+                  <TabsTrigger value="assignments" className="flex items-center">
+                    <ClipboardList className="mr-2 h-4 w-4" />
+                    Assignments
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="lessons" className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-medium">Module Lessons</h3>
+                    <Button size="sm" className="bg-military-olive hover:bg-military-olive/90">
+                      <FileText className="mr-2 h-4 w-4" /> 
+                      New Lesson
+                    </Button>
+                  </div>
+                  
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Duration</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {getModuleLessons(selectedModule).map((lesson) => (
+                        <TableRow key={lesson.id}>
+                          <TableCell className="font-medium">{lesson.title}</TableCell>
+                          <TableCell>
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              lesson.status === 'Published' ? 'bg-green-100 text-green-800' :
+                              lesson.status === 'Draft' ? 'bg-amber-100 text-amber-800' :
+                              'bg-slate-100 text-slate-800'
+                            }`}>
+                              {lesson.status}
+                            </span>
+                          </TableCell>
+                          <TableCell>{lesson.duration}</TableCell>
+                          <TableCell>{lesson.createdAt}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm">Edit</Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TabsContent>
+                
+                <TabsContent value="quizzes" className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-medium">Module Quizzes</h3>
+                    <Button size="sm" className="bg-military-olive hover:bg-military-olive/90">
+                      <FileQuestion className="mr-2 h-4 w-4" /> 
+                      New Quiz
+                    </Button>
+                  </div>
+                  
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Questions</TableHead>
+                        <TableHead>Passing Score</TableHead>
+                        <TableHead>Time Limit</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {getModuleQuizzes(selectedModule).map((quiz) => (
+                        <TableRow key={quiz.id}>
+                          <TableCell className="font-medium">{quiz.title}</TableCell>
+                          <TableCell>
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              quiz.status === 'Published' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {quiz.status}
+                            </span>
+                          </TableCell>
+                          <TableCell>{quiz.questions}</TableCell>
+                          <TableCell>{quiz.passingScore}</TableCell>
+                          <TableCell>{quiz.timeLimit}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm">Edit</Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TabsContent>
+                
+                <TabsContent value="assignments" className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-medium">Module Assignments</h3>
+                    <Button size="sm" className="bg-military-olive hover:bg-military-olive/90">
+                      <ClipboardList className="mr-2 h-4 w-4" /> 
+                      New Assignment
+                    </Button>
+                  </div>
+                  
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Due Date</TableHead>
+                        <TableHead>Points</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {getModuleAssignments(selectedModule).map((assignment) => (
+                        <TableRow key={assignment.id}>
+                          <TableCell className="font-medium">{assignment.title}</TableCell>
+                          <TableCell>
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              assignment.status === 'Published' ? 'bg-green-100 text-green-800' :
+                              assignment.status === 'Draft' ? 'bg-amber-100 text-amber-800' :
+                              'bg-slate-100 text-slate-800'
+                            }`}>
+                              {assignment.status}
+                            </span>
+                          </TableCell>
+                          <TableCell>{assignment.dueDate}</TableCell>
+                          <TableCell>{assignment.points}</TableCell>
+                          <TableCell>{assignment.type}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm">Edit</Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TabsContent>
+              </Tabs>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
