@@ -1,38 +1,32 @@
-import { useState, useEffect, useRef } from "react";
+
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { 
-  BookOpen, 
+import {
+  BookOpen,
   ClipboardList, 
   MessageSquare, 
   FileQuestion, 
-  Folder, 
-  Users, 
-  CheckCircle, 
-  Timer, 
-  Terminal,
-  Building,
-  Flag,
-  PlusCircle,
+  Folder,
+  Users,
+  CheckCircle,
   Download,
-  Video,
-  Bot,
   Send,
-  ThumbsUp,
-  ThumbsDown,
+  Video,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Bot
 } from "lucide-react";
-import { trainingData } from "./trainingData";
-import PeerEvaluation from "./PeerEvaluation";
 import StudentLibrary from "./StudentLibrary";
-import { toast } from "@/components/ui/use-toast";
-import { generateResponse } from "@/services/openaiService";
+import { trainingData } from "./trainingData";
+import { useToast } from "@/hooks/use-toast";
+import { openai } from "@/services/openaiService";
 
 interface TrainingContentProps {
   activeSection: string;
@@ -44,537 +38,462 @@ interface TrainingContentProps {
   setActiveClass: (classId: string) => void;
 }
 
-const TrainingContent = ({ 
-  activeSection, 
-  activeModule, 
-  activeClass, 
+const TrainingContent: React.FC<TrainingContentProps> = ({
+  activeSection,
+  activeModule,
+  activeClass,
   activeView,
   setActiveSection,
   setActiveModule,
   setActiveClass
-}: TrainingContentProps) => {
-  const [currentSection, setCurrentSection] = useState<any>(null);
-  const [currentModule, setCurrentModule] = useState<any>(null);
-  const [currentClass, setCurrentClass] = useState<any>(null);
+}) => {
+  const { toast } = useToast();
+  const [activeAssignmentTab, setActiveAssignmentTab] = useState("instructions");
+  const [assignmentSubmitted, setAssignmentSubmitted] = useState(false);
+  const [assignmentAnswer, setAssignmentAnswer] = useState("");
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
-  const [showLibrary, setShowLibrary] = useState(false);
-  const [showAIBuddy, setShowAIBuddy] = useState(false);
-  const [aiQuestion, setAIQuestion] = useState("");
-  const [aiResponse, setAIResponse] = useState("");
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  const [comments, setComments] = useState<{ id: string; author: string; text: string; timestamp: Date; likes: number }[]>([]);
+  const [aiResponse, setAiResponse] = useState("");
+  const [isLoadingAiResponse, setIsLoadingAiResponse] = useState(false);
+  const [aiQuestion, setAiQuestion] = useState("");
+  const [comments, setComments] = useState<Array<{id: string; user: string; text: string; timestamp: Date}>>([
+    {
+      id: "1",
+      user: "Jane Smith",
+      text: "This lesson was incredibly helpful for understanding how to set up my business structure. I particularly liked the section on LLC vs. S-Corp.",
+      timestamp: new Date(2023, 5, 15)
+    },
+    {
+      id: "2",
+      user: "Mike Johnson",
+      text: "Does anyone have additional resources on filing paperwork in Arizona specifically? I'm still a bit confused about the local requirements.",
+      timestamp: new Date(2023, 5, 16)
+    }
+  ]);
   const [newComment, setNewComment] = useState("");
-  const videoRef = useRef<HTMLVideoElement>(null);
-  
-  // New state for video collapsible
-  const [isVideoOpen, setIsVideoOpen] = useState(false);
-
-  // Placeholder for demo video URL
-  const lessonVideoUrl = "https://samplelib.com/lib/preview/mp4/sample-5s.mp4";
-  
-  // Placeholder for downloadable resources
-  const additionalResources = [
-    { name: "Lesson Slides", type: "pdf", url: "#" },
-    { name: "Practice Worksheet", type: "docx", url: "#" },
-    { name: "Example Templates", type: "zip", url: "#" }
-  ];
+  const [showVideo, setShowVideo] = useState(false);
 
   useEffect(() => {
-    // Find current section, module and class
-    const section = trainingData.find(s => s.id === activeSection);
-    setCurrentSection(section);
-    
-    if (section) {
-      const module = section.modules.find(m => m.id === activeModule);
-      setCurrentModule(module);
-      
-      if (module) {
-        const classItem = module.classes.find(c => c.id === activeClass);
-        setCurrentClass(classItem);
-      }
+    // Load completed lessons from localStorage
+    const savedLessons = localStorage.getItem("completedLessons");
+    if (savedLessons) {
+      setCompletedLessons(JSON.parse(savedLessons));
     }
-    
-    // Get completed lessons from localStorage
-    const savedCompletedLessons = localStorage.getItem("completedLessons");
-    if (savedCompletedLessons) {
-      setCompletedLessons(JSON.parse(savedCompletedLessons));
-    }
+  }, []);
 
-    // Load comments for this lesson (would be from API in real app)
-    // For demo, we'll use mock data
-    setComments([
-      {
-        id: "1", 
-        author: "John Veteran",
-        text: "This lesson helped me understand the key differences between military and business operations. Great content!",
-        timestamp: new Date(Date.now() - 86400000), // yesterday
-        likes: 5
-      },
-      {
-        id: "2", 
-        author: "Sarah Military",
-        text: "I'm struggling with the financial planning section. Any veterans who have successfully applied this to their business?",
-        timestamp: new Date(Date.now() - 43200000), // 12 hours ago
-        likes: 2
-      }
-    ]);
-  }, [activeSection, activeModule, activeClass]);
+  // Find current section, module and class data
+  const currentSection = trainingData.find(section => section.id === activeSection);
+  const currentModule = currentSection?.modules.find(module => module.id === activeModule);
+  const currentClass = currentModule?.classes.find(cls => cls.id === activeClass);
 
-  const handleMarkComplete = () => {
-    const lessonId = `${activeSection}-${activeModule}-${activeClass}`;
-    if (!completedLessons.includes(lessonId)) {
-      const updatedCompletedLessons = [...completedLessons, lessonId];
-      setCompletedLessons(updatedCompletedLessons);
-      localStorage.setItem("completedLessons", JSON.stringify(updatedCompletedLessons));
+  const handleMarkAsCompleted = () => {
+    const lessonKey = `${activeSection}-${activeModule}-${activeClass}`;
+    let updatedCompletedLessons: string[];
+
+    if (completedLessons.includes(lessonKey)) {
+      updatedCompletedLessons = completedLessons.filter(id => id !== lessonKey);
       toast({
-        title: "Lesson Completed",
-        description: "Great job! This lesson has been marked as completed.",
+        title: "Lesson marked as incomplete",
+        description: `"${currentClass?.title}" has been removed from your completed lessons.`
+      });
+    } else {
+      updatedCompletedLessons = [...completedLessons, lessonKey];
+      toast({
+        title: "Lesson completed! 🎉",
+        description: `"${currentClass?.title}" has been marked as completed.`
       });
     }
+
+    setCompletedLessons(updatedCompletedLessons);
+    localStorage.setItem("completedLessons", JSON.stringify(updatedCompletedLessons));
   };
 
-  const handleSubmitComment = () => {
-    if (newComment.trim()) {
-      const newCommentObject = {
-        id: Date.now().toString(),
-        author: "You",
-        text: newComment,
-        timestamp: new Date(),
-        likes: 0
-      };
-      setComments([newCommentObject, ...comments]);
-      setNewComment("");
+  const isLessonCompleted = () => {
+    const lessonKey = `${activeSection}-${activeModule}-${activeClass}`;
+    return completedLessons.includes(lessonKey);
+  };
+
+  const handleSubmitAssignment = () => {
+    if (assignmentAnswer.trim().length < 10) {
       toast({
-        title: "Comment Posted",
-        description: "Your comment has been added to the discussion.",
-      });
-    }
-  };
-
-  const handleLikeComment = (id: string) => {
-    setComments(comments.map(comment => 
-      comment.id === id ? { ...comment, likes: comment.likes + 1 } : comment
-    ));
-  };
-
-  const handleAskAI = async () => {
-    if (!aiQuestion.trim()) return;
-    
-    setIsAiLoading(true);
-    try {
-      // In a real app, you should get the API key from a secure source
-      // For demo purposes, we'll use a placeholder
-      const apiKey = localStorage.getItem("openai_api_key") || "";
-      
-      if (!apiKey) {
-        // Ask user to provide API key
-        const userKey = prompt("Please enter your OpenAI API key to use the AI Buddy feature:");
-        if (userKey) {
-          localStorage.setItem("openai_api_key", userKey);
-        } else {
-          setIsAiLoading(false);
-          return;
-        }
-      }
-      
-      // Create context-aware prompt for the AI
-      const contextPrompt = `
-You are a helpful AI Buddy for military veterans learning about business.
-Current lesson: ${currentSection?.title} > ${currentModule?.title} > ${currentClass?.title}
-
-Please answer the following question with military analogies when helpful:
-${aiQuestion}
-      `;
-      
-      const response = await generateResponse(
-        localStorage.getItem("openai_api_key") || "",
-        [{ role: "user", content: contextPrompt }]
-      );
-      
-      if (response.success) {
-        setAIResponse(response.content);
-      } else {
-        toast({
-          title: "Error",
-          description: "Could not connect to AI. Please check your API key and try again.",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error("AI error:", error);
-      toast({
-        title: "Error",
-        description: "An error occurred while contacting the AI service.",
+        title: "Assignment too short",
+        description: "Please provide a more detailed answer to submit your assignment.",
         variant: "destructive"
       });
+      return;
+    }
+    
+    setAssignmentSubmitted(true);
+    toast({
+      title: "Assignment Submitted",
+      description: "Your assignment has been submitted successfully and is pending review."
+    });
+  };
+
+  const handleAiBuddyQuestion = async () => {
+    if (aiQuestion.trim() === "") return;
+    
+    setIsLoadingAiResponse(true);
+    try {
+      const response = await openai.generateText({
+        messages: [
+          { role: "system", content: `You are an AI tutor helping a veteran with their business training. 
+            The student is currently studying: ${currentClass?.title}. 
+            Provide helpful, concise answers related to business establishment and entrepreneurship.` },
+          { role: "user", content: aiQuestion }
+        ]
+      });
+      
+      setAiResponse(response || "I apologize, but I don't have an answer for that right now. Please try rephrasing your question.");
+    } catch (error) {
+      console.error("Error getting AI response:", error);
+      setAiResponse("Sorry, there was an error processing your question. Please try again later.");
     } finally {
-      setIsAiLoading(false);
+      setIsLoadingAiResponse(false);
     }
   };
 
-  const formatDate = (date: Date) => {
-    return new Intl.RelativeTimeFormat('en', { style: 'long' }).format(
-      Math.round((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
-      'day'
-    ).replace('in ', '').replace(' ago', ' ago');
+  const handleAddComment = () => {
+    if (newComment.trim() === "") return;
+    
+    const comment = {
+      id: Date.now().toString(),
+      user: "Current User",
+      text: newComment,
+      timestamp: new Date()
+    };
+    
+    setComments([...comments, comment]);
+    setNewComment("");
+    
+    toast({
+      title: "Comment Added",
+      description: "Your comment has been posted to the discussion."
+    });
   };
 
   if (!currentSection || !currentModule || !currentClass) {
-    return <div>Loading...</div>;
+    return <div className="p-4">Lesson not found</div>;
   }
 
-  return (
+  const renderLessonContent = () => (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-lg font-medium">
-            <Terminal className="h-5 w-5 text-military-olive" />
-            <span className="text-military-navy">{currentSection.title}</span>
-            <span className="mx-1">/</span>
-            <span className="text-military-navy">{currentModule.title}</span>
-            <span className="mx-1">/</span>
-            <span className="text-military-navy">{currentClass.title}</span>
+      <h1 className="text-2xl font-bold">{currentClass.title}</h1>
+      
+      <div className="prose max-w-none">
+        <p>{currentClass.description || "No description available for this lesson."}</p>
+        
+        {/* Lesson content - you would normally pull this from your database */}
+        <div className="mt-6 space-y-4">
+          <h2 className="text-xl font-semibold">Introduction</h2>
+          <p>
+            In this lesson, we'll explore the essential steps for establishing your business correctly.
+            Setting up your business with the right legal structure and registrations is crucial for
+            long-term success and protection of your assets.
+          </p>
+          
+          <p>
+            Throughout this lesson, you'll learn about different business structures, 
+            how to register your business with local and federal authorities, and the essential
+            paperwork needed to operate legally in your jurisdiction.
+          </p>
+          
+          <h2 className="text-xl font-semibold">Key Concepts</h2>
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>Business Structures</strong> - Understanding the differences between sole proprietorships, LLCs, corporations, and partnerships</li>
+            <li><strong>Business Registration</strong> - Steps to register your business name and entity with appropriate government agencies</li>
+            <li><strong>Licenses and Permits</strong> - Industry-specific and location-specific requirements for legal operation</li>
+            <li><strong>Tax Considerations</strong> - Tax implications of different business structures and registration requirements</li>
+          </ul>
+        </div>
+      </div>
+      
+      {/* Video section - collapsible */}
+      <div className="mt-8 border rounded-lg overflow-hidden">
+        <div 
+          className="bg-military-beige/20 p-3 flex items-center justify-between cursor-pointer"
+          onClick={() => setShowVideo(!showVideo)}
+        >
+          <div className="flex items-center">
+            <Video className="h-5 w-5 mr-2 text-military-olive" />
+            <h3 className="font-medium">Lesson Video</h3>
           </div>
-          <div className="flex flex-wrap gap-2 mt-2">
-            <Badge variant="outline" className="bg-military-beige/20">
-              <Building className="h-3.5 w-3.5 mr-1" />
-              {currentSection.title}
-            </Badge>
-            <Badge variant="outline" className="bg-military-navy/10">
-              <Flag className="h-3.5 w-3.5 mr-1" />
-              Module {activeModule.split('-')[1]}
-            </Badge>
-            <Badge variant="outline" className="bg-military-olive/10">
-              <Timer className="h-3.5 w-3.5 mr-1" />
-              {currentClass.duration} min
-            </Badge>
-          </div>
+          {showVideo ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
         </div>
         
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setShowLibrary(true)}
-          >
-            <BookOpen className="h-4 w-4 mr-2" />
-            Knowledge Base
-          </Button>
-          
-          <Button
-            variant="outline"
-            onClick={() => setShowAIBuddy(!showAIBuddy)}
-          >
-            <Bot className="h-4 w-4 mr-2" />
-            AI Battle Buddy
-          </Button>
-          
-          {!completedLessons.includes(`${activeSection}-${activeModule}-${activeClass}`) ? (
-            <Button onClick={handleMarkComplete}>
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Mark as Completed
+        {showVideo && (
+          <div className="p-4">
+            <div className="aspect-video bg-gray-800 flex items-center justify-center mb-2 rounded">
+              <p className="text-white">Video player would be embedded here</p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              This video covers the key concepts of business establishment and legal structures.
+            </p>
+          </div>
+        )}
+      </div>
+      
+      {/* Additional resources/downloadable files */}
+      <div className="mt-6">
+        <h3 className="text-lg font-medium mb-3">Additional Resources</h3>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between bg-military-beige/10 p-3 rounded-lg">
+            <div className="flex items-center">
+              <Folder className="h-5 w-5 mr-2 text-military-olive" />
+              <span>Business Structure Comparison Chart</span>
+            </div>
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Download
             </Button>
-          ) : (
-            <Badge className="bg-green-100 border-green-200 text-green-800 flex items-center h-9 px-3">
-              <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-              Completed
-            </Badge>
+          </div>
+          
+          <div className="flex items-center justify-between bg-military-beige/10 p-3 rounded-lg">
+            <div className="flex items-center">
+              <Folder className="h-5 w-5 mr-2 text-military-olive" />
+              <span>Business Registration Checklist</span>
+            </div>
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
+          </div>
+        </div>
+      </div>
+      
+      {/* AI Buddy Q&A */}
+      <div className="mt-8 border rounded-lg p-4">
+        <div className="flex items-center mb-4">
+          <Bot className="h-5 w-5 mr-2 text-military-olive" />
+          <h3 className="font-medium">Ask AI Battle Buddy</h3>
+        </div>
+        
+        <div className="space-y-4">
+          <Textarea 
+            value={aiQuestion}
+            onChange={(e) => setAiQuestion(e.target.value)}
+            placeholder="Ask a question about this lesson..."
+            className="min-h-[80px]"
+          />
+          
+          <div className="flex justify-end">
+            <Button 
+              onClick={handleAiBuddyQuestion}
+              disabled={isLoadingAiResponse || aiQuestion.trim() === ""}
+              className="bg-military-olive hover:bg-military-olive/90"
+            >
+              {isLoadingAiResponse ? "Thinking..." : "Ask Question"}
+            </Button>
+          </div>
+          
+          {aiResponse && (
+            <div className="mt-4 bg-military-beige/10 p-4 rounded-lg">
+              <p className="text-sm font-semibold mb-2">AI Battle Buddy Response:</p>
+              <p className="text-sm">{aiResponse}</p>
+            </div>
           )}
         </div>
       </div>
       
-      <Tabs defaultValue={activeView} className="w-full">
-        <TabsList className="w-full mb-6">
-          <TabsTrigger value="lessons" className="flex-1">
-            <BookOpen className="h-4 w-4 mr-2" />
-            Lesson
-          </TabsTrigger>
-          <TabsTrigger value="assignments" className="flex-1">
-            <ClipboardList className="h-4 w-4 mr-2" />
-            Assignment
-          </TabsTrigger>
-          <TabsTrigger value="discussions" className="flex-1">
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Discussion
-          </TabsTrigger>
-          <TabsTrigger value="quizzes" className="flex-1">
-            <FileQuestion className="h-4 w-4 mr-2" />
-            Quiz
-          </TabsTrigger>
-          <TabsTrigger value="files" className="flex-1">
-            <Folder className="h-4 w-4 mr-2" />
-            Files
-          </TabsTrigger>
-          <TabsTrigger value="collaborations" className="flex-1">
-            <Users className="h-4 w-4 mr-2" />
-            Collaboration
-          </TabsTrigger>
+      {/* Mark as completed button */}
+      <div className="flex justify-end mt-8">
+        <Button
+          onClick={handleMarkAsCompleted}
+          variant={isLessonCompleted() ? "outline" : "default"}
+          className={isLessonCompleted() ? "border-green-500 text-green-600" : "bg-military-olive hover:bg-military-olive/90"}
+        >
+          <CheckCircle className="h-4 w-4 mr-2" />
+          {isLessonCompleted() ? "Marked as Completed" : "Mark as Completed"}
+        </Button>
+      </div>
+      
+      {/* Comments section */}
+      <div className="mt-8 border-t pt-6">
+        <h3 className="text-lg font-medium mb-4">Discussion ({comments.length})</h3>
+        
+        <div className="space-y-4 mb-6">
+          {comments.map(comment => (
+            <div key={comment.id} className="bg-military-beige/10 p-4 rounded-lg">
+              <div className="flex items-center mb-2">
+                <Avatar className="h-8 w-8 mr-2">
+                  <AvatarFallback>{comment.user[0]}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium text-sm">{comment.user}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {comment.timestamp.toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm">{comment.text}</p>
+            </div>
+          ))}
+        </div>
+        
+        <div className="space-y-2">
+          <Textarea
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Add a comment or question about this lesson..."
+            className="min-h-[100px]"
+          />
+          <div className="flex justify-end">
+            <Button
+              onClick={handleAddComment}
+              disabled={newComment.trim() === ""}
+              className="bg-military-olive hover:bg-military-olive/90"
+            >
+              <Send className="h-4 w-4 mr-2" />
+              Post Comment
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderAssignmentContent = () => (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Assignment: {currentClass.title}</h1>
+      
+      <Tabs defaultValue="instructions" value={activeAssignmentTab} onValueChange={setActiveAssignmentTab}>
+        <TabsList>
+          <TabsTrigger value="instructions">Instructions</TabsTrigger>
+          <TabsTrigger value="submission">Your Submission</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="lessons" className="space-y-6">
-          {/* Lesson content section - now comes before video */}
+        <TabsContent value="instructions" className="space-y-4 mt-4">
           <div className="prose max-w-none">
-            <h1>{currentClass.title}</h1>
-            <div dangerouslySetInnerHTML={{ __html: currentClass.content }} />
-          </div>
-          
-          {/* Video lesson section - moved below text and made collapsible */}
-          <Collapsible 
-            open={isVideoOpen} 
-            onOpenChange={setIsVideoOpen}
-            className="border rounded-lg overflow-hidden"
-          >
-            <CollapsibleTrigger className="flex items-center justify-between w-full p-4 bg-gray-50 hover:bg-gray-100 transition-colors">
-              <div className="flex items-center">
-                <Video className="h-5 w-5 mr-2 text-military-olive" />
-                <span className="font-medium">Lesson Video</span>
-              </div>
-              {isVideoOpen ? 
-                <ChevronUp className="h-5 w-5 text-gray-500" /> : 
-                <ChevronDown className="h-5 w-5 text-gray-500" />
-              }
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <video
-                ref={videoRef}
-                controls
-                className="w-full aspect-video bg-black"
-                poster="/placeholder.svg"
-                src={lessonVideoUrl}
-              >
-                Your browser does not support the video tag.
-              </video>
-            </CollapsibleContent>
-          </Collapsible>
-          
-          {/* Additional resources section */}
-          <div className="mt-8">
-            <h2 className="text-xl font-semibold mb-4">Additional Resources</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {additionalResources.map((resource, index) => (
-                <Card key={index} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium">{resource.name}</h3>
-                      <p className="text-gray-500 text-sm">.{resource.type} file</p>
-                    </div>
-                    <Button variant="ghost" size="icon">
-                      <Download className="h-5 w-5" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-          
-          {/* Comments section - now at the bottom */}
-          <div className="mt-8 space-y-6">
-            <h2 className="text-xl font-semibold mb-4">Comments</h2>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="space-y-3">
-                <Textarea 
-                  placeholder="Share your thoughts or questions about this lesson..." 
-                  className="w-full" 
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                />
-                <div className="flex justify-end">
-                  <Button onClick={handleSubmitComment}>
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Post Comment
-                  </Button>
-                </div>
-              </div>
-            </div>
+            <h2 className="text-xl font-semibold">Assignment Overview</h2>
+            <p>
+              For this assignment, you will create a detailed plan for establishing your business
+              entity based on your specific business idea and circumstances.
+            </p>
             
-            {comments.length > 0 ? (
-              <div className="space-y-4">
-                {comments.map(comment => (
-                  <div key={comment.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold">{comment.author}</h3>
-                        <p className="text-sm text-gray-500">{formatDate(comment.timestamp)}</p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8" 
-                          onClick={() => handleLikeComment(comment.id)}
-                        >
-                          <ThumbsUp className="h-4 w-4" />
-                        </Button>
-                        <span className="text-sm">{comment.likes}</span>
-                      </div>
-                    </div>
-                    <p className="mt-2">{comment.text}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-10 bg-gray-50 rounded-md">
-                <MessageSquare className="h-10 w-10 mx-auto text-gray-400 mb-2" />
-                <h3 className="font-medium text-gray-700">No comments yet</h3>
-                <p className="text-gray-500 mt-1">Be the first to start a discussion about this lesson</p>
-              </div>
-            )}
+            <h2 className="text-xl font-semibold mt-6">Requirements</h2>
+            <ol className="list-decimal pl-6 space-y-2">
+              <li>Identify the most appropriate business structure for your venture and explain your reasoning (250-300 words)</li>
+              <li>List all the local, state, and federal registrations you'll need to obtain</li>
+              <li>Create a timeline for completing all the required legal steps to establish your business</li>
+              <li>Identify potential challenges in the registration process and your strategies to overcome them</li>
+            </ol>
+            
+            <h2 className="text-xl font-semibold mt-6">Submission Guidelines</h2>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>Your submission should be between 750-1000 words</li>
+              <li>Include references to at least three credible sources</li>
+              <li>Submit as a text entry in the submission tab</li>
+              <li>Due date: Within one week of completing this lesson</li>
+            </ul>
           </div>
-        </TabsContent>
-        
-        <TabsContent value="assignments" className="space-y-6">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold flex items-center gap-2">
-                  <ClipboardList className="h-5 w-5 text-military-olive" />
-                  Assignment: {currentClass.title} Implementation
-                </h2>
-                
-                <div className="prose max-w-none">
-                  <p>Apply the concepts from this lesson to create a detailed implementation plan for your business venture.</p>
-                  
-                  <h3>Assignment Requirements:</h3>
-                  <ul>
-                    <li>Create a detailed outline based on the lesson principles</li>
-                    <li>Apply the framework to your specific business scenario</li>
-                    <li>Include a timeline for implementation</li>
-                    <li>Define metrics for measuring success</li>
-                  </ul>
-                  
-                  <h3>Submission Guidelines:</h3>
-                  <p>Submit your completed assignment for peer evaluation. Your work will be reviewed by another veteran in your cohort, and you'll receive AI-enhanced feedback.</p>
-                </div>
-                
-                <div className="flex justify-end gap-3">
-                  <Button className="bg-military-olive hover:bg-military-olive/90">
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    Submit Assignment
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
           
-          <PeerEvaluation 
-            assignmentId={`${activeSection}-${activeModule}-${activeClass}`} 
-            assignmentTitle={currentClass.title} 
-          />
-        </TabsContent>
-        
-        <TabsContent value="discussions">
-          <div className="text-center py-10 bg-gray-50 rounded-md">
-            <MessageSquare className="h-10 w-10 mx-auto text-gray-400 mb-2" />
-            <h3 className="font-medium text-gray-700">Discussion board moved to lesson tab</h3>
-            <p className="text-gray-500 mt-1">Check out the comments section at the bottom of the lesson tab</p>
+          <div className="mt-6 flex justify-between">
+            <Button variant="outline" onClick={() => setActiveAssignmentTab("submission")}>
+              Go to Submission
+            </Button>
           </div>
         </TabsContent>
         
-        <TabsContent value="quizzes">
-          <div className="text-center py-10 bg-gray-50 rounded-md">
-            <FileQuestion className="h-10 w-10 mx-auto text-gray-400 mb-2" />
-            <h3 className="font-medium text-gray-700">No quizzes available</h3>
-            <p className="text-gray-500 mt-1">Quizzes for this lesson will be added soon</p>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="files">
-          <div className="text-center py-10 bg-gray-50 rounded-md">
-            <Folder className="h-10 w-10 mx-auto text-gray-400 mb-2" />
-            <h3 className="font-medium text-gray-700">No files available</h3>
-            <p className="text-gray-500 mt-1">There are no files attached to this lesson</p>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="collaborations">
-          <div className="text-center py-10 bg-gray-50 rounded-md">
-            <Users className="h-10 w-10 mx-auto text-gray-400 mb-2" />
-            <h3 className="font-medium text-gray-700">No collaboration activities</h3>
-            <p className="text-gray-500 mt-1">Collaboration activities will be added soon</p>
-          </div>
+        <TabsContent value="submission" className="space-y-4 mt-4">
+          {!assignmentSubmitted ? (
+            <>
+              <Textarea
+                value={assignmentAnswer}
+                onChange={(e) => setAssignmentAnswer(e.target.value)}
+                placeholder="Enter your assignment submission here..."
+                className="min-h-[300px]"
+              />
+              
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setActiveAssignmentTab("instructions")}>
+                  Review Instructions
+                </Button>
+                <Button
+                  onClick={handleSubmitAssignment}
+                  disabled={assignmentAnswer.trim().length < 10}
+                  className="bg-military-olive hover:bg-military-olive/90"
+                >
+                  Submit Assignment
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="space-y-4">
+              <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                <div className="flex">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                  <div>
+                    <h3 className="font-medium text-green-800">Assignment Submitted</h3>
+                    <p className="text-green-700 text-sm">
+                      Your assignment has been submitted and is waiting for review.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="border rounded-md p-4">
+                <h3 className="font-medium mb-2">Your Submission</h3>
+                <p className="whitespace-pre-wrap">{assignmentAnswer}</p>
+              </div>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
+    </div>
+  );
 
-      {/* AI Battle Buddy dialog */}
-      {showAIBuddy && (
-        <Card className="fixed bottom-6 right-6 w-96 z-50 shadow-xl">
-          <CardContent className="p-0">
-            <div className="bg-military-navy p-3 text-white flex justify-between items-center rounded-t-lg">
-              <h3 className="flex items-center text-sm font-medium">
-                <Bot className="h-4 w-4 mr-2" />
-                AI Battle Buddy
-              </h3>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-6 w-6 text-white"
-                onClick={() => setShowAIBuddy(false)}
-              >
-                <span className="sr-only">Close</span>
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M11.7816 4.03157C12.0062 3.80702 12.0062 3.44295 11.7816 3.2184C11.5571 2.99385 11.193 2.99385 10.9685 3.2184L7.50005 6.68682L4.03164 3.2184C3.80708 2.99385 3.44301 2.99385 3.21846 3.2184C2.99391 3.44295 2.99391 3.80702 3.21846 4.03157L6.68688 7.49999L3.21846 10.9684C2.99391 11.193 2.99391 11.557 3.21846 11.7816C3.44301 12.0061 3.80708 12.0061 4.03164 11.7816L7.50005 8.31316L10.9685 11.7816C11.193 12.0061 11.5571 12.0061 11.7816 11.7816C12.0062 11.557 12.0062 11.193 11.7816 10.9684L8.31322 7.49999L11.7816 4.03157Z" fill="currentColor"></path>
-                </svg>
-              </Button>
-            </div>
-            <div className="h-64 p-4 overflow-y-auto bg-white/90">
-              {aiResponse ? (
-                <div className="p-3 bg-gray-100 rounded-lg text-sm">
-                  <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: aiResponse.replace(/\n/g, '<br/>') }} />
-                </div>
-              ) : (
-                <div className="text-center h-full flex flex-col justify-center">
-                  <Bot className="h-12 w-12 mx-auto text-military-olive opacity-30 mb-2" />
-                  <p className="text-gray-500 text-sm">Ask me anything about this lesson!</p>
-                </div>
-              )}
-            </div>
-            <div className="p-3 border-t flex items-center gap-2">
-              <Textarea 
-                placeholder="Ask your AI Battle Buddy..." 
-                className="text-sm min-h-0"
-                value={aiQuestion}
-                onChange={(e) => setAIQuestion(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleAskAI();
-                  }
-                }}
-                rows={1}
-              />
-              <Button 
-                size="icon" 
-                disabled={isAiLoading || !aiQuestion.trim()}
-                onClick={handleAskAI}
-                className="shrink-0"
-              >
-                {isAiLoading ? (
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-opacity-50 border-t-white rounded-full" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
+  const renderContent = () => {
+    switch (activeView) {
+      case "lessons":
+        return renderLessonContent();
+      case "assignments":
+        return renderAssignmentContent();
+      case "quizzes":
+        return (
+          <div className="space-y-6">
+            <h1 className="text-2xl font-bold">Quiz: {currentClass.title}</h1>
+            <p>This feature is coming soon.</p>
+          </div>
+        );
+      case "discussions":
+        return (
+          <div className="space-y-6">
+            <h1 className="text-2xl font-bold">Discussion Forum: {currentClass.title}</h1>
+            <p>This feature is coming soon.</p>
+          </div>
+        );
+      case "files":
+        return (
+          <div className="space-y-6">
+            <h1 className="text-2xl font-bold">Resource Files: {currentClass.title}</h1>
+            <p>This feature is coming soon.</p>
+          </div>
+        );
+      case "collaborations":
+        return (
+          <div className="space-y-6">
+            <h1 className="text-2xl font-bold">Collaborations: {currentClass.title}</h1>
+            <p>This feature is coming soon.</p>
+          </div>
+        );
+      default:
+        return <p>Select a view from the sidebar.</p>;
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card className="overflow-hidden">
+        <CardContent className="p-6">
+          {renderContent()}
+        </CardContent>
+      </Card>
+      {activeView === "lessons" && (
+        <Card>
+          <CardContent className="p-6">
+            <StudentLibrary />
           </CardContent>
         </Card>
       )}
-
-      {/* Student Library Dialog */}
-      <Dialog open={showLibrary} onOpenChange={setShowLibrary}>
-        <DialogContent className="max-w-5xl h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-military-olive" />
-              Veteran Knowledge Base
-            </DialogTitle>
-            <DialogDescription>
-              Access training resources, SOPs, and learning materials
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 overflow-auto">
-            <StudentLibrary />
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
