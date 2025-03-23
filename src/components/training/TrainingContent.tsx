@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { 
   BookOpen, 
   ClipboardList, 
@@ -24,7 +24,9 @@ import {
   Bot,
   Send,
   ThumbsUp,
-  ThumbsDown
+  ThumbsDown,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { trainingData } from "./trainingData";
 import PeerEvaluation from "./PeerEvaluation";
@@ -63,6 +65,9 @@ const TrainingContent = ({
   const [comments, setComments] = useState<{ id: string; author: string; text: string; timestamp: Date; likes: number }[]>([]);
   const [newComment, setNewComment] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
+  
+  // New state for video collapsible
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
 
   // Placeholder for demo video URL
   const lessonVideoUrl = "https://samplelib.com/lib/preview/mp4/sample-5s.mp4";
@@ -306,23 +311,40 @@ ${aiQuestion}
         </TabsList>
         
         <TabsContent value="lessons" className="space-y-6">
-          {/* Video lesson section */}
-          <div className="mb-6 rounded-lg overflow-hidden border border-gray-200">
-            <video
-              ref={videoRef}
-              controls
-              className="w-full aspect-video bg-black"
-              poster="/placeholder.svg"
-              src={lessonVideoUrl}
-            >
-              Your browser does not support the video tag.
-            </video>
-          </div>
-          
+          {/* Lesson content section - now comes before video */}
           <div className="prose max-w-none">
             <h1>{currentClass.title}</h1>
             <div dangerouslySetInnerHTML={{ __html: currentClass.content }} />
           </div>
+          
+          {/* Video lesson section - moved below text and made collapsible */}
+          <Collapsible 
+            open={isVideoOpen} 
+            onOpenChange={setIsVideoOpen}
+            className="border rounded-lg overflow-hidden"
+          >
+            <CollapsibleTrigger className="flex items-center justify-between w-full p-4 bg-gray-50 hover:bg-gray-100 transition-colors">
+              <div className="flex items-center">
+                <Video className="h-5 w-5 mr-2 text-military-olive" />
+                <span className="font-medium">Lesson Video</span>
+              </div>
+              {isVideoOpen ? 
+                <ChevronUp className="h-5 w-5 text-gray-500" /> : 
+                <ChevronDown className="h-5 w-5 text-gray-500" />
+              }
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <video
+                ref={videoRef}
+                controls
+                className="w-full aspect-video bg-black"
+                poster="/placeholder.svg"
+                src={lessonVideoUrl}
+              >
+                Your browser does not support the video tag.
+              </video>
+            </CollapsibleContent>
+          </Collapsible>
           
           {/* Additional resources section */}
           <div className="mt-8">
@@ -343,52 +365,11 @@ ${aiQuestion}
               ))}
             </div>
           </div>
-        </TabsContent>
-        
-        <TabsContent value="assignments" className="space-y-6">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold flex items-center gap-2">
-                  <ClipboardList className="h-5 w-5 text-military-olive" />
-                  Assignment: {currentClass.title} Implementation
-                </h2>
-                
-                <div className="prose max-w-none">
-                  <p>Apply the concepts from this lesson to create a detailed implementation plan for your business venture.</p>
-                  
-                  <h3>Assignment Requirements:</h3>
-                  <ul>
-                    <li>Create a detailed outline based on the lesson principles</li>
-                    <li>Apply the framework to your specific business scenario</li>
-                    <li>Include a timeline for implementation</li>
-                    <li>Define metrics for measuring success</li>
-                  </ul>
-                  
-                  <h3>Submission Guidelines:</h3>
-                  <p>Submit your completed assignment for peer evaluation. Your work will be reviewed by another veteran in your cohort, and you'll receive AI-enhanced feedback.</p>
-                </div>
-                
-                <div className="flex justify-end gap-3">
-                  <Button className="bg-military-olive hover:bg-military-olive/90">
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    Submit Assignment
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
           
-          <PeerEvaluation 
-            assignmentId={`${activeSection}-${activeModule}-${activeClass}`} 
-            assignmentTitle={currentClass.title} 
-          />
-        </TabsContent>
-        
-        <TabsContent value="discussions">
-          <div className="space-y-6">
+          {/* Comments section - now at the bottom */}
+          <div className="mt-8 space-y-6">
+            <h2 className="text-xl font-semibold mb-4">Comments</h2>
             <div className="bg-gray-50 p-4 rounded-lg">
-              <h2 className="font-semibold text-lg mb-3">Discussion Board</h2>
               <div className="space-y-3">
                 <Textarea 
                   placeholder="Share your thoughts or questions about this lesson..." 
@@ -437,6 +418,54 @@ ${aiQuestion}
                 <p className="text-gray-500 mt-1">Be the first to start a discussion about this lesson</p>
               </div>
             )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="assignments" className="space-y-6">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold flex items-center gap-2">
+                  <ClipboardList className="h-5 w-5 text-military-olive" />
+                  Assignment: {currentClass.title} Implementation
+                </h2>
+                
+                <div className="prose max-w-none">
+                  <p>Apply the concepts from this lesson to create a detailed implementation plan for your business venture.</p>
+                  
+                  <h3>Assignment Requirements:</h3>
+                  <ul>
+                    <li>Create a detailed outline based on the lesson principles</li>
+                    <li>Apply the framework to your specific business scenario</li>
+                    <li>Include a timeline for implementation</li>
+                    <li>Define metrics for measuring success</li>
+                  </ul>
+                  
+                  <h3>Submission Guidelines:</h3>
+                  <p>Submit your completed assignment for peer evaluation. Your work will be reviewed by another veteran in your cohort, and you'll receive AI-enhanced feedback.</p>
+                </div>
+                
+                <div className="flex justify-end gap-3">
+                  <Button className="bg-military-olive hover:bg-military-olive/90">
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Submit Assignment
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <PeerEvaluation 
+            assignmentId={`${activeSection}-${activeModule}-${activeClass}`} 
+            assignmentTitle={currentClass.title} 
+          />
+        </TabsContent>
+        
+        <TabsContent value="discussions">
+          <div className="text-center py-10 bg-gray-50 rounded-md">
+            <MessageSquare className="h-10 w-10 mx-auto text-gray-400 mb-2" />
+            <h3 className="font-medium text-gray-700">Discussion board moved to lesson tab</h3>
+            <p className="text-gray-500 mt-1">Check out the comments section at the bottom of the lesson tab</p>
           </div>
         </TabsContent>
         
