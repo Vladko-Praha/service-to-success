@@ -181,7 +181,12 @@ const TrainingContent: React.FC<TrainingContentProps> = ({
       <h1 className="text-2xl font-bold">{currentClass.title}</h1>
       
       <div className="prose max-w-none">
-        <p>{currentClass.content || "No content available for this lesson."}</p>
+        {/* Render the HTML content properly using dangerouslySetInnerHTML */}
+        {currentClass.content ? (
+          <div dangerouslySetInnerHTML={{ __html: currentClass.content }} />
+        ) : (
+          <p>No content available for this lesson.</p>
+        )}
         
         {/* Lesson content - you would normally pull this from your database */}
         <div className="mt-6 space-y-4">
