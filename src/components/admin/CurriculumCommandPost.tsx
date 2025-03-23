@@ -1,20 +1,33 @@
 
 import React, { useState } from "react";
-import { Book, Calendar, FileText, FolderPlus, BarChart2, ClipboardList, FileQuestion } from "lucide-react";
+import { Book, Calendar, FileText, FolderPlus, BarChart2, ClipboardList, FileQuestion, Pencil, FilePlus } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const CurriculumCommandPost = () => {
   const { toast } = useToast();
   const [selectedModule, setSelectedModule] = useState<number | null>(null);
   const [isModuleDialogOpen, setIsModuleDialogOpen] = useState(false);
+  const [isNewLessonDialogOpen, setIsNewLessonDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editItem, setEditItem] = useState<{type: 'lesson' | 'quiz' | 'assignment', item: any} | null>(null);
+  const [newLessonData, setNewLessonData] = useState({
+    title: '',
+    description: '',
+    duration: '',
+    status: 'Draft'
+  });
 
   const handleManageModule = (moduleIndex: number) => {
     setSelectedModule(moduleIndex);
@@ -31,6 +44,41 @@ const CurriculumCommandPost = () => {
       title: "Create New Module",
       description: "Module creation interface will be available soon.",
     });
+  };
+
+  const handleNewLesson = () => {
+    setNewLessonData({
+      title: '',
+      description: '',
+      duration: '',
+      status: 'Draft'
+    });
+    setIsNewLessonDialogOpen(true);
+  };
+
+  const handleEditItem = (type: 'lesson' | 'quiz' | 'assignment', item: any) => {
+    setEditItem({ type, item });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveNewLesson = () => {
+    // In a real app, this would save to a database
+    toast({
+      title: "Lesson Created",
+      description: `"${newLessonData.title}" has been added to ${getModuleName(selectedModule || 0)}`,
+    });
+    setIsNewLessonDialogOpen(false);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editItem) return;
+    
+    toast({
+      title: `${editItem.type.charAt(0).toUpperCase() + editItem.type.slice(1)} Updated`,
+      description: `"${editItem.item.title}" has been updated`,
+    });
+    setIsEditDialogOpen(false);
+    setEditItem(null);
   };
 
   const getModuleName = (index: number) => {
@@ -306,8 +354,12 @@ const CurriculumCommandPost = () => {
                 <TabsContent value="lessons" className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h3 className="text-lg font-medium">Module Lessons</h3>
-                    <Button size="sm" className="bg-military-olive hover:bg-military-olive/90">
-                      <FileText className="mr-2 h-4 w-4" /> 
+                    <Button 
+                      size="sm" 
+                      className="bg-military-olive hover:bg-military-olive/90"
+                      onClick={handleNewLesson}
+                    >
+                      <FilePlus className="mr-2 h-4 w-4" /> 
                       New Lesson
                     </Button>
                   </div>
@@ -338,7 +390,14 @@ const CurriculumCommandPost = () => {
                           <TableCell>{lesson.duration}</TableCell>
                           <TableCell>{lesson.createdAt}</TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="sm">Edit</Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleEditItem('lesson', lesson)}
+                            >
+                              <Pencil className="mr-1 h-3.5 w-3.5" />
+                              Edit
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -381,7 +440,14 @@ const CurriculumCommandPost = () => {
                           <TableCell>{quiz.passingScore}</TableCell>
                           <TableCell>{quiz.timeLimit}</TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="sm">Edit</Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleEditItem('quiz', quiz)}
+                            >
+                              <Pencil className="mr-1 h-3.5 w-3.5" />
+                              Edit
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -426,7 +492,14 @@ const CurriculumCommandPost = () => {
                           <TableCell>{assignment.points}</TableCell>
                           <TableCell>{assignment.type}</TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="sm">Edit</Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleEditItem('assignment', assignment)}
+                            >
+                              <Pencil className="mr-1 h-3.5 w-3.5" />
+                              Edit
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -436,6 +509,186 @@ const CurriculumCommandPost = () => {
               </Tabs>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* New Lesson Dialog */}
+      <Dialog open={isNewLessonDialogOpen} onOpenChange={setIsNewLessonDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Lesson</DialogTitle>
+            <DialogDescription>
+              Add a new lesson to {selectedModule !== null ? getModuleName(selectedModule) : 'the module'}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="lesson-title">Lesson Title</Label>
+              <Input 
+                id="lesson-title" 
+                placeholder="Enter lesson title" 
+                value={newLessonData.title}
+                onChange={(e) => setNewLessonData({...newLessonData, title: e.target.value})}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="lesson-description">Description</Label>
+              <Textarea 
+                id="lesson-description" 
+                placeholder="Enter lesson description"
+                rows={3}
+                value={newLessonData.description}
+                onChange={(e) => setNewLessonData({...newLessonData, description: e.target.value})}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="lesson-duration">Duration (minutes)</Label>
+                <Input 
+                  id="lesson-duration" 
+                  placeholder="e.g. 30" 
+                  value={newLessonData.duration}
+                  onChange={(e) => setNewLessonData({...newLessonData, duration: e.target.value})}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="lesson-status">Status</Label>
+                <Select 
+                  value={newLessonData.status}
+                  onValueChange={(value) => setNewLessonData({...newLessonData, status: value})}
+                >
+                  <SelectTrigger id="lesson-status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Draft">Draft</SelectItem>
+                    <SelectItem value="Published">Published</SelectItem>
+                    <SelectItem value="Planned">Planned</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewLessonDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveNewLesson}>Create Lesson</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Edit {editItem?.type.charAt(0).toUpperCase()}{editItem?.type.slice(1)}
+            </DialogTitle>
+            <DialogDescription>
+              Update the details for "{editItem?.item?.title}".
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="item-title">Title</Label>
+              <Input 
+                id="item-title" 
+                placeholder="Enter title" 
+                defaultValue={editItem?.item?.title || ''}
+              />
+            </div>
+            
+            {editItem?.type === 'lesson' && (
+              <>
+                <div className="grid gap-2">
+                  <Label htmlFor="item-duration">Duration</Label>
+                  <Input 
+                    id="item-duration" 
+                    placeholder="Enter duration" 
+                    defaultValue={editItem?.item?.duration || ''}
+                  />
+                </div>
+              </>
+            )}
+            
+            {editItem?.type === 'quiz' && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="item-questions">Questions</Label>
+                    <Input 
+                      id="item-questions" 
+                      placeholder="Number of questions" 
+                      defaultValue={editItem?.item?.questions || ''}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="item-time-limit">Time Limit</Label>
+                    <Input 
+                      id="item-time-limit" 
+                      placeholder="Time limit" 
+                      defaultValue={editItem?.item?.timeLimit || ''}
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="item-passing-score">Passing Score</Label>
+                  <Input 
+                    id="item-passing-score" 
+                    placeholder="Passing score" 
+                    defaultValue={editItem?.item?.passingScore || ''}
+                  />
+                </div>
+              </>
+            )}
+            
+            {editItem?.type === 'assignment' && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="item-due-date">Due Date</Label>
+                    <Input 
+                      id="item-due-date" 
+                      placeholder="Due date" 
+                      defaultValue={editItem?.item?.dueDate || ''}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="item-points">Points</Label>
+                    <Input 
+                      id="item-points" 
+                      placeholder="Points" 
+                      defaultValue={editItem?.item?.points || ''}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+            
+            <div className="grid gap-2">
+              <Label htmlFor="item-status">Status</Label>
+              <Select defaultValue={editItem?.item?.status || 'Draft'}>
+                <SelectTrigger id="item-status">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Draft">Draft</SelectItem>
+                  <SelectItem value="Published">Published</SelectItem>
+                  <SelectItem value="Planned">Planned</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveEdit}>Save Changes</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
