@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -128,7 +127,7 @@ const LessonCreator = () => {
         break;
     }
 
-    setContentBlocks([...contentBlocks, newBlock]);
+    setContentBlocks(prevBlocks => [...prevBlocks, newBlock]);
   };
 
   const updateContentBlock = (id: string, content: Record<string, any>) => {
@@ -168,15 +167,16 @@ const LessonCreator = () => {
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target && typeof event.target.result === "string") {
-          addContentBlock("image");
-          const newBlockIndex = contentBlocks.length;
-          setTimeout(() => {
-            updateContentBlock(contentBlocks[newBlockIndex].id, {
-              url: event.target?.result as string,
+          const newBlock: ContentBlock = {
+            id: generateId(),
+            type: "image",
+            content: {
+              url: event.target.result,
               alt: file.name,
               caption: ""
-            });
-          }, 0);
+            }
+          };
+          setContentBlocks(prevBlocks => [...prevBlocks, newBlock]);
         }
       };
       reader.readAsDataURL(file);
@@ -187,16 +187,17 @@ const LessonCreator = () => {
     const files = e.target.files;
     if (files && files[0]) {
       const file = files[0];
-      addContentBlock("file");
-      const newBlockIndex = contentBlocks.length;
-      setTimeout(() => {
-        updateContentBlock(contentBlocks[newBlockIndex].id, {
+      const newBlock: ContentBlock = {
+        id: generateId(),
+        type: "file",
+        content: {
           url: "#", // In a real app, this would be the uploaded file URL
           name: file.name,
           size: `${Math.round(file.size / 1024)} KB`,
           type: file.type
-        });
-      }, 0);
+        }
+      };
+      setContentBlocks(prevBlocks => [...prevBlocks, newBlock]);
     }
   };
 
@@ -454,7 +455,7 @@ const LessonCreator = () => {
                   className="border-2 border-dashed rounded-md p-8 text-center cursor-pointer hover:bg-black/5 transition-colors"
                   onClick={() => imageInputRef.current?.click()}
                 >
-                  <ImageIcon className="h-8 w-8 mx-auto text-military-navy/50 mb-2" />
+                  <ImageIcon className="h-8 w-8 mx-auto text-military-navy/50" />
                   <p className="text-sm text-military-navy/70">Click to upload an image</p>
                 </div>
               )}
@@ -1204,7 +1205,22 @@ const LessonCreator = () => {
                             Save Draft
                           </Button>
                           <Button
-                            onClick={() => form.handleSubmit(onSubmit)()}
+                            onClick={() => {
+                              const isValid = form.trigger();
+                              isValid.then((valid) => {
+                                if (valid) {
+                                  const values = form.getValues();
+                                  onSubmit(values);
+                                } else {
+                                  setActiveTab("details");
+                                  toast({
+                                    title: "Required Fields Missing",
+                                    description: "Please complete all required fields",
+                                    variant: "destructive"
+                                  });
+                                }
+                              });
+                            }}
                             className="bg-military-olive hover:bg-military-olive/90"
                           >
                             <CheckCircle className="h-4 w-4 mr-2" />
