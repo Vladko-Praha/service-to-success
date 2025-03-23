@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { trainingData } from "./trainingData";
+import PeerEvaluation from "./PeerEvaluation";
 import { 
   Video, 
   FileText, 
@@ -287,15 +287,11 @@ Use military analogies when helpful and be direct in your guidance.`;
     }
   };
 
-  // Function to handle file downloads
   const handleDownload = (filename: string) => {
-    // Create a dummy content for the file
     let content = "";
     let mimeType = "";
     
     if (filename.endsWith('.pdf')) {
-      // For PDF, we'd normally generate a real PDF file
-      // Here we'll create a text file with PDF content note
       content = "This is a placeholder for a PDF file: " + filename;
       mimeType = "text/plain";
     } else if (filename.includes('Worksheet') || filename.endsWith('.docx')) {
@@ -306,35 +302,27 @@ Use military analogies when helpful and be direct in your guidance.`;
       mimeType = "text/plain";
     }
     
-    // Create a Blob with the content
     const blob = new Blob([content], { type: mimeType });
     
-    // Create a URL for the Blob
     const url = URL.createObjectURL(blob);
     
-    // Create a temporary link element
     const link = document.createElement('a');
     link.href = url;
     link.download = filename;
     
-    // Append the link to the body
     document.body.appendChild(link);
     
-    // Click the link to trigger the download
     link.click();
     
-    // Clean up
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     
-    // Show success toast
     toast({
       title: "Download Started",
       description: `Downloading ${filename}`,
     });
   };
 
-  // Render assignment content
   const renderAssignmentContent = () => {
     return (
       <div className="space-y-6">
@@ -468,11 +456,15 @@ Use military analogies when helpful and be direct in your guidance.`;
             </div>
           </CardContent>
         </Card>
+
+        <PeerEvaluation 
+          assignmentId={`${activeSection}-${activeModule}-${activeClass}`} 
+          assignmentTitle={content?.title || "Assignment"}
+        />
       </div>
     );
   };
-  
-  // Render discussion content
+
   const renderDiscussionContent = () => {
     return (
       <div className="space-y-6">
@@ -577,8 +569,7 @@ Use military analogies when helpful and be direct in your guidance.`;
       </div>
     );
   };
-  
-  // Render quiz content
+
   const renderQuizContent = () => {
     return (
       <div className="space-y-6">
@@ -687,8 +678,7 @@ Use military analogies when helpful and be direct in your guidance.`;
       </div>
     );
   };
-  
-  // Render file content
+
   const renderFileContent = () => {
     return (
       <div className="space-y-6">
@@ -822,8 +812,7 @@ Use military analogies when helpful and be direct in your guidance.`;
       </div>
     );
   };
-  
-  // Render collaboration content
+
   const renderCollaborationContent = () => {
     return (
       <div className="space-y-6">
@@ -950,7 +939,6 @@ Use military analogies when helpful and be direct in your guidance.`;
     return <div>Loading content...</div>;
   }
   
-  // Render different content based on active view
   const renderContent = () => {
     switch (activeView) {
       case "lessons":
@@ -969,8 +957,7 @@ Use military analogies when helpful and be direct in your guidance.`;
         return renderLessonContent();
     }
   };
-  
-  // Render lesson content (original content)
+
   const renderLessonContent = () => {
     return (
       <div className="space-y-6">
