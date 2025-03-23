@@ -26,7 +26,7 @@ import {
 import StudentLibrary from "./StudentLibrary";
 import { trainingData } from "./trainingData";
 import { useToast } from "@/hooks/use-toast";
-import { openai } from "@/services/openaiService";
+import { generateResponse } from "@/services/openaiService";
 
 interface TrainingContentProps {
   activeSection: string;
@@ -134,16 +134,17 @@ const TrainingContent: React.FC<TrainingContentProps> = ({
     
     setIsLoadingAiResponse(true);
     try {
-      const response = await openai.generateText({
-        messages: [
-          { role: "system", content: `You are an AI tutor helping a veteran with their business training. 
-            The student is currently studying: ${currentClass?.title}. 
-            Provide helpful, concise answers related to business establishment and entrepreneurship.` },
+      const response = await generateResponse(
+        "your-api-key", // This should be retrieved from user settings or env
+        [
           { role: "user", content: aiQuestion }
-        ]
-      });
+        ],
+        `You are an AI tutor helping a veteran with their business training. 
+        The student is currently studying: ${currentClass?.title}. 
+        Provide helpful, concise answers related to business establishment and entrepreneurship.`
+      );
       
-      setAiResponse(response || "I apologize, but I don't have an answer for that right now. Please try rephrasing your question.");
+      setAiResponse(response?.content || "I apologize, but I don't have an answer for that right now. Please try rephrasing your question.");
     } catch (error) {
       console.error("Error getting AI response:", error);
       setAiResponse("Sorry, there was an error processing your question. Please try again later.");
@@ -180,7 +181,7 @@ const TrainingContent: React.FC<TrainingContentProps> = ({
       <h1 className="text-2xl font-bold">{currentClass.title}</h1>
       
       <div className="prose max-w-none">
-        <p>{currentClass.description || "No description available for this lesson."}</p>
+        <p>{currentClass.content || "No content available for this lesson."}</p>
         
         {/* Lesson content - you would normally pull this from your database */}
         <div className="mt-6 space-y-4">
