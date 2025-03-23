@@ -90,8 +90,8 @@ const TrainingCenter = () => {
                   <span className="font-medium">{completedLessonsCount}</span> of <span>{totalLessonsCount}</span> lessons completed
                 </div>
                 <Button 
-                  variant="outline"
-                  className="text-white border-white hover:text-white/80 hover:bg-white/10"
+                  variant="standard"
+                  className="text-white bg-military-olive border-military-olive hover:bg-military-olive/90"
                   onClick={() => navigate("/lesson-creator")}
                 >
                   <PlusCircle className="h-4 w-4 mr-2" />
