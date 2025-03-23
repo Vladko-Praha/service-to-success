@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,7 +22,6 @@ import {
   ChevronUp,
   Bot
 } from "lucide-react";
-import StudentLibrary from "./StudentLibrary";
 import { trainingData } from "./trainingData";
 import { useToast } from "@/hooks/use-toast";
 import { generateResponse } from "@/services/openaiService";
@@ -73,14 +71,12 @@ const TrainingContent: React.FC<TrainingContentProps> = ({
   const [showVideo, setShowVideo] = useState(false);
 
   useEffect(() => {
-    // Load completed lessons from localStorage
     const savedLessons = localStorage.getItem("completedLessons");
     if (savedLessons) {
       setCompletedLessons(JSON.parse(savedLessons));
     }
   }, []);
 
-  // Find current section, module and class data
   const currentSection = trainingData.find(section => section.id === activeSection);
   const currentModule = currentSection?.modules.find(module => module.id === activeModule);
   const currentClass = currentModule?.classes.find(cls => cls.id === activeClass);
@@ -181,14 +177,12 @@ const TrainingContent: React.FC<TrainingContentProps> = ({
       <h1 className="text-2xl font-bold">{currentClass.title}</h1>
       
       <div className="prose max-w-none">
-        {/* Render the HTML content properly using dangerouslySetInnerHTML */}
         {currentClass.content ? (
           <div dangerouslySetInnerHTML={{ __html: currentClass.content }} />
         ) : (
           <p>No content available for this lesson.</p>
         )}
         
-        {/* Lesson content - you would normally pull this from your database */}
         <div className="mt-6 space-y-4">
           <h2 className="text-xl font-semibold">Introduction</h2>
           <p>
@@ -213,7 +207,6 @@ const TrainingContent: React.FC<TrainingContentProps> = ({
         </div>
       </div>
       
-      {/* Video section - collapsible */}
       <div className="mt-8 border rounded-lg overflow-hidden">
         <div 
           className="bg-military-beige/20 p-3 flex items-center justify-between cursor-pointer"
@@ -238,7 +231,6 @@ const TrainingContent: React.FC<TrainingContentProps> = ({
         )}
       </div>
       
-      {/* Additional resources/downloadable files */}
       <div className="mt-6">
         <h3 className="text-lg font-medium mb-3">Additional Resources</h3>
         <div className="space-y-2">
@@ -266,7 +258,6 @@ const TrainingContent: React.FC<TrainingContentProps> = ({
         </div>
       </div>
       
-      {/* AI Buddy Q&A */}
       <div className="mt-8 border rounded-lg p-4">
         <div className="flex items-center mb-4">
           <Bot className="h-5 w-5 mr-2 text-military-olive" />
@@ -300,7 +291,6 @@ const TrainingContent: React.FC<TrainingContentProps> = ({
         </div>
       </div>
       
-      {/* Mark as completed button */}
       <div className="flex justify-end mt-8">
         <Button
           onClick={handleMarkAsCompleted}
@@ -312,7 +302,6 @@ const TrainingContent: React.FC<TrainingContentProps> = ({
         </Button>
       </div>
       
-      {/* Comments section */}
       <div className="mt-8 border-t pt-6">
         <h3 className="text-lg font-medium mb-4">Discussion ({comments.length})</h3>
         
@@ -493,13 +482,6 @@ const TrainingContent: React.FC<TrainingContentProps> = ({
           {renderContent()}
         </CardContent>
       </Card>
-      {activeView === "lessons" && (
-        <Card>
-          <CardContent className="p-6">
-            <StudentLibrary />
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };
