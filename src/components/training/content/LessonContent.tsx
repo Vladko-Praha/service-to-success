@@ -1,12 +1,12 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Video, ChevronDown, ChevronUp } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { CheckCircle } from "lucide-react";
 import AIBuddyInteraction from "./AIBuddyInteraction";
 import VideoSection from "./VideoSection";
 import ResourceSection from "./ResourceSection";
 import DiscussionSection from "./DiscussionSection";
+import { useLesson } from "@/hooks/use-lesson";
 
 interface LessonContentProps {
   currentClass: any;
@@ -21,43 +21,11 @@ const LessonContent: React.FC<LessonContentProps> = ({
   activeModule,
   activeClass
 }) => {
-  const { toast } = useToast();
-  const [completedLessons, setCompletedLessons] = useState<string[]>([]);
-  const [showVideo, setShowVideo] = useState(false);
-
-  useEffect(() => {
-    const savedLessons = localStorage.getItem("completedLessons");
-    if (savedLessons) {
-      setCompletedLessons(JSON.parse(savedLessons));
-    }
-  }, []);
-
-  const handleMarkAsCompleted = () => {
-    const lessonKey = `${activeSection}-${activeModule}-${activeClass}`;
-    let updatedCompletedLessons: string[];
-
-    if (completedLessons.includes(lessonKey)) {
-      updatedCompletedLessons = completedLessons.filter(id => id !== lessonKey);
-      toast({
-        title: "Lesson marked as incomplete",
-        description: `"${currentClass?.title}" has been removed from your completed lessons.`
-      });
-    } else {
-      updatedCompletedLessons = [...completedLessons, lessonKey];
-      toast({
-        title: "Lesson completed! 🎉",
-        description: `"${currentClass?.title}" has been marked as completed.`
-      });
-    }
-
-    setCompletedLessons(updatedCompletedLessons);
-    localStorage.setItem("completedLessons", JSON.stringify(updatedCompletedLessons));
-  };
-
-  const isLessonCompleted = () => {
-    const lessonKey = `${activeSection}-${activeModule}-${activeClass}`;
-    return completedLessons.includes(lessonKey);
-  };
+  const { showVideo, setShowVideo, handleMarkAsCompleted, isLessonCompleted } = useLesson({
+    activeSection,
+    activeModule,
+    activeClass
+  });
 
   return (
     <div className="space-y-6">
