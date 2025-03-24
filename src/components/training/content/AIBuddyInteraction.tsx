@@ -24,9 +24,11 @@ const AIBuddyInteraction: React.FC<AIBuddyInteractionProps> = ({ currentClass })
         [
           { role: "user", content: aiQuestion }
         ],
-        `You are an AI tutor helping a veteran with their business training. 
-        The student is currently studying: ${currentClass?.title}. 
-        Provide helpful, concise answers related to business establishment and entrepreneurship.`
+        {
+          systemPrompt: `You are an AI tutor helping a veteran with their business training. 
+          The student is currently studying: ${currentClass?.title}. 
+          Provide helpful, concise answers related to business establishment and entrepreneurship.`
+        }
       );
       
       setAiResponse(response?.content || "I apologize, but I don't have an answer for that right now. Please try rephrasing your question.");

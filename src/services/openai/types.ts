@@ -1,6 +1,4 @@
 
-import { ChatCompletion } from "openai/resources/chat";
-
 // Define message types that match OpenAI's expected format
 export type MessageRole = 'system' | 'user' | 'assistant';
 

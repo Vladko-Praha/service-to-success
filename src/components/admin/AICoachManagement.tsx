@@ -73,9 +73,11 @@ const AICoachManagement = () => {
       const result = await generateResponse(
         apiKey, 
         messages, 
-        DEFAULT_SYSTEM_PROMPT, // Use the improved system prompt
-        selectedModel,
-        0.5 // Set a moderate temperature for testing
+        {
+          systemPrompt: DEFAULT_SYSTEM_PROMPT,
+          model: selectedModel,
+          temperature: 0.5
+        }
       );
       
       setResponse(result.content);

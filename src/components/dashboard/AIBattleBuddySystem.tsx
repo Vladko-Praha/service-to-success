@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bot, Clock, Lightbulb, Search, Send, Key, AlertCircle, ThumbsUp, ThumbsDown, FileDown, Wand2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
@@ -217,7 +216,6 @@ const AIBattleBuddySystem = () => {
     }
   };
 
-  // Add template generation functionality
   const requestTemplate = async (templateType: string) => {
     if (!isApiKeyValid) {
       toast({
@@ -250,10 +248,12 @@ const AIBattleBuddySystem = () => {
       const result = await generateResponse(
         apiKey,
         chatMessages,
-        DEFAULT_SYSTEM_PROMPT,
-        selectedModel,
-        0.7, // Higher temperature for more creative templates
-        true // Request HTML format
+        {
+          systemPrompt: DEFAULT_SYSTEM_PROMPT,
+          model: selectedModel,
+          temperature: 0.7,
+          formatAsHTML: true
+        }
       );
 
       if (result.success) {
@@ -312,7 +312,6 @@ const AIBattleBuddySystem = () => {
     }
   };
 
-  // Add function to download HTML templates
   const downloadTemplate = (htmlContent: string, templateName: string) => {
     const element = document.createElement('a');
     const file = new Blob([htmlContent], {type: 'text/html'});
@@ -367,9 +366,11 @@ const AIBattleBuddySystem = () => {
       const result = await generateResponse(
         apiKey,
         chatMessages,
-        DEFAULT_SYSTEM_PROMPT,
-        selectedModel,
-        0.4
+        {
+          systemPrompt: DEFAULT_SYSTEM_PROMPT,
+          model: selectedModel,
+          temperature: 0.4
+        }
       );
 
       if (result.success) {
@@ -920,3 +921,4 @@ const AIBattleBuddySystem = () => {
 };
 
 export default AIBattleBuddySystem;
+
