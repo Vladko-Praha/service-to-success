@@ -16,6 +16,10 @@ export const useLesson = ({ activeSection, activeModule, activeClass }: UseLesso
 
   const handleMarkAsCompleted = () => {
     markLessonCompleted(activeSection, activeModule, activeClass);
+    toast({
+      title: "Lesson Completed",
+      description: "Your progress has been saved.",
+    });
   };
 
   const isLessonCompletedCheck = () => {

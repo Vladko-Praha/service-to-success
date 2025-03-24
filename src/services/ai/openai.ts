@@ -33,9 +33,11 @@ export class AIBattleBuddy {
       const response = await generateResponse(
         this.apiKey,
         messages,
-        systemPrompt,
-        'gpt-4o-mini',
-        0.4
+        {
+          systemPrompt,
+          model: 'gpt-4o-mini',
+          temperature: 0.4
+        }
       );
       
       return response?.content || "I apologize, but I don't have an answer for that right now. Please try rephrasing your question.";
@@ -69,9 +71,11 @@ export class AIBattleBuddy {
       const response = await generateResponse(
         this.apiKey,
         messages,
-        systemPrompt,
-        'gpt-4o-mini',
-        0.4
+        {
+          systemPrompt,
+          model: 'gpt-4o-mini',
+          temperature: 0.4
+        }
       );
       
       return response?.content || "I'm sorry, I couldn't generate feedback at this time. Please try again later.";
