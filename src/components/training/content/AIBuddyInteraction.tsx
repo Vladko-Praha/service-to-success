@@ -3,13 +3,15 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Bot } from "lucide-react";
-import { generateResponse } from "@/services/openaiService";
+import { getAIBattleBuddy } from "@/services/ai/openai";
+import { useToast } from "@/hooks/use-toast";
 
 interface AIBuddyInteractionProps {
   currentClass: any;
 }
 
 const AIBuddyInteraction: React.FC<AIBuddyInteractionProps> = ({ currentClass }) => {
+  const { toast } = useToast();
   const [aiResponse, setAiResponse] = useState("");
   const [isLoadingAiResponse, setIsLoadingAiResponse] = useState(false);
   const [aiQuestion, setAiQuestion] = useState("");
@@ -19,21 +21,20 @@ const AIBuddyInteraction: React.FC<AIBuddyInteractionProps> = ({ currentClass })
     
     setIsLoadingAiResponse(true);
     try {
-      const response = await generateResponse(
-        "your-api-key", // This should be retrieved from user settings or env
-        [
-          { role: "user", content: aiQuestion }
-        ],
-        {
-          systemPrompt: `You are an AI tutor helping a veteran with their business training. 
-          The student is currently studying: ${currentClass?.title}. 
-          Provide helpful, concise answers related to business establishment and entrepreneurship.`
-        }
-      );
+      // Use the AIBattleBuddy service
+      const aiBuddy = getAIBattleBuddy();
+      const response = await aiBuddy.askQuestion(aiQuestion, {
+        title: currentClass?.title || "Business Training"
+      });
       
-      setAiResponse(response?.content || "I apologize, but I don't have an answer for that right now. Please try rephrasing your question.");
+      setAiResponse(response);
     } catch (error) {
       console.error("Error getting AI response:", error);
+      toast({
+        title: "AI Response Error",
+        description: "Sorry, there was an error processing your question. Please try again later.",
+        variant: "destructive"
+      });
       setAiResponse("Sorry, there was an error processing your question. Please try again later.");
     } finally {
       setIsLoadingAiResponse(false);
