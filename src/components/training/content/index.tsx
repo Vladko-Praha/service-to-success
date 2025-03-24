@@ -4,26 +4,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import LessonContent from "./LessonContent";
 import AssignmentSubmission from "./AssignmentSubmission";
 import { trainingData } from "../trainingData";
+import { useTraining } from "@/context/TrainingContext";
 
-interface TrainingContentProps {
-  activeSection: string;
-  activeModule: string;
-  activeClass: string;
-  activeView: string;
-  setActiveSection: (section: string) => void;
-  setActiveModule: (module: string) => void;
-  setActiveClass: (classId: string) => void;
-}
+const TrainingContent: React.FC = () => {
+  const { state } = useTraining();
+  const { activeSection, activeModule, activeClass, activeView } = state;
 
-const TrainingContent: React.FC<TrainingContentProps> = ({
-  activeSection,
-  activeModule,
-  activeClass,
-  activeView,
-  setActiveSection,
-  setActiveModule,
-  setActiveClass
-}) => {
   // Find current section, module and class data
   const currentSection = trainingData.find(section => section.id === activeSection);
   const currentModule = currentSection?.modules.find(module => module.id === activeModule);
@@ -36,12 +22,7 @@ const TrainingContent: React.FC<TrainingContentProps> = ({
   const renderContent = () => {
     switch (activeView) {
       case "lessons":
-        return <LessonContent 
-          currentClass={currentClass} 
-          activeSection={activeSection}
-          activeModule={activeModule}
-          activeClass={activeClass}
-        />;
+        return <LessonContent currentClass={currentClass} />;
       case "assignments":
         return <AssignmentSubmission currentClass={currentClass} />;
       case "quizzes":

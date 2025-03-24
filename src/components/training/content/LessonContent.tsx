@@ -6,26 +6,22 @@ import AIBuddyInteraction from "./AIBuddyInteraction";
 import VideoSection from "./VideoSection";
 import ResourceSection from "./ResourceSection";
 import DiscussionSection from "./DiscussionSection";
-import { useLesson } from "@/hooks/use-lesson";
+import { useTraining } from "@/context/TrainingContext";
 
 interface LessonContentProps {
   currentClass: any;
-  activeSection: string;
-  activeModule: string;
-  activeClass: string;
 }
 
-const LessonContent: React.FC<LessonContentProps> = ({ 
-  currentClass,
-  activeSection,
-  activeModule,
-  activeClass
-}) => {
-  const { showVideo, setShowVideo, handleMarkAsCompleted, isLessonCompleted } = useLesson({
-    activeSection,
-    activeModule,
-    activeClass
-  });
+const LessonContent: React.FC<LessonContentProps> = ({ currentClass }) => {
+  const { state, markLessonCompleted, isLessonCompleted } = useTraining();
+  const { activeSection, activeModule, activeClass } = state;
+  const [showVideo, setShowVideo] = React.useState(false);
+
+  const handleMarkAsCompleted = () => {
+    markLessonCompleted(activeSection, activeModule, activeClass);
+  };
+
+  const isCompleted = isLessonCompleted(activeSection, activeModule, activeClass);
 
   return (
     <div className="space-y-6">
@@ -71,11 +67,11 @@ const LessonContent: React.FC<LessonContentProps> = ({
       <div className="flex justify-end mt-8">
         <Button
           onClick={handleMarkAsCompleted}
-          variant={isLessonCompleted() ? "outline" : "default"}
-          className={isLessonCompleted() ? "border-green-500 text-green-600" : "bg-military-olive hover:bg-military-olive/90"}
+          variant={isCompleted ? "outline" : "default"}
+          className={isCompleted ? "border-green-500 text-green-600" : "bg-military-olive hover:bg-military-olive/90"}
         >
           <CheckCircle className="h-4 w-4 mr-2" />
-          {isLessonCompleted() ? "Marked as Completed" : "Mark as Completed"}
+          {isCompleted ? "Marked as Completed" : "Mark as Completed"}
         </Button>
       </div>
       

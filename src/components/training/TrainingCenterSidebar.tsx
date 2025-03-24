@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   ChevronDown, 
@@ -14,44 +13,30 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { trainingData } from "./trainingData";
+import { useTraining } from "@/context/TrainingContext";
 
-interface TrainingCenterSidebarProps {
-  activeSection: string;
-  setActiveSection: (section: string) => void;
-  activeModule: string;
-  setActiveModule: (module: string) => void;
-  activeClass: string;
-  setActiveClass: (classId: string) => void;
-  activeView: string;
-  setActiveView: (view: string) => void;
-}
-
-const TrainingCenterSidebar = ({
-  activeSection,
-  setActiveSection,
-  activeModule,
-  setActiveModule,
-  activeClass,
-  setActiveClass,
-  activeView,
-  setActiveView
-}: TrainingCenterSidebarProps) => {
-  const [completedLessons, setCompletedLessons] = useState<string[]>([]);
+const TrainingCenterSidebar = () => {
+  const { 
+    state, 
+    isLessonCompleted, 
+    setActiveSection, 
+    setActiveModule, 
+    setActiveClass, 
+    setActiveView 
+  } = useTraining();
+  
+  const { activeSection, activeModule, activeClass, activeView } = state;
   const [expandedSections, setExpandedSections] = useState<string[]>([activeSection]);
   const [expandedModules, setExpandedModules] = useState<string[]>([activeModule]);
 
   useEffect(() => {
-    // Load completed lessons from localStorage
-    const savedCompletedLessons = localStorage.getItem("completedLessons");
-    if (savedCompletedLessons) {
-      setCompletedLessons(JSON.parse(savedCompletedLessons));
+    if (!expandedSections.includes(activeSection)) {
+      setExpandedSections([...expandedSections, activeSection]);
     }
-  }, []);
-
-  const isLessonCompleted = (sectionId: string, moduleId: string, classId: string) => {
-    const lessonId = `${sectionId}-${moduleId}-${classId}`;
-    return completedLessons.includes(lessonId);
-  };
+    if (!expandedModules.includes(activeModule)) {
+      setExpandedModules([...expandedModules, activeModule]);
+    }
+  }, [activeSection, activeModule]);
 
   const handleSectionClick = (sectionId: string) => {
     if (expandedSections.includes(sectionId)) {
@@ -61,7 +46,6 @@ const TrainingCenterSidebar = ({
     }
     setActiveSection(sectionId);
     
-    // Select first module and class of section
     const section = trainingData.find(s => s.id === sectionId);
     if (section && section.modules.length > 0) {
       const firstModule = section.modules[0];
@@ -81,7 +65,6 @@ const TrainingCenterSidebar = ({
     }
     setActiveModule(moduleId);
     
-    // Select first class of module
     const section = trainingData.find(s => s.id === activeSection);
     if (section) {
       const module = section.modules.find(m => m.id === moduleId);
@@ -109,29 +92,16 @@ const TrainingCenterSidebar = ({
     { id: "collaborations", icon: Users, label: "Collaborations" }
   ];
 
-  // Count items
   const getCounts = () => {
-    let assignments = 0;
-    let quizzes = 0;
-    let files = 0;
-    
-    trainingData.forEach(section => {
-      section.modules.forEach(module => {
-        // Just placeholder counts for now
-        assignments += 2;
-        quizzes += 1;
-        files += 7;
-      });
-    });
-    
     return {
       modules: trainingData.reduce((acc, section) => acc + section.modules.length, 0),
       lessons: trainingData.reduce((acc, section) => 
         acc + section.modules.reduce((sum, module) => sum + module.classes.length, 0), 0),
-      assignments,
+      assignments: 8,
       discussions: 3,
-      quizzes,
-      files
+      quizzes: 5,
+      files: 12,
+      collaborations: 4
     };
   };
   
@@ -143,7 +113,6 @@ const TrainingCenterSidebar = ({
         <h2 className="font-semibold text-lg text-military-navy">Training Center</h2>
       </div>
       
-      {/* Navigation Categories */}
       <div className="border-b border-gray-200">
         <div className="flex flex-col p-2 gap-1">
           {navigationCategories.map((category) => (
@@ -167,7 +136,6 @@ const TrainingCenterSidebar = ({
         </div>
       </div>
       
-      {/* Course Content */}
       {activeView === "lessons" && (
         <div className="p-2">
           <div className="p-2 text-sm font-medium text-gray-500 uppercase">Course Content</div>
@@ -249,7 +217,6 @@ const TrainingCenterSidebar = ({
         </div>
       )}
       
-      {/* Just show placeholder content for other views */}
       {activeView !== "lessons" && (
         <div className="p-4">
           <div className="text-sm font-medium mb-4 text-gray-700">

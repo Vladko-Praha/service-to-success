@@ -6,6 +6,7 @@ import TrainingCenterSidebar from "@/components/training/TrainingCenterSidebar";
 import TrainingContent from "@/components/training/TrainingContent";
 import { trainingData } from "@/components/training/trainingData";
 import { useNavigate } from "react-router-dom";
+import { useTraining } from "@/context/TrainingContext";
 import { 
   BookOpen, 
   ClipboardList, 
@@ -20,10 +21,8 @@ import { Button } from "@/components/ui/button";
 
 const TrainingCenter = () => {
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState("business-establishment");
-  const [activeModule, setActiveModule] = useState("module-1");
-  const [activeClass, setActiveClass] = useState("class-1");
-  const [activeView, setActiveView] = useState("lessons");
+  const { state, setActiveView } = useTraining();
+  const { activeSection, activeModule, activeClass, activeView, completedLessons } = state;
   const [completedLessonsCount, setCompletedLessonsCount] = useState(0);
   const [totalLessonsCount, setTotalLessonsCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -37,13 +36,12 @@ const TrainingCenter = () => {
       });
     });
     setTotalLessonsCount(total);
-
-    // Get completed lessons count from localStorage
-    const savedCompletedLessons = localStorage.getItem("completedLessons");
-    if (savedCompletedLessons) {
-      setCompletedLessonsCount(JSON.parse(savedCompletedLessons).length);
-    }
   }, []);
+
+  useEffect(() => {
+    // Update completed lessons count when completedLessons changes
+    setCompletedLessonsCount(completedLessons.length);
+  }, [completedLessons]);
 
   const getViewIcon = () => {
     switch (activeView) {
@@ -67,16 +65,7 @@ const TrainingCenter = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-military-beige/20">
-        <TrainingCenterSidebar 
-          activeSection={activeSection}
-          setActiveSection={setActiveSection}
-          activeModule={activeModule}
-          setActiveModule={setActiveModule}
-          activeClass={activeClass}
-          setActiveClass={setActiveClass}
-          activeView={activeView}
-          setActiveView={setActiveView}
-        />
+        <TrainingCenterSidebar />
         <div className="flex-1 flex flex-col">
           <DashboardHeader />
           <div className="bg-military-navy p-4 text-white">
@@ -110,15 +99,7 @@ const TrainingCenter = () => {
           </div>
           <main className="flex-1 p-4 md:p-6 overflow-auto">
             <div className="max-w-5xl mx-auto">
-              <TrainingContent 
-                activeSection={activeSection}
-                activeModule={activeModule}
-                activeClass={activeClass}
-                activeView={activeView}
-                setActiveSection={setActiveSection}
-                setActiveModule={setActiveModule}
-                setActiveClass={setActiveClass}
-              />
+              <TrainingContent />
             </div>
           </main>
         </div>
