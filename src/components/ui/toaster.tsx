@@ -17,7 +17,7 @@ export function Toaster() {
     if (variant === "destructive") {
       return <AlertTriangle className="h-5 w-5 text-white" />
     } else {
-      return <Info className="h-5 w-5 text-white" />
+      return <Bell className="h-5 w-5 text-white" />
     }
   }
 
@@ -29,7 +29,7 @@ export function Toaster() {
             key={id} 
             {...props}
             variant={variant}
-            className={variant === "destructive" ? "border-military-red bg-military-red/90 text-white" : ""}
+            className={variant === "destructive" ? "border-military-red bg-military-red/90 text-white" : "border-military-navy bg-military-navy/90 text-white"}
           >
             <div className="grid grid-cols-[auto_1fr] gap-2">
               {getIcon(variant)}
