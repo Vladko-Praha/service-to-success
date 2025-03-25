@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { useRealtimeMessages, RealTimeMessage, RealTimeConversation } from "@/hooks/use-realtime-messages";
 import { Avatar } from "@/components/ui/avatar";
@@ -945,4 +946,255 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
                 className="h-6 w-6 p-0"
                 onClick={() => setReplyToMessage(null)}
               >
-                <svg xmlns="http://www.w3.org/20
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+            <p className="text-sm truncate text-gray-500 mt-1">{replyToMessage.content.replace(/<[^>]*>/g, '')}</p>
+          </div>
+        )}
+        
+        {showMentionsList && filteredMentions.length > 0 && (
+          <div 
+            ref={mentionsRef}
+            className="absolute bottom-full mb-2 border rounded-md shadow-lg bg-white z-50 max-h-48 overflow-y-auto w-64"
+          >
+            {filteredMentions.map(student => (
+              <div 
+                key={student.id}
+                className="flex items-center gap-2 p-2 hover:bg-gray-100 cursor-pointer"
+                onClick={() => insertMention(student)}
+              >
+                <Avatar className="h-6 w-6">
+                  {student.avatar ? (
+                    <img src={student.avatar} alt={student.name} />
+                  ) : (
+                    <User className="h-3 w-3" />
+                  )}
+                </Avatar>
+                <div className="overflow-hidden">
+                  <div className="text-sm font-medium truncate">{student.name}</div>
+                  <div className="text-xs text-muted-foreground truncate">{student.role}</div>
+                </div>
+                <div
+                  className={`ml-auto w-2 h-2 rounded-full ${
+                    student.status === "online"
+                      ? "bg-green-500"
+                      : student.status === "away"
+                      ? "bg-amber-500"
+                      : "bg-gray-300"
+                  }`}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <div className="flex items-center gap-2 mb-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className={`h-8 w-8 p-0 ${isFormatting ? 'bg-gray-100' : ''}`}
+            onClick={() => setIsFormatting(!isFormatting)}
+          >
+            <Bold className="h-4 w-4" />
+          </Button>
+          {isFormatting && (
+            <>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => applyFormatting('i')}>
+                <Italic className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => applyFormatting('u')}>
+                <Underline className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => applyFormatting('code')}>
+                <Code className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => applyFormatting('ul')}>
+                <List className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => applyFormatting('ol')}>
+                <ListOrdered className="h-4 w-4" />
+              </Button>
+              <Separator orientation="vertical" className="h-6" />
+            </>
+          )}
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleAttachDocument}>
+            <Paperclip className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleAttachImage}>
+            <Image className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleEmojiClick}>
+            <Smile className="h-4 w-4" />
+          </Button>
+          <div className="text-xs text-gray-500 ml-auto">
+            Type @ to mention someone
+          </div>
+        </div>
+        
+        <div className="relative">
+          <Textarea 
+            value={newMessage}
+            onChange={handleMessageChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a message..."
+            className="resize-none min-h-[100px]"
+          />
+        </div>
+        
+        <div className="flex justify-end mt-2">
+          <Button onClick={handleSendMessage} className="flex items-center gap-2">
+            <Send className="h-4 w-4" />
+            Send
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  // Main component render code
+  if (view === "compose") {
+    return (
+      <div className="h-full flex flex-col">
+        <div className="border-b p-3 flex items-center justify-between">
+          <h2 className="text-lg font-medium">New Message</h2>
+          <Button variant="ghost" size="sm" onClick={handleCancelCompose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        <div className="p-4 flex-1">
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">To:</label>
+            <CohortStudentSelector 
+              onSelectStudent={(student) => {
+                // Implement student selection
+                toast({
+                  title: "Student selected",
+                  description: `You selected ${student.name}`,
+                });
+              }}
+              placeholder="Search cohort members..."
+            />
+          </div>
+          
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Subject:</label>
+            <Input placeholder="Enter subject..." />
+          </div>
+          
+          <div className="flex-1">
+            <label className="block text-sm font-medium mb-1">Message:</label>
+            <Textarea 
+              placeholder="Write your message here..."
+              className="min-h-[200px]"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+            />
+          </div>
+        </div>
+        
+        <div className="border-t p-3 flex justify-end">
+          <Button variant="outline" className="mr-2" onClick={handleCancelCompose}>
+            Cancel
+          </Button>
+          <Button onClick={() => handleSendNewMessage("John Smith", "Hello", newMessage)}>
+            <Send className="h-4 w-4 mr-2" />
+            Send
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === "thread") {
+    const activeConversation = conversations.find(c => c.id === activeConversationId);
+    const conversationMessages = activeConversationId ? messages[activeConversationId] || [] : [];
+    
+    return (
+      <div className="flex flex-col h-full">
+        <ThreadView 
+          messages={conversationMessages}
+          activeConversation={activeConversation}
+          highlightedMessageId={selectedMessageId}
+          onStarMessage={handleStarMessage}
+          onReplyMessage={handleReplyMessage}
+          onForwardMessage={handleForwardMessage}
+          onGoBack={handleGoBackToList}
+          onArchive={handleArchive}
+          onDelete={handleDelete}
+        />
+        
+        <div ref={messagesEndRef} />
+        
+        <MessageComposer 
+          newMessage={newMessage}
+          setNewMessage={setNewMessage}
+          handleSendMessage={handleSendMessage}
+          handleKeyDown={handleKeyDown}
+          replyToMessage={replyToMessage}
+        />
+      </div>
+    );
+  }
+
+  // Default view (list)
+  return (
+    <div className="h-full">
+      <div className="grid grid-cols-4 h-full">
+        <div className="col-span-1 border-r h-full flex flex-col">
+          <div className="p-3">
+            <ComposeButton onClick={handleComposeNew} />
+            
+            <div className="mb-4">
+              <Input
+                placeholder="Search messages..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full"
+                prefix={<Search className="h-4 w-4 text-muted-foreground" />}
+              />
+            </div>
+            
+            <SidebarNav 
+              activeView={activeView}
+              setActiveView={setActiveView}
+              counts={{ inbox: unreadCount, drafts: draftCount }}
+            />
+          </div>
+          
+          <Separator />
+          
+          <div className="flex-1 overflow-hidden">
+            <InboxList 
+              conversations={filteredConversations}
+              activeConversationId={activeConversationId || ""}
+              selectedConversations={selectedConversations}
+              onSelectConversation={handleSelectConversation}
+              onCheckboxChange={handleCheckboxChange}
+              onStar={handleStar}
+              onImportant={handleImportant}
+              onSelectAll={handleSelectAll}
+              onRefresh={handleRefresh}
+              isSelectAll={isSelectAll}
+            />
+          </div>
+        </div>
+        
+        <div className="col-span-3 flex items-center justify-center text-gray-500">
+          <div className="text-center">
+            <MessageSquare className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+            <h3 className="text-lg font-medium mb-1">No conversation selected</h3>
+            <p>Select a conversation from the list or compose a new message</p>
+            <Button className="mt-4" onClick={handleComposeNew}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Compose New
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default RealtimeDirectMessages;

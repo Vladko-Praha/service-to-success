@@ -37,11 +37,12 @@ export function Toaster() {
           <Toast 
             key={id} 
             {...props}
-            variant={variant as "default" | "destructive"}
+            // TypeScript fix: cast variant to the exact types expected by the component
+            variant={variant === "mention" ? "default" : variant as "default" | "destructive"}
             className={toastClass}
           >
             <div className="grid grid-cols-[auto_1fr] gap-2">
-              {getIcon(variant)}
+              {getIcon(variant as "default" | "destructive" | "mention")}
               <div className="grid gap-1">
                 {title && <ToastTitle>{title}</ToastTitle>}
                 {description && (
