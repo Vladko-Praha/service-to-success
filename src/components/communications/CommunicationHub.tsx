@@ -180,8 +180,7 @@ const CommunicationHub = () => {
         </Card>
         
         <CommunicationsSearch 
-          onResultSelect={handleSearchResultSelect} 
-          className="w-full"
+          onResultSelect={handleSearchResultSelect}
         />
       </div>
     </div>
