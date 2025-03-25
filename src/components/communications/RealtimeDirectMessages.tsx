@@ -1127,7 +1127,7 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
             <div>
               <label className="block text-sm font-medium mb-1">To:</label>
               <CohortStudentSelector 
-                onSelect={(student) => {
+                onSelectStudent={(student) => {
                   // In a real app, this would set the recipient
                   toast({
                     description: `Selected recipient: ${student.name}`
