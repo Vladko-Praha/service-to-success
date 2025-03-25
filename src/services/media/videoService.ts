@@ -1,3 +1,4 @@
+
 import { nanoid } from 'nanoid';
 import { createClient } from '@supabase/supabase-js';
 
@@ -50,9 +51,36 @@ export interface SignedUrlOptions {
 }
 
 class VideoService {
-  private cdnRegions = ['us-east', 'us-west', 'eu-central', 'ap-southeast'];
   private prefetchQueue: string[] = [];
   private storageBucket = 'videos';
+  
+  constructor() {
+    // Create the storage bucket if it doesn't exist
+    this.initializeStorage();
+  }
+  
+  private async initializeStorage() {
+    try {
+      // Check if the videos bucket exists
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const bucketExists = buckets?.some(bucket => bucket.name === this.storageBucket);
+      
+      if (!bucketExists) {
+        // Create the videos bucket if it doesn't exist
+        const { error } = await supabase.storage.createBucket(this.storageBucket, {
+          public: false, // Set videos as private by default
+        });
+        
+        if (error) {
+          console.error('Error creating videos storage bucket:', error);
+        } else {
+          console.log('Created videos storage bucket');
+        }
+      }
+    } catch (error) {
+      console.error('Error initializing video storage:', error);
+    }
+  }
   
   /**
    * Get a video by its ID with a signed URL that expires
@@ -134,12 +162,6 @@ class VideoService {
   private getFallbackVideo(videoId: string, expiresIn: number): VideoResource {
     console.log('Using fallback video data');
     const expiresAt = Date.now() + (expiresIn * 1000);
-    const region = this.getClosestRegion();
-    const signedToken = this.generateSignedToken(videoId, expiresAt);
-    
-    // Construct a mock URL structure
-    const baseResourceUrl = `https://cdn.example.com/${region}/videos/${videoId}`;
-    const signedUrlParam = `?token=${signedToken}&expires=${expiresAt}`;
     
     // Return mock data
     return {
@@ -147,11 +169,11 @@ class VideoService {
       title: "Business Structure Selection Guide",
       description: "Learn how to choose the right legal structure for your business",
       duration: 1245, // 20:45
-      thumbnailUrl: `${baseResourceUrl}/thumbnail.jpg${signedUrlParam}`,
-      streamUrl: `${baseResourceUrl}/stream.mp4${signedUrlParam}`,
-      hlsUrl: `${baseResourceUrl}/manifest.m3u8${signedUrlParam}`,
-      downloadUrl: `${baseResourceUrl}/download.mp4${signedUrlParam}`,
-      transcriptUrl: `${baseResourceUrl}/transcript.txt${signedUrlParam}`,
+      thumbnailUrl: `https://example.com/videos/${videoId}/thumbnail.jpg`,
+      streamUrl: `https://example.com/videos/${videoId}/stream.mp4`,
+      hlsUrl: `https://example.com/videos/${videoId}/manifest.m3u8`,
+      downloadUrl: `https://example.com/videos/${videoId}/download.mp4`,
+      transcriptUrl: `https://example.com/videos/${videoId}/transcript.txt`,
       quality: ['360p', '480p', '720p', '1080p'],
       expiresAt: expiresAt,
       nextInSequence: "video-102" // ID of the next logical video for prefetching
@@ -222,11 +244,7 @@ class VideoService {
         // Add to prefetch queue to avoid duplicate prefetching
         this.prefetchQueue.push(currentVideo.nextInSequence);
         
-        // In a real implementation, you would:
-        // 1. Use fetch() with a Range header to get just the first few segments
-        // 2. For HLS, fetch the manifest and first few segments
-        
-        // Mock implementation
+        // Fetch the next video with a longer expiration
         const prefetchOptions: SignedUrlOptions = {
           expiresIn: 7200, // Longer expiration for prefetched content
         };
@@ -235,8 +253,17 @@ class VideoService {
         this.getVideo(currentVideo.nextInSequence, prefetchOptions)
           .then(nextVideo => {
             if (nextVideo?.hlsUrl) {
-              // In a real app, fetch the HLS manifest and first segment
+              // Pre-fetch the HLS manifest
               console.log(`Pre-loaded manifest for: ${nextVideo.title}`);
+              fetch(nextVideo.hlsUrl)
+                .then(response => {
+                  if (response.ok) {
+                    console.log("Prefetched HLS manifest successfully");
+                  }
+                })
+                .catch(error => {
+                  console.error("Error prefetching HLS manifest:", error);
+                });
             }
           });
       }
@@ -272,39 +299,6 @@ class VideoService {
       preload: 'auto',
       techOrder: ['html5'],
     };
-  }
-  
-  /**
-   * Get the closest CDN region based on user's location
-   */
-  private getClosestRegion(): string {
-    // In a real implementation, this would use geolocation or IP-based detection
-    // to determine the closest region
-    
-    // For now, just return a default region
-    return this.cdnRegions[0]; // us-east
-  }
-  
-  /**
-   * Generate a signed token for secure URL access
-   */
-  private generateSignedToken(resourceId: string, expiresAt: number, ipAddress?: string): string {
-    // In a real implementation, this would use a JWT or HMAC to sign
-    // the resource ID, expiration, and optional IP restriction
-    
-    // This is a simplified mock implementation
-    const payload = {
-      resource: resourceId,
-      exp: expiresAt,
-      ip: ipAddress,
-      nonce: nanoid(8)
-    };
-    
-    // In a real app, you would sign this with your secret key
-    // return jwt.sign(payload, process.env.CDN_SECRET_KEY);
-    
-    // Mock token
-    return Buffer.from(JSON.stringify(payload)).toString('base64');
   }
   
   /**
@@ -352,6 +346,52 @@ class VideoService {
     } catch (error) {
       console.error('Error in uploadVideo:', error);
       return null;
+    }
+  }
+  
+  /**
+   * Generate a thumbnail for a video
+   * In a real implementation, this would use a server-side function
+   * to extract a frame from the video
+   */
+  async generateThumbnail(videoId: string): Promise<string | null> {
+    try {
+      // For now, we'll just return a placeholder thumbnail
+      // In a real implementation, this would call a Supabase Edge Function
+      // that would extract a frame from the video and save it to storage
+      
+      return `https://example.com/videos/${videoId}/thumbnail.jpg`;
+    } catch (error) {
+      console.error('Error generating thumbnail:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Update video metadata
+   */
+  async updateVideoMetadata(videoId: string, metadata: Partial<{
+    title: string;
+    description: string;
+    duration: number;
+    quality: VideoQuality[];
+    nextInSequence: string;
+  }>): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('video_metadata')
+        .update(metadata)
+        .eq('id', videoId);
+        
+      if (error) {
+        console.error('Error updating video metadata:', error);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error in updateVideoMetadata:', error);
+      return false;
     }
   }
 }

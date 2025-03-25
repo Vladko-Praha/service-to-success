@@ -1,11 +1,16 @@
 
 import React, { useState, useEffect } from "react";
-import { Video, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { Video, ChevronDown, ChevronUp, RefreshCw, Upload } from "lucide-react";
 import { useContentDelivery } from "@/hooks/use-content-delivery";
 import LazyContentLoader from "./LazyContentLoader";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { VideoResource } from "@/services/media/videoService";
+import { VideoResource, videoService } from "@/services/media/videoService";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 
 interface VideoSectionProps {
   showVideo: boolean;
@@ -18,6 +23,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({
   setShowVideo,
   videoId = "video-101" // Default demo video ID
 }) => {
+  const { toast } = useToast();
   const { 
     fetchVideo, 
     videoResources, 
@@ -32,6 +38,10 @@ const VideoSection: React.FC<VideoSectionProps> = ({
   
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoTitle, setVideoTitle] = useState("");
+  const [videoDescription, setVideoDescription] = useState("");
   
   // When the video is shown, check if it needs to be loaded or refreshed
   useEffect(() => {
@@ -61,6 +71,58 @@ const VideoSection: React.FC<VideoSectionProps> = ({
   const handleVideoTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     setCurrentTime(e.currentTarget.currentTime);
     setDuration(e.currentTarget.duration);
+  };
+  
+  // Function to handle video upload
+  const handleVideoUpload = async () => {
+    if (!videoFile || !videoTitle || !videoDescription) {
+      toast({
+        title: "Upload Failed",
+        description: "Please provide a file, title, and description",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setUploadingVideo(true);
+    
+    try {
+      // Upload the video
+      const newVideoId = await videoService.uploadVideo(videoFile, {
+        title: videoTitle,
+        description: videoDescription
+      });
+      
+      if (newVideoId) {
+        toast({
+          title: "Upload Successful",
+          description: `${videoTitle} has been uploaded successfully`,
+        });
+        
+        // Reset the form
+        setVideoFile(null);
+        setVideoTitle("");
+        setVideoDescription("");
+        
+        // Fetch the video to add it to the resources list and switch to it
+        fetchVideo(newVideoId);
+      } else {
+        toast({
+          title: "Upload Failed",
+          description: "Could not upload the video",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error uploading video:", error);
+      toast({
+        title: "Upload Failed",
+        description: "An error occurred while uploading",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingVideo(false);
+    }
   };
   
   // Render the video player with the resource
@@ -135,7 +197,67 @@ const VideoSection: React.FC<VideoSectionProps> = ({
           <Video className="h-5 w-5 mr-2 text-military-olive" />
           <h3 className="font-medium">Lesson Video</h3>
         </div>
-        {showVideo ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+        <div className="flex items-center">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button size="sm" variant="outline" className="mr-2" onClick={(e) => e.stopPropagation()}>
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Video
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Upload Video</DialogTitle>
+                <DialogDescription>
+                  Upload a video to share with your team.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="videoTitle">Title</Label>
+                  <Input 
+                    id="videoTitle" 
+                    value={videoTitle}
+                    onChange={(e) => setVideoTitle(e.target.value)}
+                    placeholder="Video title" 
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="videoDescription">Description</Label>
+                  <Textarea 
+                    id="videoDescription" 
+                    value={videoDescription}
+                    onChange={(e) => setVideoDescription(e.target.value)}
+                    placeholder="Video description" 
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="videoFile">Video File</Label>
+                  <Input 
+                    id="videoFile" 
+                    type="file" 
+                    accept="video/mp4,video/quicktime,video/x-msvideo"
+                    onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+                  />
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button 
+                  onClick={handleVideoUpload}
+                  disabled={uploadingVideo || !videoFile || !videoTitle || !videoDescription}
+                >
+                  {uploadingVideo ? "Uploading..." : "Upload Video"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          
+          {showVideo ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+        </div>
       </div>
       
       {showVideo && (

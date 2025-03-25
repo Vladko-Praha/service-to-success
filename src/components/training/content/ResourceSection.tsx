@@ -1,10 +1,14 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Folder, Download, RefreshCw } from "lucide-react";
+import { Folder, Download, RefreshCw, Upload } from "lucide-react";
 import { useContentDelivery } from "@/hooks/use-content-delivery";
 import { useToast } from "@/hooks/use-toast";
-import { DocumentResource } from "@/services/media/documentCdnService";
+import { DocumentResource, documentCdnService } from "@/services/media/documentCdnService";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 const ResourceSection: React.FC = () => {
   const { toast } = useToast();
@@ -16,6 +20,11 @@ const ResourceSection: React.FC = () => {
     isResourceExpiring,
     refreshResourceUrl
   } = useContentDelivery();
+  
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [docTitle, setDocTitle] = useState("");
+  const [docDescription, setDocDescription] = useState("");
   
   // Demo resource IDs
   const resourceIds = [
@@ -44,9 +53,7 @@ const ResourceSection: React.FC = () => {
       }
       
       // Track the document usage
-      import('@/services/media/documentCdnService').then(module => {
-        module.documentCdnService.trackDocumentUsage(documentId, 'download');
-      });
+      documentCdnService.trackDocumentUsage(documentId, 'download');
       
       // Open the download URL in a new tab
       window.open(document.downloadUrl, '_blank');
@@ -62,6 +69,62 @@ const ResourceSection: React.FC = () => {
         description: "An error occurred while downloading",
         variant: "destructive"
       });
+    }
+  };
+  
+  // Function to handle document upload
+  const handleDocumentUpload = async () => {
+    if (!docFile || !docTitle) {
+      toast({
+        title: "Upload Failed",
+        description: "Please provide a file and title",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setUploadingDoc(true);
+    
+    try {
+      // Determine the number of pages (in a real app, you would extract this from the PDF)
+      const pages = docFile.type.includes('pdf') ? 10 : undefined; // Dummy value for demonstration
+      
+      // Upload the document
+      const documentId = await documentCdnService.uploadDocument(docFile, {
+        title: docTitle,
+        description: docDescription,
+        pages
+      });
+      
+      if (documentId) {
+        toast({
+          title: "Upload Successful",
+          description: `${docTitle} has been uploaded successfully`,
+        });
+        
+        // Reset the form
+        setDocFile(null);
+        setDocTitle("");
+        setDocDescription("");
+        
+        // Fetch the document to add it to the resources list
+        fetchDocument(documentId);
+      } else {
+        toast({
+          title: "Upload Failed",
+          description: "Could not upload the document",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      toast({
+        title: "Upload Failed",
+        description: "An error occurred while uploading",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingDoc(false);
     }
   };
   
@@ -138,7 +201,68 @@ const ResourceSection: React.FC = () => {
   
   return (
     <div className="mt-6">
-      <h3 className="text-lg font-medium mb-3">Additional Resources</h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-lg font-medium">Additional Resources</h3>
+        
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button size="sm" variant="outline">
+              <Upload className="h-4 w-4 mr-2" />
+              Upload Document
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Upload Document</DialogTitle>
+              <DialogDescription>
+                Upload a document to share with your team.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Title</Label>
+                <Input 
+                  id="title" 
+                  value={docTitle}
+                  onChange={(e) => setDocTitle(e.target.value)}
+                  placeholder="Document title" 
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="description">Description (optional)</Label>
+                <Textarea 
+                  id="description" 
+                  value={docDescription}
+                  onChange={(e) => setDocDescription(e.target.value)}
+                  placeholder="Document description" 
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="file">Document File</Label>
+                <Input 
+                  id="file" 
+                  type="file" 
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
+                  onChange={(e) => setDocFile(e.target.files?.[0] || null)}
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button 
+                onClick={handleDocumentUpload}
+                disabled={uploadingDoc || !docFile || !docTitle}
+              >
+                {uploadingDoc ? "Uploading..." : "Upload Document"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+      
       <div className="space-y-2">
         {resourceIds.map(renderDocumentItem)}
       </div>

@@ -29,8 +29,35 @@ export interface SignedDocumentOptions {
 }
 
 class DocumentCdnService {
-  private cdnRegions = ['us-east', 'us-west', 'eu-central', 'ap-southeast'];
   private storageBucket = 'documents';
+  
+  constructor() {
+    // Create the storage bucket if it doesn't exist
+    this.initializeStorage();
+  }
+  
+  private async initializeStorage() {
+    try {
+      // Check if the documents bucket exists
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const bucketExists = buckets?.some(bucket => bucket.name === this.storageBucket);
+      
+      if (!bucketExists) {
+        // Create the documents bucket if it doesn't exist
+        const { error } = await supabase.storage.createBucket(this.storageBucket, {
+          public: false, // Set documents as private by default
+        });
+        
+        if (error) {
+          console.error('Error creating documents storage bucket:', error);
+        } else {
+          console.log('Created documents storage bucket');
+        }
+      }
+    } catch (error) {
+      console.error('Error initializing document storage:', error);
+    }
+  }
   
   /**
    * Get a document by its ID with a signed URL that expires
@@ -100,12 +127,6 @@ class DocumentCdnService {
   private getFallbackDocument(documentId: string, expiresIn: number): DocumentResource {
     console.log('Using fallback document data');
     const expiresAt = Date.now() + (expiresIn * 1000);
-    const region = this.getClosestRegion();
-    const signedToken = this.generateSignedToken(documentId, expiresAt);
-    
-    // Construct a mock URL structure
-    const baseResourceUrl = `https://cdn.example.com/${region}/documents/${documentId}`;
-    const signedUrlParam = `?token=${signedToken}&expires=${expiresAt}`;
     
     // Mock response with signed URLs for a PDF
     return {
@@ -113,9 +134,9 @@ class DocumentCdnService {
       title: "Business Structure Comparison Chart",
       description: "A detailed comparison of different business legal structures",
       fileSize: 2576928, // ~2.5MB
-      thumbnailUrl: `${baseResourceUrl}/thumbnail.jpg${signedUrlParam}`,
-      downloadUrl: `${baseResourceUrl}/download.pdf${signedUrlParam}`,
-      viewUrl: `${baseResourceUrl}/view.pdf${signedUrlParam}`,
+      thumbnailUrl: `https://example.com/documents/${documentId}/thumbnail.jpg`,
+      downloadUrl: `https://example.com/documents/${documentId}/download.pdf`,
+      viewUrl: `https://example.com/documents/${documentId}/view.pdf`,
       mimeType: "application/pdf",
       expiresAt: expiresAt,
       pages: 12
@@ -149,6 +170,9 @@ class DocumentCdnService {
       // Generate a unique ID for the document
       const documentId = `doc-${nanoid(8)}`;
       
+      // Create a view version of the PDF if it's a PDF file
+      let viewFile = file;
+      
       // Upload the document file
       const { error: uploadError } = await supabase
         .storage
@@ -158,6 +182,17 @@ class DocumentCdnService {
       if (uploadError) {
         console.error('Error uploading document:', uploadError);
         return null;
+      }
+      
+      // If it's the same file, just use a different path
+      const { error: viewUploadError } = await supabase
+        .storage
+        .from(this.storageBucket)
+        .upload(`${documentId}/view.pdf`, viewFile);
+        
+      if (viewUploadError) {
+        console.error('Error uploading view document:', viewUploadError);
+        // Continue anyway, we have the download version
       }
       
       // Save metadata to the database
@@ -205,22 +240,6 @@ class DocumentCdnService {
     } catch (error) {
       console.error('Error in trackDocumentUsage:', error);
     }
-  }
-  
-  private getClosestRegion(): string {
-    // In a real implementation, this would use geolocation or IP-based detection
-    // to determine the closest region
-    return this.cdnRegions[0]; // us-east
-  }
-  
-  private generateSignedToken(resourceId: string, expiresAt: number): string {
-    // This is only used for fallback mock data
-    const payload = {
-      resource: resourceId,
-      exp: expiresAt,
-      nonce: nanoid(8)
-    };
-    return Buffer.from(JSON.stringify(payload)).toString('base64');
   }
 }
 
