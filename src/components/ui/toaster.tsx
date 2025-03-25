@@ -37,7 +37,7 @@ export function Toaster() {
           <Toast 
             key={id} 
             {...props}
-            variant={variant}
+            variant={variant as "default" | "destructive"}
             className={toastClass}
           >
             <div className="grid grid-cols-[auto_1fr] gap-2">

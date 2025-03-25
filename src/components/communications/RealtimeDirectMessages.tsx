@@ -53,13 +53,15 @@ import {
   ArrowRight,
   MoreVertical,
   Trash2,
-  Clock3
+  Clock3,
+  X
 } from "lucide-react";
 import MediaPreview from "./MediaPreview";
 import { MediaAttachment } from "./MediaAttachmentButton";
 import { useRealtimeNotifications } from "@/hooks/use-realtime-notifications";
 import UserMention from "./UserMention";
-import { cohortStudents } from "@/data/cohortStudents";
+import { cohortStudents, CohortStudent } from "@/data/cohortStudents";
+import CohortStudentSelector from "./CohortStudentSelector";
 
 interface RealtimeDirectMessagesProps {
   selectedMessageId: string | null;
@@ -826,6 +828,9 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
   }) => {
     const { toast } = useToast();
     const [isFormatting, setIsFormatting] = useState(false);
+    const [showMentionsList, setShowMentionsList] = useState(false);
+    const [filteredMentions, setFilteredMentions] = useState<CohortStudent[]>([]);
+    const mentionsRef = useRef<HTMLDivElement>(null);
     
     const applyFormatting = (tag: string) => {
       switch(tag) {
@@ -880,14 +885,26 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
       
       setNewMessage(prev => prev + " 😊");
     };
-    
-    const [showMentionsList, setShowMentionsList] = useState(false);
-    const [filteredMentions, setFilteredMentions] = useState(cohortStudents);
+
+    // Handle clicks outside the mentions dropdown
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (mentionsRef.current && !mentionsRef.current.contains(event.target as Node)) {
+          setShowMentionsList(false);
+        }
+      };
+
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }, []);
 
     const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const value = e.target.value;
       setNewMessage(value);
       
+      // Check for @ symbol typing to show mentions list
       const mentionMatch = value.match(/@(\w*)$/);
       if (mentionMatch) {
         const searchTerm = mentionMatch[1].toLowerCase();
@@ -902,10 +919,18 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
       }
     };
 
-    const insertMention = (name: string) => {
-      const newValue = newMessage.replace(/@\w*$/, `@"${name}" `);
+    const insertMention = (student: CohortStudent) => {
+      // Replace the @word with the student mention and add a space
+      const newValue = newMessage.replace(/@\w*$/, `@${student.name.split(' ')[0]} `);
       setNewMessage(newValue);
       setShowMentionsList(false);
+      
+      // Show a toast to indicate successful mention
+      toast({
+        title: "User Mentioned",
+        description: `You mentioned ${student.name}`,
+        variant: "mention",
+      });
     };
 
     return (
@@ -920,358 +945,4 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
                 className="h-6 w-6 p-0"
                 onClick={() => setReplyToMessage(null)}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
-              </Button>
-            </div>
-            <p className="truncate">{replyToMessage.content}</p>
-          </div>
-        )}
-        
-        {isFormatting && (
-          <div className="flex gap-1 mb-2">
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              className="h-8 px-2 py-1" 
-              onClick={() => applyFormatting('b')}
-            >
-              <Bold className="h-4 w-4" />
-            </Button>
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              className="h-8 px-2 py-1" 
-              onClick={() => applyFormatting('i')}
-            >
-              <Italic className="h-4 w-4" />
-            </Button>
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              className="h-8 px-2 py-1" 
-              onClick={() => applyFormatting('u')}
-            >
-              <Underline className="h-4 w-4" />
-            </Button>
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              className="h-8 px-2 py-1" 
-              onClick={() => applyFormatting('code')}
-            >
-              <Code className="h-4 w-4" />
-            </Button>
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              className="h-8 px-2 py-1" 
-              onClick={() => applyFormatting('ul')}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              className="h-8 px-2 py-1" 
-              onClick={() => applyFormatting('ol')}
-            >
-              <ListOrdered className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-        
-        <div className="flex gap-2">
-          <div className="flex-1">
-            <div className="relative">
-              <Textarea
-                placeholder="Type your message..."
-                className="min-h-[40px] max-h-[120px] pr-20 py-2"
-                value={newMessage}
-                onChange={handleMessageChange}
-                onKeyDown={handleKeyDown}
-              />
-              <div className="absolute right-2 top-2 flex gap-1">
-                <button 
-                  className="text-muted-foreground hover:text-military-navy"
-                  onClick={() => setIsFormatting(!isFormatting)}
-                >
-                  <Bold className="h-4 w-4" />
-                </button>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="text-muted-foreground hover:text-military-navy">
-                      <Paperclip className="h-4 w-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-56" align="end">
-                    <div className="space-y-2">
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start"
-                        onClick={handleAttachDocument}
-                      >
-                        <FileText className="h-4 w-4 mr-2" /> Document
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start"
-                        onClick={handleAttachImage}
-                      >
-                        <Image className="h-4 w-4 mr-2" /> Image
-                      </Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <button 
-                  className="text-muted-foreground hover:text-military-navy"
-                  onClick={handleEmojiClick}
-                >
-                  <Smile className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-          <Button 
-            onClick={handleSendMessage}
-            className="bg-military-navy hover:bg-military-navy/90 text-white"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    );
-  };
-
-  const ComposeView = ({
-    onCancel,
-    onSend
-  }: {
-    onCancel: () => void,
-    onSend: (to: string, subject: string, message: string) => void
-  }) => {
-    const [to, setTo] = useState("");
-    const [subject, setSubject] = useState("");
-    const [message, setMessage] = useState("");
-    const { toast } = useToast();
-  
-    const handleSend = () => {
-      if (!to) {
-        toast({
-          title: "Recipient required",
-          description: "Please enter at least one recipient email address."
-        });
-        return;
-      }
-      
-      onSend(to, subject, message);
-    };
-  
-    return (
-      <div className="border rounded-md shadow-md bg-white">
-        <div className="p-2 bg-gray-100 flex justify-between items-center">
-          <span className="font-medium">New Message</span>
-          <button 
-            onClick={onCancel}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
-          </button>
-        </div>
-        
-        <div className="p-3 border-b">
-          <Input
-            type="text"
-            placeholder="Recipients"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            className="border-0 focus:ring-0 px-0 py-1"
-          />
-        </div>
-        
-        <div className="p-3 border-b">
-          <Input
-            type="text"
-            placeholder="Subject"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            className="border-0 focus:ring-0 px-0 py-1"
-          />
-        </div>
-        
-        <div className="p-3 h-60">
-          <Textarea
-            placeholder="Message"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            className="border-0 focus:ring-0 p-0 h-full resize-none"
-          />
-        </div>
-        
-        <div className="p-3 bg-gray-50 flex justify-between items-center">
-          <Button 
-            onClick={handleSend}
-            className="bg-military-navy hover:bg-military-navy/90 text-white"
-          >
-            Send
-          </Button>
-          
-          <div className="flex gap-2">
-            <button className="text-gray-500 hover:text-gray-700">
-              <Paperclip className="h-4 w-4" />
-            </button>
-            <button className="text-gray-500 hover:text-gray-700">
-              <Smile className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderView = () => {
-    switch (view) {
-      case "list":
-        return (
-          <div className="grid grid-cols-[240px_1fr] h-[600px] border rounded-md overflow-hidden">
-            <div className="border-r flex flex-col">
-              <div className="p-3">
-                <ComposeButton onClick={handleComposeNew} />
-                <SidebarNav 
-                  activeView={activeView}
-                  setActiveView={setActiveView}
-                  counts={{ inbox: unreadCount, drafts: draftCount }}
-                />
-              </div>
-            </div>
-            <div className="flex flex-col">
-              <div className="p-3 pb-2 border-b">
-                <div className="relative max-w-sm">
-                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                    <Search className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <Input
-                    placeholder="Search messages..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 max-w-sm"
-                  />
-                </div>
-              </div>
-              <InboxList
-                conversations={filteredConversations}
-                activeConversationId={activeConversationId || ""}
-                selectedConversations={selectedConversations}
-                onSelectConversation={handleSelectConversation}
-                onCheckboxChange={handleCheckboxChange}
-                onStar={handleStar}
-                onImportant={handleImportant}
-                onSelectAll={handleSelectAll}
-                onRefresh={handleRefresh}
-                isSelectAll={isSelectAll}
-              />
-            </div>
-          </div>
-        );
-
-      case "thread":
-        const currentConversation = conversations.find(c => c.id === activeConversationId);
-        const currentMessages = activeConversationId ? messages[activeConversationId] || [] : [];
-        
-        return (
-          <div className="grid grid-cols-1 h-[600px] border rounded-md overflow-hidden">
-            <div className="flex flex-col h-full">
-              <ThreadView
-                messages={currentMessages}
-                activeConversation={currentConversation}
-                highlightedMessageId={selectedMessageId}
-                onStarMessage={handleStarMessage}
-                onReplyMessage={handleReplyMessage}
-                onForwardMessage={handleForwardMessage}
-                onGoBack={handleGoBackToList}
-                onArchive={handleArchive}
-                onDelete={handleDelete}
-              />
-              <div className="mt-auto">
-                <MessageComposer
-                  newMessage={newMessage}
-                  setNewMessage={setNewMessage}
-                  handleSendMessage={handleSendMessage}
-                  handleKeyDown={handleKeyDown}
-                  replyToMessage={replyToMessage}
-                />
-              </div>
-              <div ref={messagesEndRef} />
-            </div>
-          </div>
-        );
-
-      case "compose":
-        return (
-          <div className="h-[600px] flex items-start justify-center p-4">
-            <div className="w-full max-w-2xl">
-              <ComposeView
-                onCancel={handleCancelCompose}
-                onSend={handleSendNewMessage}
-              />
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  if (connectionError) {
-    return (
-      <div className="space-y-4">
-        <div className="p-4 border rounded-md bg-red-50 text-red-800">
-          <h3 className="font-bold">Connection Error</h3>
-          <p>{connectionError}</p>
-          <Button 
-            variant="outline" 
-            className="mt-2"
-            onClick={() => window.location.reload()}
-          >
-            Retry Connection
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {!isConnected ? (
-        <div className="flex items-center justify-center h-32">
-          <div className="text-center">
-            <div className="animate-spin h-8 w-8 border-4 border-military-navy/20 border-l-military-navy rounded-full mx-auto mb-4"></div>
-            <p>Connecting to real-time chat service...</p>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="p-2 bg-green-50 text-green-800 rounded-md border border-green-200 flex items-center justify-between">
-            <div className="flex items-center">
-              <span className="relative flex h-3 w-3 mr-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-              </span>
-              Connected to real-time chat service
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="text-xs h-7 border-green-300 hover:bg-green-100"
-            >
-              6 users online
-            </Button>
-          </div>
-          {renderView()}
-        </>
-      )}
-    </div>
-  );
-};
-
-export default RealtimeDirectMessages;
+                <svg xmlns="http://www.w3.org/20
