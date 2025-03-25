@@ -27,19 +27,22 @@ export const setupMediaTables = async (): Promise<{success: boolean, error?: any
     if (videoMetadataError) {
       console.error('Error creating video_metadata table:', videoMetadataError);
       
-      // Try SQL approach if RPC fails
-      const { error: sqlError } = await supabase.query(`
-        CREATE TABLE IF NOT EXISTS video_metadata (
-          id TEXT PRIMARY KEY,
-          title TEXT NOT NULL,
-          description TEXT NOT NULL,
-          duration INTEGER DEFAULT 0,
-          quality TEXT[] DEFAULT '{"480p"}',
-          next_in_sequence TEXT,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-        );
-      `);
+      // Try SQL approach using from().select() with SQL string instead of query()
+      const { error: sqlError } = await supabase
+        .from('_exec_sql')
+        .select('*')
+        .eq('query', `
+          CREATE TABLE IF NOT EXISTS video_metadata (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            description TEXT NOT NULL,
+            duration INTEGER DEFAULT 0,
+            quality TEXT[] DEFAULT '{"480p"}',
+            next_in_sequence TEXT,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+          );
+        `);
       
       if (sqlError) {
         console.error('Error creating video_metadata table with SQL:', sqlError);
@@ -64,19 +67,22 @@ export const setupMediaTables = async (): Promise<{success: boolean, error?: any
     if (videoAnalyticsError) {
       console.error('Error creating video_analytics table:', videoAnalyticsError);
       
-      // Try SQL approach if RPC fails
-      const { error: sqlError } = await supabase.query(`
-        CREATE TABLE IF NOT EXISTS video_analytics (
-          id SERIAL PRIMARY KEY,
-          video_id TEXT NOT NULL,
-          user_id TEXT NOT NULL,
-          current_time REAL,
-          duration REAL,
-          is_playing BOOLEAN,
-          timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          FOREIGN KEY (video_id) REFERENCES video_metadata(id)
-        );
-      `);
+      // Try SQL approach using from().select() with SQL string instead of query()
+      const { error: sqlError } = await supabase
+        .from('_exec_sql')
+        .select('*')
+        .eq('query', `
+          CREATE TABLE IF NOT EXISTS video_analytics (
+            id SERIAL PRIMARY KEY,
+            video_id TEXT NOT NULL,
+            user_id TEXT NOT NULL,
+            current_time REAL,
+            duration REAL,
+            is_playing BOOLEAN,
+            timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            FOREIGN KEY (video_id) REFERENCES video_metadata(id)
+          );
+        `);
       
       if (sqlError) {
         console.error('Error creating video_analytics table with SQL:', sqlError);
@@ -102,19 +108,22 @@ export const setupMediaTables = async (): Promise<{success: boolean, error?: any
     if (documentMetadataError) {
       console.error('Error creating document_metadata table:', documentMetadataError);
       
-      // Try SQL approach if RPC fails
-      const { error: sqlError } = await supabase.query(`
-        CREATE TABLE IF NOT EXISTS document_metadata (
-          id TEXT PRIMARY KEY,
-          title TEXT NOT NULL,
-          description TEXT,
-          file_size INTEGER DEFAULT 0,
-          mime_type TEXT DEFAULT 'application/pdf',
-          pages INTEGER,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-        );
-      `);
+      // Try SQL approach using from().select() with SQL string instead of query()
+      const { error: sqlError } = await supabase
+        .from('_exec_sql')
+        .select('*')
+        .eq('query', `
+          CREATE TABLE IF NOT EXISTS document_metadata (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            description TEXT,
+            file_size INTEGER DEFAULT 0,
+            mime_type TEXT DEFAULT 'application/pdf',
+            pages INTEGER,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+          );
+        `);
       
       if (sqlError) {
         console.error('Error creating document_metadata table with SQL:', sqlError);
@@ -137,17 +146,20 @@ export const setupMediaTables = async (): Promise<{success: boolean, error?: any
     if (documentAnalyticsError) {
       console.error('Error creating document_analytics table:', documentAnalyticsError);
       
-      // Try SQL approach if RPC fails
-      const { error: sqlError } = await supabase.query(`
-        CREATE TABLE IF NOT EXISTS document_analytics (
-          id SERIAL PRIMARY KEY,
-          document_id TEXT NOT NULL,
-          user_id TEXT NOT NULL,
-          action TEXT NOT NULL,
-          timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          FOREIGN KEY (document_id) REFERENCES document_metadata(id)
-        );
-      `);
+      // Try SQL approach using from().select() with SQL string instead of query()
+      const { error: sqlError } = await supabase
+        .from('_exec_sql')
+        .select('*')
+        .eq('query', `
+          CREATE TABLE IF NOT EXISTS document_analytics (
+            id SERIAL PRIMARY KEY,
+            document_id TEXT NOT NULL,
+            user_id TEXT NOT NULL,
+            action TEXT NOT NULL,
+            timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            FOREIGN KEY (document_id) REFERENCES document_metadata(id)
+          );
+        `);
       
       if (sqlError) {
         console.error('Error creating document_analytics table with SQL:', sqlError);
