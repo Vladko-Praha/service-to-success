@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useToast } from './use-toast';
+import { cohortStudents } from '@/data/cohortStudents';
 
 // Define notification type
 export type RealtimeNotification = {
@@ -10,7 +10,9 @@ export type RealtimeNotification = {
   description: string;
   time: string;
   read: boolean;
-  type: "mission-critical" | "high-priority" | "standard" | "informational";
+  type: "mission-critical" | "high-priority" | "standard" | "informational" | "mention";
+  mentionedBy?: string;
+  mentionedUsers?: string[];
 };
 
 // Create a Supabase client
@@ -54,6 +56,9 @@ const initialNotifications: RealtimeNotification[] = [
     type: "mission-critical",
   },
 ];
+
+// Regex to find user mentions in text - matches @username or @"User Name"
+const mentionRegex = /@(?:"([^"]+)"|([^\s]+))/g;
 
 export function useRealtimeNotifications() {
   const [notifications, setNotifications] = useState<RealtimeNotification[]>(initialNotifications);
@@ -126,21 +131,80 @@ export function useRealtimeNotifications() {
     });
   };
 
+  // Process text to find and highlight mentions
+  const processMentions = (text: string): { 
+    processedText: string, 
+    mentionedUserIds: string[] 
+  } => {
+    const mentionedUserIds: string[] = [];
+    
+    // Replace mentions with HTML for highlighted mentions
+    const processedText = text.replace(mentionRegex, (match, quotedName, simpleName) => {
+      const nameToFind = quotedName || simpleName;
+      const user = cohortStudents.find(student => 
+        student.name.toLowerCase() === nameToFind.toLowerCase() || 
+        student.name.split(' ')[0].toLowerCase() === nameToFind.toLowerCase()
+      );
+      
+      if (user) {
+        mentionedUserIds.push(user.id);
+        return `<span class="inline-flex items-center rounded-full bg-military-olive/20 px-1 text-military-olive">@${user.name}</span>`;
+      }
+      
+      return match; // Keep original text if no user found
+    });
+    
+    return { processedText, mentionedUserIds };
+  };
+
   // Function to add a new notification (for testing)
   const addNotification = (notification: Omit<RealtimeNotification, 'id' | 'time'>) => {
+    const { processedText, mentionedUserIds } = processMentions(notification.description);
+    
     const newNotification: RealtimeNotification = {
       id: `notification-${Date.now()}`,
       ...notification,
+      description: processedText,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      mentionedUsers: mentionedUserIds.length > 0 ? mentionedUserIds : undefined
     };
     
     setNotifications(prev => [newNotification, ...prev]);
     
+    // Determine if this is a mention notification
+    const isMention = notification.type === "mention" || mentionedUserIds.length > 0;
+    
     toast({
       title: newNotification.title,
       description: newNotification.description,
-      variant: notification.type === "mission-critical" ? "destructive" : "default",
+      variant: notification.type === "mission-critical" 
+        ? "destructive" 
+        : isMention 
+          ? "mention" 
+          : "default",
     });
+  };
+
+  // Add a method to create mention notifications
+  const createMentionNotification = (
+    fromUser: string, 
+    message: string, 
+    context: string = "direct message"
+  ) => {
+    const { processedText, mentionedUserIds } = processMentions(message);
+    
+    if (mentionedUserIds.length > 0) {
+      addNotification({
+        title: `${fromUser} mentioned you in a ${context}`,
+        description: processedText,
+        read: false,
+        type: "mention",
+        mentionedBy: fromUser,
+        mentionedUsers: mentionedUserIds
+      });
+    }
+    
+    return { processedText, mentionedUserIds };
   };
 
   return {
@@ -150,6 +214,8 @@ export function useRealtimeNotifications() {
     markAsRead,
     markAllAsRead,
     addNotification,
+    createMentionNotification,
+    processMentions,
     unreadCount: notifications.filter(n => !n.read).length
   };
 }

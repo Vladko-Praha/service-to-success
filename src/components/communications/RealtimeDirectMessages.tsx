@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useRealtimeMessages, RealTimeMessage, RealTimeConversation } from "@/hooks/use-realtime-messages";
 import { Avatar } from "@/components/ui/avatar";
@@ -58,12 +57,14 @@ import {
 } from "lucide-react";
 import MediaPreview from "./MediaPreview";
 import { MediaAttachment } from "./MediaAttachmentButton";
+import { useRealtimeNotifications } from "@/hooks/use-realtime-notifications";
+import UserMention from "./UserMention";
+import { cohortStudents } from "@/data/cohortStudents";
 
 interface RealtimeDirectMessagesProps {
   selectedMessageId: string | null;
 }
 
-// Convert the Realtime message format to match the UI component format
 const adaptMessageForUI = (message: RealTimeMessage) => {
   return {
     id: message.id,
@@ -82,7 +83,6 @@ const adaptMessageForUI = (message: RealTimeMessage) => {
   };
 };
 
-// This component will replace DirectMessages with realtime functionality
 const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selectedMessageId }) => {
   const {
     conversations,
@@ -97,6 +97,8 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     createConversation,
     deleteConversation
   } = useRealtimeMessages();
+
+  const { createMentionNotification, processMentions } = useRealtimeNotifications();
 
   const [view, setView] = useState<"list" | "thread" | "compose">("list");
   const [activeView, setActiveView] = useState("inbox");
@@ -122,14 +124,12 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
   const unreadCount = conversations.reduce((sum, conv) => sum + conv.unread, 0);
   const draftCount = 2; // Mock value
 
-  // Scroll to bottom when new messages arrive
   useEffect(() => {
     if (view === "thread" && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, view, activeConversationId]);
 
-  // Focus on highlighted message if selected
   useEffect(() => {
     if (selectedMessageId) {
       for (const [convId, msgList] of Object.entries(messages)) {
@@ -148,39 +148,32 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     }
   }, [selectedMessageId, messages]);
 
-  // Handle selecting a conversation
   const handleSelectConversation = (conversation: RealTimeConversation) => {
     setActiveConversationId(conversation.id);
     setView("thread");
     
-    // Mark as read
     if (conversation.unread > 0) {
       markConversationAsRead(conversation.id);
     }
   };
 
-  // Handle going back to list view
   const handleGoBackToList = () => {
     setView("list");
     setActiveConversationId(null);
     setReplyToMessage(null);
   };
 
-  // Handle composing a new message
   const handleComposeNew = () => {
     setView("compose");
     setActiveConversationId(null);
     setReplyToMessage(null);
   };
 
-  // Handle canceling compose
   const handleCancelCompose = () => {
     setView("list");
   };
 
-  // Handle sending a new message to a conversation
   const handleSendNewMessage = (to: string, subject: string, content: string) => {
-    // Create a new conversation
     const newContact = {
       id: `contact-${Date.now()}`,
       name: to,
@@ -189,8 +182,15 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     
     const conversationId = createConversation(newContact, subject);
     
-    // Send the message
-    sendMessage(conversationId, content);
+    const { processedText, mentionedUserIds } = processMentions(content);
+    
+    if (mentionedUserIds.length > 0) {
+      const activeConversation = conversations.find(c => c.id === activeConversationId);
+      const context = `conversation with ${activeConversation?.contact.name || 'someone'}`;
+      createMentionNotification("You", content, context);
+    }
+    
+    sendMessage(conversationId, processedText);
     
     toast({
       title: "Message sent",
@@ -200,11 +200,18 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     setView("list");
   };
 
-  // Handle sending a message in an existing conversation
   const handleSendMessage = () => {
     if (!newMessage.trim() || !activeConversationId) return;
     
-    sendMessage(activeConversationId, newMessage);
+    const { processedText, mentionedUserIds } = processMentions(newMessage);
+    
+    if (mentionedUserIds.length > 0) {
+      const activeConversation = conversations.find(c => c.id === activeConversationId);
+      const context = `conversation with ${activeConversation?.contact.name || 'someone'}`;
+      createMentionNotification("You", newMessage, context);
+    }
+    
+    sendMessage(activeConversationId, processedText);
     setNewMessage("");
     setReplyToMessage(null);
     
@@ -214,7 +221,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     });
   };
 
-  // Handle enter key to send message
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -222,7 +228,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     }
   };
 
-  // Handle checkbox change for conversation selection
   const handleCheckboxChange = (id: string, checked: boolean) => {
     setSelectedConversations(prev =>
       checked
@@ -231,7 +236,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     );
   };
 
-  // Handle select all conversations
   const handleSelectAll = (checked: boolean) => {
     setIsSelectAll(checked);
     setSelectedConversations(
@@ -239,7 +243,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     );
   };
 
-  // Handle refresh
   const handleRefresh = () => {
     toast({
       title: "Refreshed",
@@ -247,7 +250,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     });
   };
 
-  // Handle star a conversation
   const handleStar = (id: string) => {
     toggleConversationStar(id);
     
@@ -256,7 +258,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     });
   };
 
-  // Handle mark as important
   const handleImportant = (id: string) => {
     toggleConversationImportant(id);
     
@@ -265,7 +266,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     });
   };
 
-  // Handle star a message
   const handleStarMessage = (messageId: string) => {
     if (!activeConversationId) return;
     
@@ -276,7 +276,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     });
   };
 
-  // Handle reply to a message
   const handleReplyMessage = (messageId: string) => {
     if (!activeConversationId) return;
 
@@ -291,7 +290,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     }
   };
 
-  // Handle forward a message
   const handleForwardMessage = (messageId: string) => {
     if (!activeConversationId) return;
 
@@ -308,7 +306,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     }
   };
 
-  // Handle archive conversation
   const handleArchive = () => {
     if (activeConversationId) {
       // In a real app, we would actually archive the conversation
@@ -325,7 +322,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     }
   };
 
-  // Handle delete conversation
   const handleDelete = () => {
     if (activeConversationId) {
       deleteConversation(activeConversationId);
@@ -340,7 +336,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     }
   };
 
-  // Component for the compose button
   const ComposeButton = ({ onClick }: { onClick: () => void }) => {
     return (
       <Button 
@@ -353,7 +348,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     );
   };
 
-  // Component for the sidebar navigation
   const SidebarNav = ({ activeView, setActiveView, counts }: { 
     activeView: string;
     setActiveView: (view: string) => void;
@@ -425,7 +419,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     );
   };
 
-  // Component for each item in the inbox list
   const InboxListItem = ({ 
     conversation, 
     isActive,
@@ -503,7 +496,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     );
   };
 
-  // Component for the inbox list
   const InboxList = ({ 
     conversations, 
     activeConversationId, 
@@ -586,7 +578,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     );
   };
 
-  // Component for message attachments
   const MessageAttachment = ({ 
     attachment,
     isCurrentUser
@@ -634,7 +625,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     );
   };
 
-  // Component for each message bubble
   const MessageBubble = ({ 
     message, 
     isCurrentUser,
@@ -674,7 +664,11 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
               <div className="font-medium text-xs mb-1">{message.sender_name}</div>
             )}
             
-            {message.content && <p className="text-sm whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: message.content }} />}
+            {message.content && 
+              <p className="text-sm whitespace-pre-wrap" 
+                 dangerouslySetInnerHTML={{ __html: message.content }} 
+              />
+            }
             
             {message.attachments && message.attachments.length > 0 && (
               <div className="mt-2 space-y-2">
@@ -739,7 +733,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     );
   };
 
-  // Component for the message thread view
   const ThreadView = ({
     messages,
     activeConversation,
@@ -818,7 +811,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     );
   };
 
-  // Component for the message composer
   const MessageComposer = ({
     newMessage,
     setNewMessage,
@@ -889,6 +881,33 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
       setNewMessage(prev => prev + " 😊");
     };
     
+    const [showMentionsList, setShowMentionsList] = useState(false);
+    const [filteredMentions, setFilteredMentions] = useState(cohortStudents);
+
+    const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const value = e.target.value;
+      setNewMessage(value);
+      
+      const mentionMatch = value.match(/@(\w*)$/);
+      if (mentionMatch) {
+        const searchTerm = mentionMatch[1].toLowerCase();
+        const filtered = cohortStudents.filter(student => 
+          student.name.toLowerCase().includes(searchTerm) || 
+          student.name.split(' ')[0].toLowerCase().includes(searchTerm)
+        );
+        setFilteredMentions(filtered);
+        setShowMentionsList(true);
+      } else {
+        setShowMentionsList(false);
+      }
+    };
+
+    const insertMention = (name: string) => {
+      const newValue = newMessage.replace(/@\w*$/, `@"${name}" `);
+      setNewMessage(newValue);
+      setShowMentionsList(false);
+    };
+
     return (
       <div className="p-3 border-t bg-white">
         {replyToMessage && (
@@ -901,7 +920,7 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
                 className="h-6 w-6 p-0"
                 onClick={() => setReplyToMessage(null)}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
               </Button>
             </div>
             <p className="truncate">{replyToMessage.content}</p>
@@ -968,7 +987,7 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
                 placeholder="Type your message..."
                 className="min-h-[40px] max-h-[120px] pr-20 py-2"
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
+                onChange={handleMessageChange}
                 onKeyDown={handleKeyDown}
               />
               <div className="absolute right-2 top-2 flex gap-1">
@@ -1023,7 +1042,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     );
   };
 
-  // Component for composing a new message
   const ComposeView = ({
     onCancel,
     onSend
@@ -1110,7 +1128,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     );
   };
 
-  // Render the appropriate view
   const renderView = () => {
     switch (view) {
       case "list":
@@ -1205,7 +1222,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     }
   };
 
-  // Display connection status
   if (connectionError) {
     return (
       <div className="space-y-4">
