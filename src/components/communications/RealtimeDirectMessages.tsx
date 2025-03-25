@@ -945,3 +945,292 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
               </Button>
             </div>
             <p className="text-sm truncate text-gray-500 mt-1">{replyToMessage.content.replace(/<[^>]*>/g, '')}</p>
+          </div>
+        )}
+        
+        <div className="flex flex-col space-y-2">
+          <div className="flex items-center space-x-2">
+            {isFormatting && (
+              <div className="flex space-x-1">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0" 
+                  onClick={() => applyFormatting('b')}
+                >
+                  <Bold className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0" 
+                  onClick={() => applyFormatting('i')}
+                >
+                  <Italic className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0" 
+                  onClick={() => applyFormatting('u')}
+                >
+                  <Underline className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0" 
+                  onClick={() => applyFormatting('code')}
+                >
+                  <Code className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0" 
+                  onClick={() => applyFormatting('ul')}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0" 
+                  onClick={() => applyFormatting('ol')}
+                >
+                  <ListOrdered className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0" 
+              onClick={() => setIsFormatting(!isFormatting)}
+            >
+              <Bold className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0" 
+              onClick={handleAttachDocument}
+            >
+              <FileText className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0" 
+              onClick={handleAttachImage}
+            >
+              <Image className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0" 
+              onClick={handleEmojiClick}
+            >
+              <Smile className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <div className="relative">
+            <Textarea
+              value={newMessage}
+              onChange={handleMessageChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Type a message..."
+              className="min-h-[100px] p-2 resize-none"
+            />
+            
+            {showMentionsList && filteredMentions.length > 0 && (
+              <div 
+                ref={mentionsRef} 
+                className="absolute z-10 mt-1 w-60 bg-white border rounded-md shadow-lg overflow-hidden"
+              >
+                <div className="p-2 bg-gray-50 text-xs font-medium">Mention someone</div>
+                <div className="max-h-48 overflow-y-auto">
+                  {filteredMentions.map(student => (
+                    <div 
+                      key={student.id}
+                      className="px-2 py-1.5 hover:bg-gray-100 cursor-pointer flex items-center"
+                      onClick={() => insertMention(student)}
+                    >
+                      <Avatar className="h-6 w-6 mr-2">
+                        <User className="h-3 w-3" />
+                      </Avatar>
+                      <span>{student.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-end">
+            <Button 
+              onClick={handleSendMessage}
+              className="flex items-center gap-2 bg-military-navy"
+              disabled={!newMessage.trim()}
+            >
+              <Send className="h-4 w-4" />
+              <span>Send</span>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderContent = () => {
+    if (view === "thread" && activeConversationId) {
+      const activeConversation = conversations.find(c => c.id === activeConversationId);
+      const conversationMessages = messages[activeConversationId] || [];
+      
+      return (
+        <div className="flex flex-col h-full">
+          <ThreadView 
+            messages={conversationMessages}
+            activeConversation={activeConversation}
+            highlightedMessageId={selectedMessageId}
+            onStarMessage={handleStarMessage}
+            onReplyMessage={handleReplyMessage}
+            onForwardMessage={handleForwardMessage}
+            onGoBack={handleGoBackToList}
+            onArchive={handleArchive}
+            onDelete={handleDelete}
+          />
+          <MessageComposer 
+            newMessage={newMessage}
+            setNewMessage={setNewMessage}
+            handleSendMessage={handleSendMessage}
+            handleKeyDown={handleKeyDown}
+            replyToMessage={replyToMessage}
+          />
+          <div ref={messagesEndRef} />
+        </div>
+      );
+    } else if (view === "compose") {
+      return (
+        <div className="flex flex-col h-full p-4">
+          <div className="flex items-center mb-4">
+            <Button variant="ghost" onClick={handleCancelCompose}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+            <h2 className="text-lg font-medium ml-2">New Message</h2>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">To:</label>
+              <CohortStudentSelector 
+                onSelect={(student) => {
+                  // In a real app, this would set the recipient
+                  toast({
+                    description: `Selected recipient: ${student.name}`
+                  });
+                }}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Subject:</label>
+              <Input placeholder="Subject" />
+            </div>
+            
+            <div className="flex-grow">
+              <label className="block text-sm font-medium mb-1">Message:</label>
+              <Textarea 
+                placeholder="Write your message here..." 
+                className="min-h-[200px]"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex justify-end">
+              <Button 
+                className="flex items-center gap-2 bg-military-navy"
+                onClick={() => handleSendNewMessage("John Doe", "New Message", newMessage)}
+              >
+                <Send className="h-4 w-4" />
+                <span>Send</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    } else {
+      // Default list view
+      return (
+        <div className="flex flex-col h-full">
+          <div className="p-2 border-b">
+            <div className="relative mb-2">
+              <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Input
+                placeholder="Search messages"
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <InboxList 
+            conversations={filteredConversations}
+            activeConversationId={activeConversationId || ""}
+            selectedConversations={selectedConversations}
+            onSelectConversation={handleSelectConversation}
+            onCheckboxChange={handleCheckboxChange}
+            onStar={handleStar}
+            onImportant={handleImportant}
+            onSelectAll={handleSelectAll}
+            onRefresh={handleRefresh}
+            isSelectAll={isSelectAll}
+          />
+        </div>
+      );
+    }
+  };
+
+  if (!isConnected) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96">
+        <MessageSquare className="h-10 w-10 text-gray-400 mb-2" />
+        <h3 className="text-lg font-medium">Connecting to messages...</h3>
+        {connectionError && (
+          <p className="text-red-500 mt-2">{connectionError}</p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white border shadow-sm rounded-md flex flex-col h-[600px]">
+      <div className="grid grid-cols-1 md:grid-cols-4 h-full">
+        <div className="md:col-span-1 border-r">
+          <div className="p-4">
+            <ComposeButton onClick={handleComposeNew} />
+            <SidebarNav 
+              activeView={activeView}
+              setActiveView={setActiveView}
+              counts={{
+                inbox: unreadCount,
+                drafts: draftCount
+              }}
+            />
+          </div>
+        </div>
+        
+        <div className="md:col-span-3">
+          {renderContent()}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default RealtimeDirectMessages;
