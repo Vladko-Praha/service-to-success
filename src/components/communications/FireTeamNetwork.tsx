@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
@@ -6,8 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, User, UserPlus, MessageSquare, Share2, ThumbsUp, Flag, MoreHorizontal, Send, Plus } from "lucide-react";
+import { Search, User, UserPlus, MessageSquare, Share2, ThumbsUp, Flag, MoreHorizontal, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import MediaAttachmentButton, { MediaAttachment } from "./MediaAttachmentButton";
+import MediaPreview from "./MediaPreview";
 
 type Post = {
   id: string;
@@ -21,6 +23,7 @@ type Post = {
   likes: number;
   comments: number;
   userLiked: boolean;
+  attachments?: MediaAttachment[];
 };
 
 type Team = {
@@ -43,7 +46,15 @@ const mockPosts: Post[] = [
     timestamp: "2 hours ago",
     likes: 15,
     comments: 3,
-    userLiked: false
+    userLiked: false,
+    attachments: [
+      {
+        id: "doc-business-structure-comparison",
+        type: "document",
+        name: "VA Business Loans Guide.pdf",
+        size: 1254000
+      }
+    ]
   },
   {
     id: "post2",
@@ -123,11 +134,12 @@ interface FireTeamNetworkProps {
 
 const FireTeamNetwork: React.FC<FireTeamNetworkProps> = ({ selectedPostId }) => {
   const { toast } = useToast();
-  const [posts, setPosts] = React.useState(mockPosts);
-  const [teams, setTeams] = React.useState(mockTeams);
-  const [newPost, setNewPost] = React.useState("");
-  const [searchTerm, setSearchTerm] = React.useState("");
-  const [activeTab, setActiveTab] = React.useState("feed");
+  const [posts, setPosts] = useState(mockPosts);
+  const [teams, setTeams] = useState(mockTeams);
+  const [newPost, setNewPost] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("feed");
+  const [postAttachments, setPostAttachments] = useState<MediaAttachment[]>([]);
 
   React.useEffect(() => {
     if (selectedPostId) {
@@ -151,7 +163,14 @@ const FireTeamNetwork: React.FC<FireTeamNetworkProps> = ({ selectedPostId }) => 
   };
 
   const handleCreatePost = () => {
-    if (!newPost.trim()) return;
+    if (!newPost.trim() && postAttachments.length === 0) {
+      toast({
+        title: "Empty Post",
+        description: "Please add text or an attachment to your post",
+        variant: "destructive"
+      });
+      return;
+    }
     
     const newPostObj: Post = {
       id: `post${posts.length + 1}`,
@@ -164,11 +183,13 @@ const FireTeamNetwork: React.FC<FireTeamNetworkProps> = ({ selectedPostId }) => 
       timestamp: "Just now",
       likes: 0,
       comments: 0,
-      userLiked: false
+      userLiked: false,
+      attachments: postAttachments.length > 0 ? [...postAttachments] : undefined
     };
     
     setPosts([newPostObj, ...posts]);
     setNewPost("");
+    setPostAttachments([]);
     
     toast({
       title: "Post Created",
@@ -181,6 +202,14 @@ const FireTeamNetwork: React.FC<FireTeamNetworkProps> = ({ selectedPostId }) => 
       title: "Team Joined",
       description: "You have successfully joined the team. You can now access all team content.",
     });
+  };
+
+  const handleAddAttachment = (attachment: MediaAttachment) => {
+    setPostAttachments(prev => [...prev, attachment]);
+  };
+
+  const handleRemoveAttachment = (attachmentId: string) => {
+    setPostAttachments(prev => prev.filter(a => a.id !== attachmentId));
   };
 
   const filteredPosts = posts.filter(
@@ -252,23 +281,32 @@ const FireTeamNetwork: React.FC<FireTeamNetworkProps> = ({ selectedPostId }) => 
                       onChange={(e) => setNewPost(e.target.value)}
                       className="min-h-20"
                     />
+                    
+                    {postAttachments.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {postAttachments.map(attachment => (
+                          <div key={attachment.id} className="relative inline-flex">
+                            <MediaPreview attachment={attachment} compact />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="absolute -top-2 -right-2 h-5 w-5 p-0 rounded-full bg-muted"
+                              onClick={() => handleRemoveAttachment(attachment.id)}
+                            >
+                              &times;
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
                     <div className="flex justify-between mt-2">
                       <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => toast({
-                            title: "Coming Soon",
-                            description: "File attachments will be available in the next update."
-                          })}
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          Attach
-                        </Button>
+                        <MediaAttachmentButton onAttach={handleAddAttachment} />
                       </div>
                       <Button 
                         onClick={handleCreatePost}
-                        disabled={!newPost.trim()}
+                        disabled={!newPost.trim() && postAttachments.length === 0}
                         size="sm"
                       >
                         <Send className="h-4 w-4 mr-1" />
@@ -307,6 +345,17 @@ const FireTeamNetwork: React.FC<FireTeamNetworkProps> = ({ selectedPostId }) => 
                         </div>
                         
                         <p className="mt-2">{post.content}</p>
+                        
+                        {post.attachments && post.attachments.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {post.attachments.map(attachment => (
+                              <MediaPreview 
+                                key={attachment.id} 
+                                attachment={attachment} 
+                              />
+                            ))}
+                          </div>
+                        )}
                         
                         <div className="flex items-center justify-between mt-4 pt-2 border-t">
                           <div className="flex items-center gap-4">
