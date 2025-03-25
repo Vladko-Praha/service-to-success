@@ -110,6 +110,8 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
   const [selectedConversations, setSelectedConversations] = useState<string[]>([]);
   const [isSelectAll, setIsSelectAll] = useState(false);
   const [replyToMessage, setReplyToMessage] = useState<RealTimeMessage | null>(null);
+  const [composeToStudent, setComposeToStudent] = useState<CohortStudent | null>(null);
+  const [composeSubject, setComposeSubject] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
@@ -175,11 +177,20 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     setView("list");
   };
 
-  const handleSendNewMessage = (to: string, subject: string, content: string) => {
+  const handleSendNewMessage = (subject: string, content: string) => {
+    if (!composeToStudent) {
+      toast({
+        title: "Error",
+        description: "Please select a recipient",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     const newContact = {
-      id: `contact-${Date.now()}`,
-      name: to,
-      status: "offline" as const
+      id: composeToStudent.id,
+      name: composeToStudent.name,
+      status: composeToStudent.status as "online" | "offline" | "away"
     };
     
     const conversationId = createConversation(newContact, subject);
@@ -187,8 +198,7 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     const { processedText, mentionedUserIds } = processMentions(content);
     
     if (mentionedUserIds.length > 0) {
-      const activeConversation = conversations.find(c => c.id === activeConversationId);
-      const context = `conversation with ${activeConversation?.contact.name || 'someone'}`;
+      const context = `new message to ${composeToStudent.name}`;
       createMentionNotification("You", content, context);
     }
     
@@ -196,10 +206,13 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     
     toast({
       title: "Message sent",
-      description: `Your message to ${to} has been sent.`
+      description: `Your message to ${composeToStudent.name} has been sent.`
     });
     
     setView("list");
+    setComposeToStudent(null);
+    setComposeSubject("");
+    setNewMessage("");
   };
 
   const handleSendMessage = () => {
@@ -1126,19 +1139,47 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">To:</label>
-              <CohortStudentSelector 
-                onSelectStudent={(student) => {
-                  // In a real app, this would set the recipient
-                  toast({
-                    description: `Selected recipient: ${student.name}`
-                  });
-                }}
-              />
+              <div className="flex items-center gap-2">
+                {composeToStudent ? (
+                  <div className="flex items-center gap-2 bg-military-navy/10 rounded-md p-2 pr-1">
+                    <Avatar className="h-6 w-6">
+                      {composeToStudent.avatar ? (
+                        <img src={composeToStudent.avatar} alt={composeToStudent.name} />
+                      ) : (
+                        <User className="h-3 w-3" />
+                      )}
+                    </Avatar>
+                    <span className="text-sm font-medium">{composeToStudent.name}</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-5 w-5 p-0 ml-1" 
+                      onClick={() => setComposeToStudent(null)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <CohortStudentSelector 
+                    onSelectStudent={(student) => {
+                      setComposeToStudent(student);
+                      toast({
+                        description: `Selected recipient: ${student.name}`
+                      });
+                    }}
+                    className="w-full"
+                  />
+                )}
+              </div>
             </div>
             
             <div>
               <label className="block text-sm font-medium mb-1">Subject:</label>
-              <Input placeholder="Subject" />
+              <Input 
+                placeholder="Subject" 
+                value={composeSubject}
+                onChange={(e) => setComposeSubject(e.target.value)}
+              />
             </div>
             
             <div className="flex-grow">
@@ -1154,7 +1195,8 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
             <div className="flex justify-end">
               <Button 
                 className="flex items-center gap-2 bg-military-navy"
-                onClick={() => handleSendNewMessage("John Doe", "New Message", newMessage)}
+                onClick={() => handleSendNewMessage(composeSubject, newMessage)}
+                disabled={!composeToStudent || !composeSubject.trim() || !newMessage.trim()}
               >
                 <Send className="h-4 w-4" />
                 <span>Send</span>
@@ -1164,7 +1206,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
         </div>
       );
     } else {
-      // Default list view
       return (
         <div className="flex flex-col h-full">
           <div className="p-2 border-b">
