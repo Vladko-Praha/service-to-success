@@ -26,23 +26,21 @@ export function Toaster() {
   return (
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, variant, ...props }) {
-        const toastClass = 
-          variant === "destructive" 
-            ? "border-military-red bg-military-red/90 text-white" 
-            : variant === "mention"
-              ? "border-military-olive bg-military-olive/90 text-white"
-              : "border-military-navy bg-military-navy/90 text-white";
-              
         return (
           <Toast 
             key={id} 
             {...props}
-            // TypeScript fix: cast variant to the exact types expected by the component
-            variant={variant === "mention" ? "default" : variant as "default" | "destructive"}
-            className={toastClass}
+            variant={variant}
+            className={
+              variant === "destructive" 
+                ? "border-military-red bg-military-red/90 text-white" 
+                : variant === "mention"
+                  ? "border-military-olive bg-military-olive/90 text-white"
+                  : "border-military-navy bg-military-navy/90 text-white"
+            }
           >
             <div className="grid grid-cols-[auto_1fr] gap-2">
-              {getIcon(variant as "default" | "destructive" | "mention")}
+              {getIcon(variant)}
               <div className="grid gap-1">
                 {title && <ToastTitle>{title}</ToastTitle>}
                 {description && (

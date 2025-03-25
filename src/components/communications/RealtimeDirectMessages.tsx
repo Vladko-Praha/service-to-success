@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useRealtimeMessages, RealTimeMessage, RealTimeConversation } from "@/hooks/use-realtime-messages";
 import { Avatar } from "@/components/ui/avatar";
@@ -887,7 +886,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
       setNewMessage(prev => prev + " 😊");
     };
 
-    // Handle clicks outside the mentions dropdown
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
         if (mentionsRef.current && !mentionsRef.current.contains(event.target as Node)) {
@@ -905,7 +903,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
       const value = e.target.value;
       setNewMessage(value);
       
-      // Check for @ symbol typing to show mentions list
       const mentionMatch = value.match(/@(\w*)$/);
       if (mentionMatch) {
         const searchTerm = mentionMatch[1].toLowerCase();
@@ -921,12 +918,10 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     };
 
     const insertMention = (student: CohortStudent) => {
-      // Replace the @word with the student mention and add a space
       const newValue = newMessage.replace(/@\w*$/, `@${student.name.split(' ')[0]} `);
       setNewMessage(newValue);
       setShowMentionsList(false);
       
-      // Show a toast to indicate successful mention
       toast({
         title: "User Mentioned",
         description: `You mentioned ${student.name}`,
@@ -1052,7 +1047,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     );
   };
 
-  // Main component render code
   if (view === "compose") {
     return (
       <div className="h-full flex flex-col">
@@ -1068,7 +1062,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
             <label className="block text-sm font-medium mb-1">To:</label>
             <CohortStudentSelector 
               onSelectStudent={(student) => {
-                // Implement student selection
                 toast({
                   title: "Student selected",
                   description: `You selected ${student.name}`,
@@ -1138,7 +1131,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     );
   }
 
-  // Default view (list)
   return (
     <div className="h-full">
       <div className="grid grid-cols-4 h-full">
