@@ -34,7 +34,7 @@ const Communications = () => {
             <Users className="h-4 w-4" />
             Full Directory
           </TabsTrigger>
-        </Tabs>
+        </TabsList>
         
         <TabsContent value="hub">
           <CommunicationHub />
