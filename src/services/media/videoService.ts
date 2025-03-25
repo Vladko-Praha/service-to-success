@@ -1,5 +1,8 @@
-
 import { nanoid } from 'nanoid';
+import { createClient } from '@supabase/supabase-js';
+
+// Import the Supabase client from the AdminDashboard
+import { supabase } from '@/pages/AdminDashboard';
 
 export interface VideoResource {
   id: string;
@@ -47,34 +50,98 @@ export interface SignedUrlOptions {
 }
 
 class VideoService {
-  private cdnBaseUrl = 'https://cdn.example.com'; // Would be replaced with your actual CDN URL
   private cdnRegions = ['us-east', 'us-west', 'eu-central', 'ap-southeast'];
-  private apiBaseUrl = 'https://api.example.com'; // Would be replaced with your actual API endpoint
   private prefetchQueue: string[] = [];
+  private storageBucket = 'videos';
   
   /**
    * Get a video by its ID with a signed URL that expires
    */
   async getVideo(videoId: string, options: SignedUrlOptions = {}): Promise<VideoResource | null> {
-    // This would be an API call to your backend service to get a signed URL
-    console.log(`Fetching video with ID ${videoId} and generating signed URL`);
-    
-    // Default expiration to 1 hour if not specified
-    const expiresIn = options.expiresIn || 3600;
+    try {
+      console.log(`Fetching video with ID ${videoId} and generating signed URL`);
+      
+      // Default expiration to 1 hour if not specified
+      const expiresIn = options.expiresIn || 3600;
+      
+      // First get video metadata from the database
+      const { data: videoMetadata, error: metadataError } = await supabase
+        .from('video_metadata')
+        .select('*')
+        .eq('id', videoId)
+        .single();
+      
+      if (metadataError) {
+        console.error('Error fetching video metadata:', metadataError);
+        return this.getFallbackVideo(videoId, expiresIn); // Return fallback if database fetch fails
+      }
+      
+      // Generate signed URLs for all video assets
+      const { data: streamData } = await supabase
+        .storage
+        .from(this.storageBucket)
+        .createSignedUrl(`${videoId}/stream.mp4`, expiresIn);
+        
+      const { data: thumbnailData } = await supabase
+        .storage
+        .from(this.storageBucket)
+        .createSignedUrl(`${videoId}/thumbnail.jpg`, expiresIn);
+      
+      const { data: hlsData } = await supabase
+        .storage
+        .from(this.storageBucket)
+        .createSignedUrl(`${videoId}/manifest.m3u8`, expiresIn);
+      
+      const { data: downloadData } = await supabase
+        .storage
+        .from(this.storageBucket)
+        .createSignedUrl(`${videoId}/download.mp4`, expiresIn);
+      
+      const { data: transcriptData } = await supabase
+        .storage
+        .from(this.storageBucket)
+        .createSignedUrl(`${videoId}/transcript.txt`, expiresIn);
+      
+      // If we couldn't get the stream URL, return fallback
+      if (!streamData?.signedUrl) {
+        return this.getFallbackVideo(videoId, expiresIn);
+      }
+      
+      // Create the video resource with real signed URLs
+      return {
+        id: videoId,
+        title: videoMetadata?.title || "Video Resource",
+        description: videoMetadata?.description || "Video resource description",
+        duration: videoMetadata?.duration || 0,
+        thumbnailUrl: thumbnailData?.signedUrl || '',
+        streamUrl: streamData.signedUrl,
+        hlsUrl: hlsData?.signedUrl,
+        downloadUrl: downloadData?.signedUrl,
+        transcriptUrl: transcriptData?.signedUrl,
+        quality: videoMetadata?.quality || ['480p', '720p'],
+        expiresAt: Date.now() + (expiresIn * 1000),
+        nextInSequence: videoMetadata?.nextInSequence
+      };
+    } catch (error) {
+      console.error('Error getting video:', error);
+      return this.getFallbackVideo(videoId, options.expiresIn || 3600);
+    }
+  }
+  
+  /**
+   * Fallback method to provide mock data when Supabase is unavailable
+   */
+  private getFallbackVideo(videoId: string, expiresIn: number): VideoResource {
+    console.log('Using fallback video data');
     const expiresAt = Date.now() + (expiresIn * 1000);
+    const region = this.getClosestRegion();
+    const signedToken = this.generateSignedToken(videoId, expiresAt);
     
-    // Select the closest CDN region if specified, otherwise use geo-routing
-    const region = options.region || this.getClosestRegion();
-    
-    // In a real implementation, this would call your backend to generate a signed URL
-    // with proper JWT or other signing mechanism
-    const signedToken = this.generateSignedToken(videoId, expiresAt, options.limitByIp);
-    
-    // Construct URLs with the signed token
-    const baseResourceUrl = `${this.cdnBaseUrl}/${region}/videos/${videoId}`;
+    // Construct a mock URL structure
+    const baseResourceUrl = `https://cdn.example.com/${region}/videos/${videoId}`;
     const signedUrlParam = `?token=${signedToken}&expires=${expiresAt}`;
     
-    // Mock response with signed URLs
+    // Return mock data
     return {
       id: videoId,
       title: "Business Structure Selection Guide",
@@ -95,7 +162,6 @@ class VideoService {
    * Get multiple videos by IDs with signed URLs
    */
   async getVideos(videoIds: string[], options: SignedUrlOptions = {}): Promise<VideoResource[]> {
-    // This would batch fetch multiple videos with signed URLs
     console.log(`Fetching videos with IDs: ${videoIds.join(', ')} and generating signed URLs`);
     
     const videos: VideoResource[] = [];
@@ -110,18 +176,35 @@ class VideoService {
   /**
    * Track video playback analytics
    */
-  trackPlayback(videoId: string, state: Partial<PlaybackState>, userId?: string): void {
-    // This would send analytics data to your backend
-    console.log(`Tracking playback for video ${videoId}`, state);
-    
-    // Check if we should prefetch the next video
-    if (state.currentTime && state.duration) {
-      const percentComplete = (state.currentTime / state.duration) * 100;
-      
-      // When user reaches 80% of the video, prefetch the next one if available
-      if (percentComplete >= 80) {
-        this.prefetchNextVideo(videoId);
+  async trackPlayback(videoId: string, state: Partial<PlaybackState>, userId?: string): Promise<void> {
+    // Track analytics in Supabase
+    try {
+      const { error } = await supabase
+        .from('video_analytics')
+        .insert({
+          video_id: videoId,
+          user_id: userId || 'anonymous',
+          current_time: state.currentTime,
+          duration: state.duration,
+          is_playing: state.isPlaying,
+          timestamp: new Date()
+        });
+        
+      if (error) {
+        console.error('Error tracking video analytics:', error);
       }
+      
+      // Check if we should prefetch the next video
+      if (state.currentTime && state.duration) {
+        const percentComplete = (state.currentTime / state.duration) * 100;
+        
+        // When user reaches 80% of the video, prefetch the next one if available
+        if (percentComplete >= 80) {
+          this.prefetchNextVideo(videoId);
+        }
+      }
+    } catch (error) {
+      console.error('Error tracking playback:', error);
     }
   }
   
@@ -222,6 +305,54 @@ class VideoService {
     
     // Mock token
     return Buffer.from(JSON.stringify(payload)).toString('base64');
+  }
+  
+  /**
+   * Upload a new video to storage
+   */
+  async uploadVideo(file: File, metadata: { 
+    title: string; 
+    description: string;
+    nextInSequence?: string;
+  }): Promise<string | null> {
+    try {
+      // Generate a unique ID for the video
+      const videoId = `video-${nanoid(8)}`;
+      
+      // Upload the video file
+      const { error: uploadError } = await supabase
+        .storage
+        .from(this.storageBucket)
+        .upload(`${videoId}/stream.mp4`, file);
+        
+      if (uploadError) {
+        console.error('Error uploading video:', uploadError);
+        return null;
+      }
+      
+      // Save metadata to the database
+      const { error: metadataError } = await supabase
+        .from('video_metadata')
+        .insert({
+          id: videoId,
+          title: metadata.title,
+          description: metadata.description,
+          duration: 0, // Will be updated after processing
+          quality: ['480p'], // Default quality, will be updated after processing
+          nextInSequence: metadata.nextInSequence,
+          created_at: new Date()
+        });
+        
+      if (metadataError) {
+        console.error('Error saving video metadata:', metadataError);
+        // Still return the ID since the file was uploaded
+      }
+      
+      return videoId;
+    } catch (error) {
+      console.error('Error in uploadVideo:', error);
+      return null;
+    }
   }
 }
 
