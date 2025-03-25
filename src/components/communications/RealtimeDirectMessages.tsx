@@ -1097,6 +1097,88 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     );
   };
 
+  const renderComposeView = () => {
+    return (
+      <div className="flex flex-col h-full p-4">
+        <div className="flex items-center mb-4">
+          <Button variant="ghost" onClick={handleCancelCompose}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Cancel
+          </Button>
+          <h2 className="text-lg font-medium ml-2">New Message</h2>
+        </div>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">To:</label>
+            <div className="flex items-center gap-2">
+              {composeToStudent ? (
+                <div className="flex items-center gap-2 bg-military-navy/10 rounded-md p-2 pr-1">
+                  <Avatar className="h-6 w-6">
+                    {composeToStudent.avatar ? (
+                      <img src={composeToStudent.avatar} alt={composeToStudent.name} />
+                    ) : (
+                      <User className="h-3 w-3" />
+                    )}
+                  </Avatar>
+                  <span className="text-sm font-medium">{composeToStudent.name}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-5 w-5 p-0 ml-1" 
+                    onClick={() => setComposeToStudent(null)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <CohortStudentSelector 
+                  onSelectStudent={(student) => {
+                    setComposeToStudent(student);
+                    toast({
+                      description: `Selected recipient: ${student.name}`
+                    });
+                  }}
+                  className="w-full"
+                />
+              )}
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Subject:</label>
+            <Input 
+              placeholder="Subject" 
+              value={composeSubject}
+              onChange={(e) => setComposeSubject(e.target.value)}
+            />
+          </div>
+          
+          <div className="flex-grow">
+            <label className="block text-sm font-medium mb-1">Message:</label>
+            <Textarea 
+              placeholder="Write your message here..." 
+              className="min-h-[200px]"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+            />
+          </div>
+          
+          <div className="flex justify-end">
+            <Button 
+              className="flex items-center gap-2 bg-military-navy"
+              onClick={() => handleSendNewMessage(composeSubject, newMessage)}
+              disabled={!composeToStudent || !composeSubject.trim() || !newMessage.trim()}
+            >
+              <Send className="h-4 w-4" />
+              <span>Send</span>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderContent = () => {
     if (view === "thread" && activeConversationId) {
       const activeConversation = conversations.find(c => c.id === activeConversationId);
@@ -1126,85 +1208,7 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
         </div>
       );
     } else if (view === "compose") {
-      return (
-        <div className="flex flex-col h-full p-4">
-          <div className="flex items-center mb-4">
-            <Button variant="ghost" onClick={handleCancelCompose}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Cancel
-            </Button>
-            <h2 className="text-lg font-medium ml-2">New Message</h2>
-          </div>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">To:</label>
-              <div className="flex items-center gap-2">
-                {composeToStudent ? (
-                  <div className="flex items-center gap-2 bg-military-navy/10 rounded-md p-2 pr-1">
-                    <Avatar className="h-6 w-6">
-                      {composeToStudent.avatar ? (
-                        <img src={composeToStudent.avatar} alt={composeToStudent.name} />
-                      ) : (
-                        <User className="h-3 w-3" />
-                      )}
-                    </Avatar>
-                    <span className="text-sm font-medium">{composeToStudent.name}</span>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-5 w-5 p-0 ml-1" 
-                      onClick={() => setComposeToStudent(null)}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ) : (
-                  <CohortStudentSelector 
-                    onSelectStudent={(student) => {
-                      setComposeToStudent(student);
-                      toast({
-                        description: `Selected recipient: ${student.name}`
-                      });
-                    }}
-                    className="w-full"
-                  />
-                )}
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Subject:</label>
-              <Input 
-                placeholder="Subject" 
-                value={composeSubject}
-                onChange={(e) => setComposeSubject(e.target.value)}
-              />
-            </div>
-            
-            <div className="flex-grow">
-              <label className="block text-sm font-medium mb-1">Message:</label>
-              <Textarea 
-                placeholder="Write your message here..." 
-                className="min-h-[200px]"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-              />
-            </div>
-            
-            <div className="flex justify-end">
-              <Button 
-                className="flex items-center gap-2 bg-military-navy"
-                onClick={() => handleSendNewMessage(composeSubject, newMessage)}
-                disabled={!composeToStudent || !composeSubject.trim() || !newMessage.trim()}
-              >
-                <Send className="h-4 w-4" />
-                <span>Send</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      );
+      return renderComposeView();
     } else {
       return (
         <div className="flex flex-col h-full">

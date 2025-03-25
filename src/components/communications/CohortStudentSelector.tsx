@@ -26,24 +26,20 @@ const CohortStudentSelector: React.FC<CohortStudentSelectorProps> = ({
   const [filteredStudents, setFilteredStudents] = useState<CohortStudent[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Filter students based on search term
+  // Filter students based on search term - using dependency on searchTerm and selectedStudents
   useEffect(() => {
-    const filterStudents = () => {
-      if (searchTerm.trim() === "") {
-        setFilteredStudents([]);
-      } else {
-        const filtered = cohortStudents.filter(
-          (student) =>
-            !selectedStudents.some((s) => s.id === student.id) &&
-            (student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              (student.email &&
-                student.email.toLowerCase().includes(searchTerm.toLowerCase())))
-        );
-        setFilteredStudents(filtered);
-      }
-    };
-    
-    filterStudents();
+    if (searchTerm.trim() === "") {
+      setFilteredStudents([]);
+    } else {
+      const filtered = cohortStudents.filter(
+        (student) =>
+          !selectedStudents.some((s) => s.id === student.id) &&
+          (student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (student.email &&
+              student.email.toLowerCase().includes(searchTerm.toLowerCase())))
+      );
+      setFilteredStudents(filtered);
+    }
   }, [searchTerm, selectedStudents]);
 
   // Close dropdown when clicking outside
