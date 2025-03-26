@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileVideo, FileImage, FileAudio, File, ExternalLink } from "lucide-react";
+import { FileVideo, FileImage, FileAudio, File, Download, ExternalLink } from "lucide-react";
 import { MediaAttachment } from './MediaAttachmentButton';
 import { useContentDelivery } from '@/hooks/use-content-delivery';
 import { useToast } from '@/hooks/use-toast';
