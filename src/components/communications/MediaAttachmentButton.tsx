@@ -19,7 +19,7 @@ export type MediaAttachment = {
   size?: number;
 };
 
-interface MediaAttachmentButtonProps {
+export interface MediaAttachmentButtonProps {
   onAttach: (attachment: MediaAttachment) => void;
 }
 

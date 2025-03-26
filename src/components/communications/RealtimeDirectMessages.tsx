@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { useRealtimeMessages, RealTimeMessage, RealTimeConversation } from "@/hooks/use-realtime-messages";
 import { Avatar } from "@/components/ui/avatar";
@@ -1088,5 +1089,126 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
               className="flex items-center gap-2 bg-military-navy"
               disabled={!newMessage.trim()}
               type="button"
+            >
+              <Send className="h-4 w-4" />
+              Send
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
+  // Main component render
+  return (
+    <div className="flex flex-col h-full bg-white">
+      {view === "list" && (
+        <div className="grid grid-cols-[250px_1fr] h-full border rounded-md">
+          <div className="border-r">
+            <div className="p-4 border-b">
+              <ComposeButton onClick={handleComposeNew} />
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+                <Input 
+                  placeholder="Search conversations" 
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+            <SidebarNav 
+              activeView={activeView}
+              setActiveView={setActiveView}
+              counts={{ inbox: unreadCount, drafts: draftCount }}
+            />
+          </div>
+          <InboxList 
+            conversations={filteredConversations}
+            activeConversationId={activeConversationId || ""}
+            selectedConversations={selectedConversations}
+            onSelectConversation={handleSelectConversation}
+            onCheckboxChange={handleCheckboxChange}
+            onStar={handleStar}
+            onImportant={handleImportant}
+            onSelectAll={handleSelectAll}
+            onRefresh={handleRefresh}
+            isSelectAll={isSelectAll}
+          />
+        </div>
+      )}
 
+      {view === "thread" && (
+        <div className="flex flex-col h-full border rounded-md">
+          <ThreadView 
+            messages={activeConversationId ? messages[activeConversationId] : []}
+            activeConversation={conversations.find(c => c.id === activeConversationId)}
+            highlightedMessageId={selectedMessageId}
+            onStarMessage={handleStarMessage}
+            onReplyMessage={handleReplyMessage}
+            onForwardMessage={handleForwardMessage}
+            onGoBack={handleGoBackToList}
+            onArchive={handleArchive}
+            onDelete={handleDelete}
+          />
+          <MessageComposer 
+            newMessage={newMessage}
+            setNewMessage={setNewMessage}
+            handleSendMessage={handleSendMessage}
+            handleKeyDown={handleKeyDown}
+            replyToMessage={replyToMessage}
+          />
+        </div>
+      )}
+
+      {view === "compose" && (
+        <div className="flex flex-col h-full border rounded-md p-4">
+          <div className="flex justify-between mb-4">
+            <h2 className="text-lg font-medium">New Message</h2>
+            <Button variant="ghost" size="sm" onClick={handleCancelCompose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <Label>To:</Label>
+              <CohortStudentSelector
+                selected={composeToStudent}
+                onSelectStudent={setComposeToStudent}
+              />
+            </div>
+            
+            <div>
+              <Label>Subject:</Label>
+              <Input 
+                value={composeSubject}
+                onChange={e => setComposeSubject(e.target.value)}
+                placeholder="Message subject"
+              />
+            </div>
+            
+            <div className="flex-1">
+              <Label>Message:</Label>
+              <Textarea 
+                value={newMessage}
+                onChange={e => setNewMessage(e.target.value)}
+                placeholder="Type your message here..."
+                className="min-h-[200px]"
+              />
+            </div>
+            
+            <div className="flex justify-end">
+              <Button onClick={() => handleSendNewMessage(composeSubject, newMessage)}>
+                <Send className="h-4 w-4 mr-2" />
+                Send
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default RealtimeDirectMessages;
