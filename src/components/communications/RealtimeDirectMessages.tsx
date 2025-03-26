@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useRealtimeMessages, RealTimeMessage, RealTimeConversation } from "@/hooks/use-realtime-messages";
-import { SearchIcon, Star, Flag, Trash2, CheckCheck, Check, Clock, Paperclip, SendHorizontal, MoreVertical, ChevronDown, X, FilePlus, PlusCircle, Image, FileText, File } from "lucide-react";
+import { SearchIcon, Star, Flag, Trash2, CheckCheck, Check, Clock, Paperclip, SendHorizontal, MoreVertical, ChevronDown, X, FilePlus, PlusCircle, Image, FileText, File, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -71,7 +70,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
   const messageInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
-  // Filtered conversations based on search term and filters
   const filteredConversations = conversations
     .filter(conversation => 
       (starredFilter ? conversation.isStarred : true) &&
@@ -81,43 +79,36 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
         (conversation.lastMessage && conversation.lastMessage.toLowerCase().includes(searchTerm.toLowerCase())))
     )
     .sort((a, b) => {
-      // Sort by unread first, then by timestamp
       if (a.unread > 0 && b.unread === 0) return -1;
       if (a.unread === 0 && b.unread > 0) return 1;
       
-      // For same unread status, sort by timestamp (would need parsing in a real app)
       return 0;
     });
     
-  // Select a conversation if none is selected
   useEffect(() => {
     if (!selectedConversation && filteredConversations.length > 0 && !isCreatingNew) {
       setSelectedConversation(filteredConversations[0]);
     }
   }, [filteredConversations, selectedConversation, isCreatingNew]);
   
-  // Scroll to bottom when messages change
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, selectedConversation]);
   
-  // Mark conversation as read when selected
   useEffect(() => {
     if (selectedConversation && selectedConversation.unread > 0) {
       markConversationAsRead(selectedConversation.id);
     }
   }, [selectedConversation, markConversationAsRead]);
   
-  // Focus on message input when conversation is selected
   useEffect(() => {
     if (selectedConversation && messageInputRef.current) {
       messageInputRef.current.focus();
     }
   }, [selectedConversation]);
   
-  // Handle selecting a conversation
   const handleSelectConversation = (conversation: RealTimeConversation) => {
     setSelectedConversation(conversation);
     setIsCreatingNew(false);
@@ -127,7 +118,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     }
   };
   
-  // Handle sending a message
   const handleSendMessage = (event?: React.FormEvent) => {
     if (event) event.preventDefault();
     
@@ -154,7 +144,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
       setAttachments([]);
       setIsCreatingNew(false);
       
-      // Find and select the newly created conversation
       const newConversation = conversations.find(conv => conv.id === newConversationId);
       if (newConversation) {
         setSelectedConversation(newConversation);
@@ -167,7 +156,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     }
   };
   
-  // Handle creating a new conversation
   const handleNewConversation = () => {
     setIsCreatingNew(true);
     setSelectedConversation(null);
@@ -176,11 +164,9 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     setAttachments([]);
   };
   
-  // Handle selecting a student for a new conversation
   const handleSelectStudent = (student: CohortStudent) => {
     setSelectedStudent(student);
     
-    // Check if conversation with this student already exists
     const existingConversation = conversations.find(
       conv => conv.contact.id === student.id
     );
@@ -191,19 +177,16 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     }
   };
   
-  // Handle adding an attachment
   const handleAddAttachment = (attachment: any) => {
     setAttachments([...attachments, attachment]);
   };
   
-  // Handle removing an attachment
   const handleRemoveAttachment = (index: number) => {
     const newAttachments = [...attachments];
     newAttachments.splice(index, 1);
     setAttachments(newAttachments);
   };
   
-  // Handle deleting a conversation
   const handleDeleteConversation = () => {
     if (selectedConversation) {
       const contactName = selectedConversation.contact.name;
@@ -218,15 +201,13 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     }
   };
   
-  // Handle deleting all messages in a conversation
   const handleDeleteAllMessages = () => {
     if (selectedConversation) {
+      const contactName = selectedConversation.contact.name;
       const conversationId = selectedConversation.id;
       
-      // Delete the conversation and create a new empty one with the same contact
       deleteConversation(conversationId);
       
-      // Create a new conversation with the same contact
       const newConversationId = createConversation({
         id: selectedConversation.contact.id,
         name: selectedConversation.contact.name,
@@ -235,7 +216,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
         role: selectedConversation.contact.role
       });
       
-      // Find and select the newly created conversation
       const newConversation = conversations.find(conv => conv.id === newConversationId);
       if (newConversation) {
         setSelectedConversation(newConversation);
@@ -245,14 +225,13 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
       
       toast({
         title: "Messages Deleted",
-        description: `All messages with ${selectedConversation.contact.name} have been deleted.`,
+        description: `All messages with ${contactName} have been deleted.`,
       });
     }
   };
   
   return (
     <div className="border rounded-md grid grid-cols-1 md:grid-cols-3 h-[600px]">
-      {/* Conversations List */}
       <div className="md:col-span-1 border-r">
         <div className="p-3 border-b">
           <div className="relative mb-3">
@@ -378,18 +357,16 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
         </ScrollArea>
       </div>
       
-      {/* Conversation View */}
       <div className="md:col-span-2 flex flex-col h-full">
         {selectedConversation ? (
           <>
-            {/* Conversation Header */}
             <div className="p-3 border-b flex justify-between items-center">
               <div className="flex items-center">
                 <Avatar className="h-10 w-10 mr-3">
                   {selectedConversation.contact.avatar ? (
                     <img src={selectedConversation.contact.avatar} alt={selectedConversation.contact.name} className="object-cover" />
                   ) : (
-                    <div className="bg-military-navy text-military-sand h-full w-full flex items-center justify-center font-semibold">
+                    <div className="bg-military-navy text-military-sand h-full w-full flex items-center justify-center text-xs font-semibold">
                       {selectedConversation.contact.name.charAt(0)}
                     </div>
                   )}
@@ -461,7 +438,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
               </div>
             </div>
             
-            {/* Messages */}
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-4">
                 {messages[selectedConversation.id]?.length > 0 ? (
@@ -495,7 +471,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
                             >
                               <p>{message.content}</p>
                               
-                              {/* Attachments */}
                               {message.attachments && message.attachments.length > 0 && (
                                 <div className="mt-2 space-y-2">
                                   {message.attachments.map((attachment) => (
@@ -545,7 +520,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
               </div>
             </ScrollArea>
             
-            {/* Message Input */}
             <div className="p-3 border-t">
               {attachments.length > 0 && (
                 <div className="mb-2 flex flex-wrap gap-2">
@@ -568,7 +542,7 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
               )}
               
               <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
-                <MediaAttachmentButton onSelect={handleAddAttachment} />
+                <MediaAttachmentButton onAttachmentSelect={handleAddAttachment} />
                 
                 <Input
                   ref={messageInputRef}
@@ -590,7 +564,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
           </>
         ) : isCreatingNew ? (
           <>
-            {/* New Conversation */}
             <div className="p-3 border-b">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="font-medium">New Message</h3>
@@ -641,7 +614,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
               )}
             </div>
             
-            {/* Message Input */}
             <div className="flex-1 flex flex-col">
               <div className="flex-1 p-4">
                 {selectedStudent ? (
@@ -677,7 +649,7 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
                 )}
                 
                 <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
-                  <MediaAttachmentButton onSelect={handleAddAttachment} />
+                  <MediaAttachmentButton onAttachmentSelect={handleAddAttachment} />
                   
                   <Input
                     value={messageText}
@@ -717,7 +689,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
         )}
       </div>
       
-      {/* Delete Confirmation Dialog */}
       <Dialog open={showConfirmDelete} onOpenChange={setShowConfirmDelete}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -737,7 +708,6 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
         </DialogContent>
       </Dialog>
       
-      {/* Delete All Messages Confirmation Dialog */}
       <Dialog open={showDeleteAllMessages} onOpenChange={setShowDeleteAllMessages}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
