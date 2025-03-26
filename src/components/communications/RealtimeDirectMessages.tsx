@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRealtimeMessages, RealTimeMessage, RealTimeConversation } from "@/hooks/use-realtime-messages";
-import { SearchIcon, Star, Flag, Trash2, CheckCheck, Check, Clock, Paperclip, SendHorizontal, MoreVertical, ChevronDown, X, FilePlus, PlusCircle, Image, FileText, File } from "lucide-react";
+import { SearchIcon, Star, Flag, Trash2, CheckCheck, Check, Clock, Paperclip, SendHorizontal, MoreVertical, ChevronDown, X, FilePlus, PlusCircle, Image, FileText, File, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import MediaAttachmentButton from "./MediaAttachmentButton";
+import MediaAttachmentButton, { MediaAttachment } from "./MediaAttachmentButton";
 import MediaPreview from "./MediaPreview";
 import { useToast } from "@/hooks/use-toast";
 
