@@ -84,6 +84,7 @@ const CohortStudentSelector: React.FC<CohortStudentSelectorProps> = ({
           onFocus={handleInputFocus}
           placeholder={placeholder}
           className="pl-8"
+          autoComplete="off" // Prevent browser autocomplete from interfering
         />
       </div>
 
