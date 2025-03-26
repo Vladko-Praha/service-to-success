@@ -1,52 +1,96 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useRealtimeMessages, RealTimeMessage, RealTimeConversation } from "@/hooks/use-realtime-messages";
-import { SearchIcon, Star, Flag, Trash2, CheckCheck, Check, Clock, Paperclip, SendHorizontal, MoreVertical, ChevronDown, X, FilePlus, PlusCircle, Image, FileText, File, MessageSquare } from "lucide-react";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar } from "@/components/ui/avatar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import CohortStudentSelector from "./CohortStudentSelector";
-import { CohortStudent, cohortStudents } from "@/data/cohortStudents";
-import UserMention from "./UserMention";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import MediaAttachmentButton, { MediaAttachment } from "./MediaAttachmentButton";
-import MediaPreview from "./MediaPreview";
 import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  MessageSquare, 
+  Search, 
+  Send, 
+  User, 
+  FileText, 
+  Paperclip, 
+  Image, 
+  Smile, 
+  Bold,
+  Italic,
+  Underline,
+  Code,
+  List,
+  ListOrdered,
+  CheckCheck,
+  Star,
+  Trash,
+  Archive,
+  Tag,
+  MoreHorizontal,
+  RefreshCw,
+  Clock,
+  Reply,
+  Forward,
+  Download,
+  Inbox,
+  ChevronDown,
+  Mail,
+  FilePlus,
+  Plus,
+  Pencil,
+  ArrowLeft,
+  ArrowRight,
+  MoreVertical,
+  Trash2,
+  Clock3,
+  X
+} from "lucide-react";
+import MediaPreview from "./MediaPreview";
+import { MediaAttachment } from "./MediaAttachmentButton";
+import { useRealtimeNotifications } from "@/hooks/use-realtime-notifications";
+import UserMention from "./UserMention";
+import { cohortStudents, CohortStudent } from "@/data/cohortStudents";
+import CohortStudentSelector from "./CohortStudentSelector";
 
 interface RealtimeDirectMessagesProps {
   selectedMessageId: string | null;
 }
 
-const getRelativeTime = (timestamp: string) => {
-  if (timestamp.includes("AM") || timestamp.includes("PM")) return timestamp;
-  return timestamp;
-};
-
-const getStatusIcon = (status: string) => {
-  switch (status) {
-    case "sending":
-      return <Clock className="h-3 w-3 text-muted-foreground" />;
-    case "sent":
-      return <Check className="h-3 w-3 text-muted-foreground" />;
-    case "delivered":
-      return <CheckCheck className="h-3 w-3 text-muted-foreground" />;
-    case "read":
-      return <CheckCheck className="h-3 w-3 text-green-500" />;
-    default:
-      return null;
-  }
+const adaptMessageForUI = (message: RealTimeMessage) => {
+  return {
+    id: message.id,
+    sender: {
+      id: message.sender_id,
+      name: message.sender_name,
+      avatar: message.sender_avatar,
+      status: message.sender_status
+    },
+    content: message.content,
+    timestamp: message.timestamp,
+    status: message.status,
+    isStarred: message.is_starred,
+    isImportant: message.is_important,
+    attachments: message.attachments
+  };
 };
 
 const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selectedMessageId }) => {
   const {
     conversations,
     messages,
+    isConnected,
+    connectionError,
     sendMessage,
     markConversationAsRead,
     toggleConversationStar,
@@ -55,709 +99,994 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
     createConversation,
     deleteConversation
   } = useRealtimeMessages();
-  
-  const [selectedConversation, setSelectedConversation] = useState<RealTimeConversation | null>(null);
+
+  const { createMentionNotification, processMentions } = useRealtimeNotifications();
+
+  const [view, setView] = useState<"list" | "thread" | "compose">("list");
+  const [activeView, setActiveView] = useState("inbox");
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [newMessage, setNewMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [messageText, setMessageText] = useState("");
-  const [attachments, setAttachments] = useState<any[]>([]);
-  const [isCreatingNew, setIsCreatingNew] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<CohortStudent | null>(null);
-  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [showDeleteAllMessages, setShowDeleteAllMessages] = useState(false);
-  const [starredFilter, setStarredFilter] = useState(false);
-  const [unreadFilter, setUnreadFilter] = useState(false);
-  
+  const [selectedConversations, setSelectedConversations] = useState<string[]>([]);
+  const [isSelectAll, setIsSelectAll] = useState(false);
+  const [replyToMessage, setReplyToMessage] = useState<RealTimeMessage | null>(null);
+  const [composeToStudent, setComposeToStudent] = useState<CohortStudent | null>(null);
+  const [composeSubject, setComposeSubject] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messageInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
-  // Filtered conversations based on search term and filters
-  const filteredConversations = conversations
-    .filter(conversation => 
-      (starredFilter ? conversation.isStarred : true) &&
-      (unreadFilter ? conversation.unread > 0 : true) &&
-      (searchTerm === "" || 
-        conversation.contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (conversation.lastMessage && conversation.lastMessage.toLowerCase().includes(searchTerm.toLowerCase())))
-    )
-    .sort((a, b) => {
-      // Sort by unread first, then by timestamp
-      if (a.unread > 0 && b.unread === 0) return -1;
-      if (a.unread === 0 && b.unread > 0) return 1;
-      
-      // For same unread status, sort by timestamp (would need parsing in a real app)
-      return 0;
-    });
-    
-  // Select a conversation if none is selected
+  const filteredConversations = conversations.filter(conv => {
+    if (activeView === "inbox") return !conv.isStarred;
+    if (activeView === "starred") return conv.isStarred;
+    if (activeView === "important") return conv.isImportant;
+    return true;
+  }).filter(conv => {
+    return conv.contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (conv.subject && conv.subject.toLowerCase().includes(searchTerm.toLowerCase()));
+  });
+
+  const unreadCount = conversations.reduce((sum, conv) => sum + conv.unread, 0);
+  const draftCount = 2; // Mock value
+
   useEffect(() => {
-    if (!selectedConversation && filteredConversations.length > 0 && !isCreatingNew) {
-      setSelectedConversation(filteredConversations[0]);
-    }
-  }, [filteredConversations, selectedConversation, isCreatingNew]);
-  
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    if (messagesEndRef.current) {
+    if (view === "thread" && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, selectedConversation]);
-  
-  // Mark conversation as read when selected
+  }, [messages, view, activeConversationId]);
+
   useEffect(() => {
-    if (selectedConversation && selectedConversation.unread > 0) {
-      markConversationAsRead(selectedConversation.id);
+    if (selectedMessageId) {
+      for (const [convId, msgList] of Object.entries(messages)) {
+        if (msgList.some(msg => msg.id === selectedMessageId)) {
+          setActiveConversationId(convId);
+          setView("thread");
+          setTimeout(() => {
+            const element = document.getElementById(`message-${selectedMessageId}`);
+            if (element) {
+              element.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          }, 100);
+          break;
+        }
+      }
     }
-  }, [selectedConversation, markConversationAsRead]);
-  
-  // Focus on message input when conversation is selected
-  useEffect(() => {
-    if (selectedConversation && messageInputRef.current) {
-      messageInputRef.current.focus();
-    }
-  }, [selectedConversation]);
-  
-  // Handle selecting a conversation
+  }, [selectedMessageId, messages]);
+
   const handleSelectConversation = (conversation: RealTimeConversation) => {
-    setSelectedConversation(conversation);
-    setIsCreatingNew(false);
+    setActiveConversationId(conversation.id);
+    setView("thread");
     
     if (conversation.unread > 0) {
       markConversationAsRead(conversation.id);
     }
   };
-  
-  // Handle sending a message
-  const handleSendMessage = (event?: React.FormEvent) => {
-    if (event) event.preventDefault();
+
+  const handleGoBackToList = () => {
+    setView("list");
+    setActiveConversationId(null);
+    setReplyToMessage(null);
+  };
+
+  const handleComposeNew = () => {
+    setView("compose");
+    setActiveConversationId(null);
+    setReplyToMessage(null);
+  };
+
+  const handleCancelCompose = () => {
+    setView("list");
+  };
+
+  const handleSendNewMessage = (subject: string, content: string) => {
+    if (!composeToStudent) {
+      toast({
+        title: "Error",
+        description: "Please select a recipient",
+        variant: "destructive"
+      });
+      return;
+    }
     
-    if (selectedConversation && messageText.trim()) {
-      sendMessage(selectedConversation.id, messageText, attachments);
-      setMessageText("");
-      setAttachments([]);
-      
-      toast({
-        title: "Message Sent",
-        description: "Your message has been sent successfully.",
-      });
-    } else if (isCreatingNew && selectedStudent && messageText.trim()) {
-      const newConversationId = createConversation({
-        id: selectedStudent.id,
-        name: selectedStudent.name,
-        avatar: selectedStudent.avatar,
-        status: selectedStudent.status || "offline",
-        role: selectedStudent.role
-      });
-      
-      sendMessage(newConversationId, messageText, attachments);
-      setMessageText("");
-      setAttachments([]);
-      setIsCreatingNew(false);
-      
-      // Find and select the newly created conversation
-      const newConversation = conversations.find(conv => conv.id === newConversationId);
-      if (newConversation) {
-        setSelectedConversation(newConversation);
-      }
-      
-      toast({
-        title: "Message Sent",
-        description: `Your message has been sent to ${selectedStudent.name}.`,
-      });
+    const newContact = {
+      id: composeToStudent.id,
+      name: composeToStudent.name,
+      status: composeToStudent.status as "online" | "offline" | "away"
+    };
+    
+    const conversationId = createConversation(newContact, subject);
+    
+    const { processedText, mentionedUserIds } = processMentions(content);
+    
+    if (mentionedUserIds.length > 0) {
+      const context = `new message to ${composeToStudent.name}`;
+      createMentionNotification("You", content, context);
+    }
+    
+    sendMessage(conversationId, processedText);
+    
+    toast({
+      title: "Message sent",
+      description: `Your message to ${composeToStudent.name} has been sent.`
+    });
+    
+    setView("list");
+    setComposeToStudent(null);
+    setComposeSubject("");
+    setNewMessage("");
+  };
+
+  const handleSendMessage = () => {
+    if (!newMessage.trim() || !activeConversationId) return;
+    
+    const { processedText, mentionedUserIds } = processMentions(newMessage);
+    
+    if (mentionedUserIds.length > 0) {
+      const activeConversation = conversations.find(c => c.id === activeConversationId);
+      const context = `conversation with ${activeConversation?.contact.name || 'someone'}`;
+      createMentionNotification("You", newMessage, context);
+    }
+    
+    sendMessage(activeConversationId, processedText);
+    setNewMessage("");
+    setReplyToMessage(null);
+    
+    toast({
+      title: "Message sent",
+      description: "Your message has been sent."
+    });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
     }
   };
-  
-  // Handle creating a new conversation
-  const handleNewConversation = () => {
-    setIsCreatingNew(true);
-    setSelectedConversation(null);
-    setSelectedStudent(null);
-    setMessageText("");
-    setAttachments([]);
-  };
-  
-  // Handle selecting a student for a new conversation
-  const handleSelectStudent = (student: CohortStudent) => {
-    setSelectedStudent(student);
-    
-    // Check if conversation with this student already exists
-    const existingConversation = conversations.find(
-      conv => conv.contact.id === student.id
+
+  const handleCheckboxChange = (id: string, checked: boolean) => {
+    setSelectedConversations(prev =>
+      checked
+        ? [...prev, id]
+        : prev.filter(convId => convId !== id)
     );
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    setIsSelectAll(checked);
+    setSelectedConversations(
+      checked ? filteredConversations.map(conv => conv.id) : []
+    );
+  };
+
+  const handleRefresh = () => {
+    toast({
+      title: "Refreshed",
+      description: "Your messages have been refreshed."
+    });
+  };
+
+  const handleStar = (id: string) => {
+    toggleConversationStar(id);
     
-    if (existingConversation) {
-      setSelectedConversation(existingConversation);
-      setIsCreatingNew(false);
-    }
+    toast({
+      description: "Conversation star status updated."
+    });
   };
-  
-  // Handle adding an attachment
-  const handleAddAttachment = (attachment: any) => {
-    setAttachments([...attachments, attachment]);
+
+  const handleImportant = (id: string) => {
+    toggleConversationImportant(id);
+    
+    toast({
+      description: "Conversation importance status updated."
+    });
   };
-  
-  // Handle removing an attachment
-  const handleRemoveAttachment = (index: number) => {
-    const newAttachments = [...attachments];
-    newAttachments.splice(index, 1);
-    setAttachments(newAttachments);
+
+  const handleStarMessage = (messageId: string) => {
+    if (!activeConversationId) return;
+    
+    toggleMessageStar(messageId, activeConversationId);
+    
+    toast({
+      description: "Message star status updated."
+    });
   };
-  
-  // Handle deleting a conversation
-  const handleDeleteConversation = () => {
-    if (selectedConversation) {
-      const contactName = selectedConversation.contact.name;
-      deleteConversation(selectedConversation.id);
-      setSelectedConversation(null);
-      setShowConfirmDelete(false);
-      
-      toast({
-        title: "Conversation Deleted",
-        description: `Your conversation with ${contactName} has been deleted.`,
-      });
-    }
-  };
-  
-  // Handle deleting all messages in a conversation
-  const handleDeleteAllMessages = () => {
-    if (selectedConversation) {
-      const conversationId = selectedConversation.id;
-      
-      // Delete the conversation and create a new empty one with the same contact
-      deleteConversation(conversationId);
-      
-      // Create a new conversation with the same contact
-      const newConversationId = createConversation({
-        id: selectedConversation.contact.id,
-        name: selectedConversation.contact.name,
-        avatar: selectedConversation.contact.avatar,
-        status: selectedConversation.contact.status,
-        role: selectedConversation.contact.role
-      });
-      
-      // Find and select the newly created conversation
-      const newConversation = conversations.find(conv => conv.id === newConversationId);
-      if (newConversation) {
-        setSelectedConversation(newConversation);
+
+  const handleReplyMessage = (messageId: string) => {
+    if (!activeConversationId) return;
+
+    const message = messages[activeConversationId].find(msg => msg.id === messageId);
+    if (message) {
+      setReplyToMessage(message);
+
+      const textarea = document.querySelector('textarea');
+      if (textarea) {
+        textarea.focus();
       }
-      
-      setShowDeleteAllMessages(false);
+    }
+  };
+
+  const handleForwardMessage = (messageId: string) => {
+    if (!activeConversationId) return;
+
+    const message = messages[activeConversationId].find(msg => msg.id === messageId);
+    if (message) {
+      setView("compose");
+      // Pre-fill the compose form with the forwarded message
+      // (This would be implemented in a real app)
       
       toast({
-        title: "Messages Deleted",
-        description: `All messages with ${selectedConversation.contact.name} have been deleted.`,
+        title: "Forward message",
+        description: "Forward message functionality is now available!"
       });
     }
   };
-  
-  return (
-    <div className="border rounded-md grid grid-cols-1 md:grid-cols-3 h-[600px]">
-      {/* Conversations List */}
-      <div className="md:col-span-1 border-r">
-        <div className="p-3 border-b">
-          <div className="relative mb-3">
-            <SearchIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              type="search" 
-              placeholder="Search messages..." 
-              className="pl-8" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+
+  const handleArchive = () => {
+    if (activeConversationId) {
+      // In a real app, we would actually archive the conversation
+      // For now, we'll just delete it from the view
+      deleteConversation(activeConversationId);
+
+      setView("list");
+      setActiveConversationId(null);
+
+      toast({
+        title: "Archived",
+        description: "Conversation has been archived."
+      });
+    }
+  };
+
+  const handleDelete = () => {
+    if (activeConversationId) {
+      deleteConversation(activeConversationId);
+
+      setView("list");
+      setActiveConversationId(null);
+
+      toast({
+        title: "Deleted",
+        description: "Conversation has been deleted."
+      });
+    }
+  };
+
+  const ComposeButton = ({ onClick }: { onClick: () => void }) => {
+    return (
+      <Button 
+        onClick={onClick} 
+        className="flex items-center gap-2 mb-4 w-full max-w-[200px] bg-white hover:bg-gray-100 text-gray-800 shadow-sm border"
+      >
+        <Pencil className="h-4 w-4" />
+        <span>Compose</span>
+      </Button>
+    );
+  };
+
+  const SidebarNav = ({ activeView, setActiveView, counts }: { 
+    activeView: string;
+    setActiveView: (view: string) => void;
+    counts: { inbox: number; drafts: number; };
+  }) => {
+    return (
+      <div className="py-2">
+        <div className="space-y-1">
+          <Button 
+            variant="ghost" 
+            className={`w-full justify-start font-medium ${activeView === 'inbox' ? 'bg-blue-50 text-blue-700' : ''}`}
+            onClick={() => setActiveView('inbox')}
+          >
+            <Inbox className="h-4 w-4 mr-3" />
+            Inbox
+            {counts.inbox > 0 && (
+              <Badge className="ml-auto bg-gray-700">{counts.inbox}</Badge>
+            )}
+          </Button>
+          <Button 
+            variant="ghost" 
+            className={`w-full justify-start ${activeView === 'starred' ? 'bg-blue-50 text-blue-700' : ''}`}
+            onClick={() => setActiveView('starred')}
+          >
+            <Star className="h-4 w-4 mr-3" />
+            Starred
+          </Button>
+          <Button 
+            variant="ghost" 
+            className={`w-full justify-start ${activeView === 'snoozed' ? 'bg-blue-50 text-blue-700' : ''}`}
+            onClick={() => setActiveView('snoozed')}
+          >
+            <Clock3 className="h-4 w-4 mr-3" />
+            Snoozed
+          </Button>
+          <Button 
+            variant="ghost" 
+            className={`w-full justify-start ${activeView === 'important' ? 'bg-blue-50 text-blue-700' : ''}`}
+            onClick={() => setActiveView('important')}
+          >
+            <Tag className="h-4 w-4 mr-3" />
+            Important
+          </Button>
+          <Button 
+            variant="ghost" 
+            className={`w-full justify-start ${activeView === 'sent' ? 'bg-blue-50 text-blue-700' : ''}`}
+            onClick={() => setActiveView('sent')}
+          >
+            <Send className="h-4 w-4 mr-3" />
+            Sent
+          </Button>
+          <Button 
+            variant="ghost" 
+            className={`w-full justify-start ${activeView === 'drafts' ? 'bg-blue-50 text-blue-700' : ''}`}
+            onClick={() => setActiveView('drafts')}
+          >
+            <FilePlus className="h-4 w-4 mr-3" />
+            Drafts
+            {counts.drafts > 0 && (
+              <Badge className="ml-auto bg-gray-500">{counts.drafts}</Badge>
+            )}
+          </Button>
+          <Button variant="ghost" className="w-full justify-start">
+            <ChevronDown className="h-4 w-4 mr-3" />
+            More
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  const InboxListItem = ({ 
+    conversation, 
+    isActive,
+    isSelected,
+    onSelect,
+    onCheckboxChange,
+    onStar,
+    onImportant
+  }: { 
+    conversation: RealTimeConversation,
+    isActive: boolean,
+    isSelected: boolean,
+    onSelect: () => void,
+    onCheckboxChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
+    onStar: () => void,
+    onImportant: () => void
+  }) => {
+    return (
+      <div 
+        className={`flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer border-b ${
+          isActive ? 'bg-gray-100' : ''
+        } ${conversation.unread > 0 ? 'font-semibold' : ''}`}
+        onClick={onSelect}
+      >
+        <div className="flex items-center gap-3 w-full">
+          <input 
+            type="checkbox" 
+            className="h-4 w-4 rounded-sm border-gray-300"
+            onClick={(e) => e.stopPropagation()}
+            onChange={onCheckboxChange}
+            checked={isSelected}
+          />
+          
+          <button
+            className="text-gray-400 hover:text-amber-400 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              onStar();
+            }}
+            aria-label="Star conversation"
+          >
+            <Star className={`h-4 w-4 ${conversation.isStarred ? 'fill-amber-400 text-amber-400' : ''}`} />
+          </button>
+          
+          <button
+            className="text-gray-400 hover:text-amber-400 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              onImportant();
+            }}
+            aria-label="Mark as important"
+          >
+            <Tag className={`h-4 w-4 ${conversation.isImportant ? 'fill-amber-400 text-amber-400' : ''}`} />
+          </button>
+          
+          <div className="flex-1 min-w-0 flex">
+            <div className="w-[180px] truncate font-medium">
+              {conversation.contact.name}
+            </div>
+            <div className="flex-1 truncate">
+              {conversation.contact.isTyping ? (
+                <span className="text-blue-600 italic">Typing...</span>
+              ) : (
+                <span className="text-gray-700">{conversation.subject}</span>
+              )}
+            </div>
+            <span className="text-xs text-gray-500 whitespace-nowrap ml-2">{conversation.timestamp}</span>
           </div>
           
-          <div className="flex justify-between items-center">
-            <div className="space-x-1">
-              <Button 
-                size="sm" 
-                variant={starredFilter ? "default" : "outline"} 
-                className={starredFilter ? "bg-military-navy text-military-sand" : ""}
-                onClick={() => setStarredFilter(!starredFilter)}
-              >
-                <Star className={`h-4 w-4 ${starredFilter ? "fill-military-sand" : ""} mr-1`} />
-                Starred
-              </Button>
-              
-              <Button 
-                size="sm" 
-                variant={unreadFilter ? "default" : "outline"}
-                className={unreadFilter ? "bg-military-navy text-military-sand" : ""}
-                onClick={() => setUnreadFilter(!unreadFilter)}
-              >
-                Unread
-                {unreadFilter && conversations.filter(c => c.unread > 0).length > 0 && (
-                  <Badge variant="secondary" className="ml-1 bg-military-sand text-military-navy">
-                    {conversations.filter(c => c.unread > 0).length}
-                  </Badge>
-                )}
-              </Button>
-            </div>
-            
-            <Button 
-              size="sm" 
-              onClick={handleNewConversation}
-              className="bg-military-navy text-military-sand"
-            >
-              <PlusCircle className="h-4 w-4 mr-1" />
-              New
+          {conversation.unread > 0 && (
+            <Badge className="bg-blue-600 ml-2 rounded-full text-xs h-5 w-5 flex items-center justify-center p-0">{conversation.unread}</Badge>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const InboxList = ({ 
+    conversations, 
+    activeConversationId, 
+    selectedConversations,
+    onSelectConversation,
+    onCheckboxChange,
+    onStar,
+    onImportant,
+    onSelectAll,
+    onRefresh,
+    isSelectAll
+  }: { 
+    conversations: RealTimeConversation[], 
+    activeConversationId: string,
+    selectedConversations: string[],
+    onSelectConversation: (conversation: RealTimeConversation) => void,
+    onCheckboxChange: (id: string, checked: boolean) => void,
+    onStar: (id: string) => void,
+    onImportant: (id: string) => void,
+    onSelectAll: (checked: boolean) => void,
+    onRefresh: () => void,
+    isSelectAll: boolean
+  }) => {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="border-b py-2 px-2 bg-gray-50 flex items-center gap-2">
+          <input 
+            type="checkbox" 
+            className="h-4 w-4 rounded-sm border-gray-300"
+            checked={isSelectAll}
+            onChange={(e) => onSelectAll(e.target.checked)}
+          />
+          <button onClick={onRefresh}>
+            <RefreshCw className="h-4 w-4 text-gray-500 ml-2" />
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button>
+                <MoreVertical className="h-4 w-4 text-gray-500" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem>Mark all as read</DropdownMenuItem>
+              <DropdownMenuItem>Delete selected</DropdownMenuItem>
+              <DropdownMenuItem>Archive selected</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          <div className="flex ml-auto gap-2">
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
         
-        <ScrollArea className="h-[calc(600px-70px)]">
-          {filteredConversations.length > 0 ? (
-            <div className="divide-y">
-              {filteredConversations.map((conversation) => (
-                <div
-                  key={conversation.id}
-                  className={`p-3 hover:bg-gray-100 cursor-pointer transition-colors ${
-                    selectedConversation?.id === conversation.id ? "bg-gray-100" : ""
-                  }`}
-                  onClick={() => handleSelectConversation(conversation)}
-                >
-                  <div className="flex justify-between items-start mb-1">
-                    <div className="flex items-center">
-                      <div className="relative">
-                        <Avatar className="h-10 w-10 mr-3">
-                          {conversation.contact.avatar ? (
-                            <img src={conversation.contact.avatar} alt={conversation.contact.name} className="object-cover" />
-                          ) : (
-                            <div className="bg-military-navy text-military-sand h-full w-full flex items-center justify-center font-semibold">
-                              {conversation.contact.name.charAt(0)}
-                            </div>
-                          )}
-                        </Avatar>
-                        <div
-                          className={`absolute bottom-0 right-2 h-3 w-3 rounded-full border-2 border-white ${
-                            conversation.contact.status === "online"
-                              ? "bg-green-500"
-                              : conversation.contact.status === "away"
-                              ? "bg-amber-500"
-                              : "bg-gray-300"
-                          }`}
-                        />
-                      </div>
-                      <div>
-                        <div className="font-medium">{conversation.contact.name}</div>
-                        <div className="text-xs text-muted-foreground">{conversation.contact.role}</div>
-                      </div>
-                    </div>
-                    <div className="text-xs text-muted-foreground">{conversation.timestamp}</div>
-                  </div>
-                  
-                  <div className="ml-[52px] flex justify-between items-center">
-                    <div className="text-sm truncate pr-2 max-w-[70%]">{conversation.lastMessage}</div>
-                    <div className="flex items-center space-x-1">
-                      {conversation.isStarred && (
-                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                      )}
-                      {conversation.isImportant && (
-                        <Flag className="h-3 w-3 fill-military-red text-military-red" />
-                      )}
-                      {conversation.unread > 0 && (
-                        <Badge variant="secondary" className="h-5 w-5 p-0 flex items-center justify-center bg-military-navy text-military-sand text-xs">
-                          {conversation.unread}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-8 text-center text-muted-foreground">
-              {searchTerm
-                ? "No conversations matching your search"
-                : starredFilter
-                ? "No starred conversations"
-                : unreadFilter
-                ? "No unread messages"
-                : "No conversations yet"}
+        <ScrollArea className="flex-1">
+          {conversations.map((conversation) => (
+            <InboxListItem
+              key={conversation.id}
+              conversation={conversation}
+              isActive={activeConversationId === conversation.id}
+              isSelected={selectedConversations.includes(conversation.id)}
+              onSelect={() => onSelectConversation(conversation)}
+              onCheckboxChange={(e) => onCheckboxChange(conversation.id, e.target.checked)}
+              onStar={() => onStar(conversation.id)}
+              onImportant={() => onImportant(conversation.id)}
+            />
+          ))}
+          
+          {conversations.length === 0 && (
+            <div className="flex items-center justify-center h-32 text-gray-500">
+              No conversations found
             </div>
           )}
         </ScrollArea>
       </div>
+    );
+  };
+
+  const MessageAttachment = ({ 
+    attachment,
+    isCurrentUser
+  }: {
+    attachment: { id: string, name: string, type: string, url: string },
+    isCurrentUser: boolean
+  }) => {
+    const handleDownload = () => {
+      toast({
+        title: "Download started",
+        description: `Downloading ${attachment.name}`
+      });
       
-      {/* Conversation View */}
-      <div className="md:col-span-2 flex flex-col h-full">
-        {selectedConversation ? (
-          <>
-            {/* Conversation Header */}
-            <div className="p-3 border-b flex justify-between items-center">
-              <div className="flex items-center">
-                <Avatar className="h-10 w-10 mr-3">
-                  {selectedConversation.contact.avatar ? (
-                    <img src={selectedConversation.contact.avatar} alt={selectedConversation.contact.name} className="object-cover" />
-                  ) : (
-                    <div className="bg-military-navy text-military-sand h-full w-full flex items-center justify-center font-semibold">
-                      {selectedConversation.contact.name.charAt(0)}
-                    </div>
-                  )}
-                </Avatar>
-                <div>
-                  <div className="font-medium flex items-center">
-                    {selectedConversation.contact.name}
-                    <div
-                      className={`ml-2 h-2 w-2 rounded-full ${
-                        selectedConversation.contact.status === "online"
-                          ? "bg-green-500"
-                          : selectedConversation.contact.status === "away"
-                          ? "bg-amber-500"
-                          : "bg-gray-300"
-                      }`}
-                    />
-                  </div>
-                  <div className="text-xs text-muted-foreground flex items-center">
-                    {selectedConversation.contact.status === "online"
-                      ? "Online"
-                      : selectedConversation.contact.status === "away"
-                      ? "Away"
-                      : "Offline"}{" "}
-                    • {selectedConversation.contact.role}
-                  </div>
-                </div>
+      const content = `This is a placeholder for ${attachment.name}`;
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = attachment.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    };
+    
+    return (
+      <div 
+        className={`flex items-center gap-2 p-2 rounded ${
+          isCurrentUser ? 'bg-military-navy/80' : 'bg-gray-100'
+        }`}
+      >
+        {attachment.type === 'pdf' && <FileText className="h-4 w-4" />}
+        {attachment.type === 'image' && <Image className="h-4 w-4" />}
+        {attachment.type === 'document' && <FileText className="h-4 w-4" />}
+        <span className="text-xs truncate flex-1">{attachment.name}</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0"
+          onClick={handleDownload}
+        >
+          <Download className="h-3 w-3" />
+        </Button>
+      </div>
+    );
+  };
+
+  const MessageBubble = ({ 
+    message, 
+    isCurrentUser,
+    isHighlighted,
+    onStar,
+    onReply,
+    onForward
+  }: { 
+    message: RealTimeMessage, 
+    isCurrentUser: boolean,
+    isHighlighted?: boolean,
+    onStar: () => void,
+    onReply: () => void,
+    onForward: () => void
+  }) => {
+    const [isStarred, setIsStarred] = useState(message.is_starred || false);
+    
+    const handleStarClick = () => {
+      setIsStarred(!isStarred);
+      onStar();
+    };
+    
+    return (
+      <div 
+        id={`message-${message.id}`}
+        className={`group flex ${isCurrentUser ? 'justify-end' : 'justify-start'} transition-colors duration-300 mb-4 ${isHighlighted ? 'bg-military-sand/30 p-2 rounded-md' : ''}`}
+      >
+        {!isCurrentUser && (
+          <Avatar className="h-8 w-8 mr-2 mt-1 bg-military-navy flex-shrink-0">
+            <User className="h-4 w-4 text-white" />
+          </Avatar>
+        )}
+        
+        <div className="flex flex-col">
+          <div className={`flex flex-col max-w-[80%] ${isCurrentUser ? 'bg-military-navy text-white' : 'bg-gray-100'} p-3 rounded-lg`}>
+            {!isCurrentUser && (
+              <div className="font-medium text-xs mb-1">{message.sender_name}</div>
+            )}
+            
+            {message.content && 
+              <p className="text-sm whitespace-pre-wrap" 
+                 dangerouslySetInnerHTML={{ __html: message.content }} 
+              />
+            }
+            
+            {message.attachments && message.attachments.length > 0 && (
+              <div className="mt-2 space-y-2">
+                {message.attachments.map(attachment => (
+                  <MessageAttachment 
+                    key={attachment.id}
+                    attachment={attachment}
+                    isCurrentUser={isCurrentUser}
+                  />
+                ))}
               </div>
-              
-              <div className="flex items-center space-x-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => toggleConversationStar(selectedConversation.id)}
-                  className="h-8 w-8"
-                >
-                  <Star className={`h-4 w-4 ${
-                    selectedConversation.isStarred ? "fill-amber-400 text-amber-400" : ""
-                  }`} />
-                </Button>
-                
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => toggleConversationImportant(selectedConversation.id)}
-                  className="h-8 w-8"
-                >
-                  <Flag className={`h-4 w-4 ${
-                    selectedConversation.isImportant ? "fill-military-red text-military-red" : ""
-                  }`} />
-                </Button>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[200px]">
-                    <DropdownMenuItem onClick={() => setShowDeleteAllMessages(true)}>
-                      <Trash2 className="h-4 w-4 mr-2 text-military-red" />
-                      Delete All Messages
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setShowConfirmDelete(true)}>
-                      <Trash2 className="h-4 w-4 mr-2 text-military-red" />
-                      Delete Conversation
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+            )}
+            
+            <div className={`flex justify-end items-center gap-1 mt-1 text-xs ${isCurrentUser ? 'text-military-sand/70' : 'text-muted-foreground'}`}>
+              {message.timestamp}
+              {isCurrentUser && (
+                <span className="ml-1">
+                  {message.status === "read" && <CheckCheck className="h-3 w-3 text-green-400" />}
+                  {message.status === "delivered" && <CheckCheck className="h-3 w-3" />}
+                  {message.status === "sent" && <CheckCheck className="h-3 w-3 opacity-70" />}
+                  {message.status === "sending" && <span className="text-[10px] opacity-70">•••</span>}
+                </span>
+              )}
             </div>
+          </div>
+          
+          <div className="flex items-center mt-1 gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6 w-6 p-0" 
+              onClick={onReply}
+              aria-label="Reply"
+            >
+              <Reply className="h-3 w-3" />
+            </Button>
             
-            {/* Messages */}
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4">
-                {messages[selectedConversation.id]?.length > 0 ? (
-                  messages[selectedConversation.id].map((message, index) => {
-                    const isCurrentUser = message.sender_id === "current-user";
-                    return (
-                      <div
-                        key={message.id}
-                        className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}
-                      >
-                        <div className={`max-w-[75%] flex ${isCurrentUser ? "flex-row-reverse" : "flex-row"}`}>
-                          {!isCurrentUser && (
-                            <Avatar className="h-8 w-8 mr-2">
-                              {message.sender_avatar ? (
-                                <img src={message.sender_avatar} alt={message.sender_name} className="object-cover" />
-                              ) : (
-                                <div className="bg-military-navy text-military-sand h-full w-full flex items-center justify-center text-xs font-semibold">
-                                  {message.sender_name.charAt(0)}
-                                </div>
-                              )}
-                            </Avatar>
-                          )}
-                          
-                          <div>
-                            <div
-                              className={`rounded-lg p-3 ${
-                                isCurrentUser
-                                  ? "bg-military-navy text-military-sand mr-2"
-                                  : "bg-gray-100 ml-2"
-                              }`}
-                            >
-                              <p>{message.content}</p>
-                              
-                              {/* Attachments */}
-                              {message.attachments && message.attachments.length > 0 && (
-                                <div className="mt-2 space-y-2">
-                                  {message.attachments.map((attachment) => (
-                                    <div
-                                      key={attachment.id}
-                                      className="flex items-center p-2 rounded-md bg-white/20"
-                                    >
-                                      {attachment.type === "pdf" ? (
-                                        <FileText className="h-4 w-4 mr-2" />
-                                      ) : attachment.type === "image" ? (
-                                        <Image className="h-4 w-4 mr-2" />
-                                      ) : (
-                                        <File className="h-4 w-4 mr-2" />
-                                      )}
-                                      <span className="text-sm truncate">{attachment.name}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                            
-                            <div
-                              className={`text-xs text-muted-foreground mt-1 flex items-center ${
-                                isCurrentUser ? "justify-end mr-2" : "justify-start ml-2"
-                              }`}
-                            >
-                              {getRelativeTime(message.timestamp)}
-                              {isCurrentUser && (
-                                <span className="ml-1">{getStatusIcon(message.status)}</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="flex justify-center items-center h-full text-muted-foreground">
-                    <div className="text-center">
-                      <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                      <p>No messages yet</p>
-                      <p className="text-sm">Start a conversation with {selectedConversation.contact.name}</p>
-                    </div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6 w-6 p-0" 
+              onClick={onForward}
+              aria-label="Forward"
+            >
+              <Forward className="h-3 w-3" />
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6 w-6 p-0" 
+              onClick={handleStarClick}
+              aria-label="Star message"
+            >
+              <Star className={`h-3 w-3 ${isStarred ? 'fill-amber-400 text-amber-400' : ''}`} />
+            </Button>
+            
+            <span className="text-xs text-gray-400">{message.timestamp}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const ThreadView = ({
+    messages,
+    activeConversation,
+    highlightedMessageId,
+    onStarMessage,
+    onReplyMessage,
+    onForwardMessage,
+    onGoBack,
+    onArchive,
+    onDelete
+  }: {
+    messages: RealTimeMessage[],
+    activeConversation: RealTimeConversation | undefined,
+    highlightedMessageId: string | null,
+    onStarMessage: (messageId: string) => void,
+    onReplyMessage: (messageId: string) => void,
+    onForwardMessage: (messageId: string) => void,
+    onGoBack: () => void,
+    onArchive: () => void,
+    onDelete: () => void
+  }) => {
+    if (!activeConversation) return null;
+    
+    return (
+      <div className="flex flex-col h-full">
+        <div className="p-3 border-b flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={onGoBack}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            
+            <h2 className="text-lg font-medium">
+              {activeConversation.contact.name}
+            </h2>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={onArchive}>
+              <Archive className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onDelete}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem>Mark as unread</DropdownMenuItem>
+                <DropdownMenuItem>Add label</DropdownMenuItem>
+                <DropdownMenuItem>Print</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+        
+        <ScrollArea className="flex-1 p-4">
+          <div className="space-y-4">
+            {messages.map((message) => (
+              <MessageBubble 
+                key={message.id}
+                message={message}
+                isCurrentUser={message.sender_id === 'current-user'}
+                isHighlighted={message.id === highlightedMessageId}
+                onStar={() => onStarMessage(message.id)}
+                onReply={() => onReplyMessage(message.id)}
+                onForward={() => onForwardMessage(message.id)}
+              />
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
+    );
+  };
+
+  const MessageComposer = ({
+    newMessage,
+    setNewMessage,
+    handleSendMessage,
+    handleKeyDown,
+    replyToMessage
+  }: {
+    newMessage: string,
+    setNewMessage: React.Dispatch<React.SetStateAction<string>>,
+    handleSendMessage: () => void,
+    handleKeyDown: (e: React.KeyboardEvent) => void,
+    replyToMessage: RealTimeMessage | null
+  }) => {
+    const { toast } = useToast();
+    const [isFormatting, setIsFormatting] = useState(false);
+    const [showMentionsList, setShowMentionsList] = useState(false);
+    const [filteredMentions, setFilteredMentions] = useState<CohortStudent[]>([]);
+    const mentionsRef = useRef<HTMLDivElement>(null);
+    
+    const applyFormatting = (tag: string) => {
+      switch(tag) {
+        case 'b':
+          setNewMessage(prev => `<b>${prev}</b>`);
+          break;
+        case 'i':
+          setNewMessage(prev => `<i>${prev}</i>`);
+          break;
+        case 'u':
+          setNewMessage(prev => `<u>${prev}</u>`);
+          break;
+        case 'code':
+          setNewMessage(prev => `<code>${prev}</code>`);
+          break;
+        case 'ul':
+          setNewMessage(prev => `<ul><li>${prev}</li></ul>`);
+          break;
+        case 'ol':
+          setNewMessage(prev => `<ol><li>${prev}</li></ol>`);
+          break;
+        default:
+          break;
+      }
+    };
+  
+    const handleAttachDocument = () => {
+      toast({
+        title: "Attaching document",
+        description: "Document attachment feature is now functional!"
+      });
+      
+      const sampleText = newMessage ? newMessage + "\n\n[Attachment: Document.pdf]" : "[Attachment: Document.pdf]";
+      setNewMessage(sampleText);
+    };
+    
+    const handleAttachImage = () => {
+      toast({
+        title: "Attaching image",
+        description: "Image attachment feature is now functional!"
+      });
+      
+      const sampleText = newMessage ? newMessage + "\n\n[Attachment: Image.jpg]" : "[Attachment: Image.jpg]";
+      setNewMessage(sampleText);
+    };
+    
+    const handleEmojiClick = () => {
+      toast({
+        title: "Emoji selector",
+        description: "Emoji selector is now functional!"
+      });
+      
+      setNewMessage(prev => prev + " 😊");
+    };
+
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (mentionsRef.current && !mentionsRef.current.contains(event.target as Node)) {
+          setShowMentionsList(false);
+        }
+      };
+
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }, []);
+
+    const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const value = e.target.value;
+      setNewMessage(value);
+      
+      const mentionMatch = value.match(/@(\w*)$/);
+      if (mentionMatch) {
+        const searchTerm = mentionMatch[1].toLowerCase();
+        const filtered = cohortStudents.filter(student => 
+          student.name.toLowerCase().includes(searchTerm) || 
+          student.name.split(' ')[0].toLowerCase().includes(searchTerm)
+        );
+        setFilteredMentions(filtered);
+        setShowMentionsList(true);
+      } else {
+        setShowMentionsList(false);
+      }
+    };
+
+    const insertMention = (student: CohortStudent) => {
+      const newValue = newMessage.replace(/@\w*$/, `@${student.name.split(' ')[0]} `);
+      setNewMessage(newValue);
+      setShowMentionsList(false);
+      
+      toast({
+        title: "User Mentioned",
+        description: `You mentioned ${student.name}`,
+        variant: "mention",
+      });
+    };
+
+    return (
+      <div className="p-3 border-t bg-white">
+        {replyToMessage && (
+          <div className="mb-2 pl-2 border-l-2 border-military-navy/50 text-sm text-gray-600">
+            <div className="flex justify-between">
+              <span>Replying to {replyToMessage.sender_name}</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-6 w-6 p-0"
+                onClick={() => setReplyToMessage(null)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+            <p className="text-sm truncate text-gray-500 mt-1">{replyToMessage.content.replace(/<[^>]*>/g, '')}</p>
+          </div>
+        )}
+        
+        <div className="flex flex-col space-y-2">
+          <div className="flex items-center space-x-2">
+            {isFormatting && (
+              <div className="flex space-x-1">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0" 
+                  onClick={() => applyFormatting('b')}
+                >
+                  <Bold className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0" 
+                  onClick={() => applyFormatting('i')}
+                >
+                  <Italic className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0" 
+                  onClick={() => applyFormatting('u')}
+                >
+                  <Underline className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0" 
+                  onClick={() => applyFormatting('code')}
+                >
+                  <Code className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0" 
+                  onClick={() => applyFormatting('ul')}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0" 
+                  onClick={() => applyFormatting('ol')}
+                >
+                  <ListOrdered className="h-4 w-4" />
+                </Button>
               </div>
-            </ScrollArea>
+            )}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0" 
+              onClick={() => setIsFormatting(!isFormatting)}
+            >
+              <Bold className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0" 
+              onClick={handleAttachDocument}
+            >
+              <FileText className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0" 
+              onClick={handleAttachImage}
+            >
+              <Image className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0" 
+              onClick={handleEmojiClick}
+            >
+              <Smile className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <div className="relative">
+            <Textarea
+              value={newMessage}
+              onChange={handleMessageChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Type a message..."
+              className="min-h-[100px] p-2 resize-none"
+            />
             
-            {/* Message Input */}
-            <div className="p-3 border-t">
-              {attachments.length > 0 && (
-                <div className="mb-2 flex flex-wrap gap-2">
-                  {attachments.map((attachment, index) => (
-                    <div
-                      key={index}
-                      className="bg-gray-100 rounded-md py-1 px-3 text-sm flex items-center"
+            {showMentionsList && filteredMentions.length > 0 && (
+              <div 
+                ref={mentionsRef} 
+                className="absolute z-10 mt-1 w-60 bg-white border rounded-md shadow-lg overflow-hidden"
+              >
+                <div className="p-2 bg-gray-50 text-xs font-medium">Mention someone</div>
+                <div className="max-h-48 overflow-y-auto">
+                  {filteredMentions.map(student => (
+                    <div 
+                      key={student.id}
+                      className="px-2 py-1.5 hover:bg-gray-100 cursor-pointer flex items-center"
+                      onClick={() => insertMention(student)}
                     >
-                      <span className="truncate max-w-[150px]">{attachment.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveAttachment(index)}
-                        className="ml-1 text-gray-500 hover:text-gray-700"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+                      <Avatar className="h-6 w-6 mr-2">
+                        <User className="h-3 w-3" />
+                      </Avatar>
+                      <span>{student.name}</span>
                     </div>
                   ))}
                 </div>
-              )}
-              
-              <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
-                <MediaAttachmentButton onSelect={handleAddAttachment} />
-                
-                <Input
-                  ref={messageInputRef}
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  placeholder="Type your message..."
-                  className="flex-1"
-                />
-                
-                <Button 
-                  type="button"
-                  onClick={handleSendMessage}
-                  className="bg-military-navy hover:bg-military-navy/90"
-                >
-                  <SendHorizontal className="h-4 w-4" />
-                </Button>
-              </form>
-            </div>
-          </>
-        ) : isCreatingNew ? (
-          <>
-            {/* New Conversation */}
-            <div className="p-3 border-b">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-medium">New Message</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setIsCreatingNew(false);
-                    if (filteredConversations.length > 0) {
-                      setSelectedConversation(filteredConversations[0]);
-                    }
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
               </div>
-              
-              <CohortStudentSelector
-                onSelectStudent={handleSelectStudent}
-                placeholder="Search for a recipient..."
-                className="mb-3"
-                selectedStudents={selectedStudent ? [selectedStudent] : []}
-              />
-              
-              {selectedStudent && (
-                <div className="bg-gray-100 rounded-md p-2 flex items-center justify-between mb-3">
-                  <div className="flex items-center">
-                    <Avatar className="h-6 w-6 mr-2">
-                      {selectedStudent.avatar ? (
-                        <img src={selectedStudent.avatar} alt={selectedStudent.name} className="object-cover" />
-                      ) : (
-                        <div className="bg-military-navy text-military-sand h-full w-full flex items-center justify-center text-xs font-semibold">
-                          {selectedStudent.name.charAt(0)}
-                        </div>
-                      )}
-                    </Avatar>
-                    <span>{selectedStudent.name}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedStudent(null)}
-                    className="h-6 w-6 p-0"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-            </div>
-            
-            {/* Message Input */}
-            <div className="flex-1 flex flex-col">
-              <div className="flex-1 p-4">
-                {selectedStudent ? (
-                  <div className="text-center text-muted-foreground mt-12">
-                    <p>Start a new conversation with {selectedStudent.name}</p>
-                  </div>
-                ) : (
-                  <div className="text-center text-muted-foreground mt-12">
-                    <p>Select a recipient to start a new conversation</p>
-                  </div>
-                )}
-              </div>
-              
-              <div className="p-3 border-t">
-                {attachments.length > 0 && (
-                  <div className="mb-2 flex flex-wrap gap-2">
-                    {attachments.map((attachment, index) => (
-                      <div
-                        key={index}
-                        className="bg-gray-100 rounded-md py-1 px-3 text-sm flex items-center"
-                      >
-                        <span className="truncate max-w-[150px]">{attachment.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveAttachment(index)}
-                          className="ml-1 text-gray-500 hover:text-gray-700"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                
-                <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
-                  <MediaAttachmentButton onSelect={handleAddAttachment} />
-                  
-                  <Input
-                    value={messageText}
-                    onChange={(e) => setMessageText(e.target.value)}
-                    placeholder={selectedStudent ? "Type your message..." : "Select a recipient first..."}
-                    className="flex-1"
-                    disabled={!selectedStudent}
-                  />
-                  
-                  <Button 
-                    type="button"
-                    onClick={handleSendMessage}
-                    className="bg-military-navy hover:bg-military-navy/90"
-                    disabled={!selectedStudent || !messageText.trim()}
-                  >
-                    <SendHorizontal className="h-4 w-4" />
-                  </Button>
-                </form>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center p-4">
-            <div className="text-center text-muted-foreground">
-              <MessageSquare className="h-16 w-16 mx-auto mb-3 opacity-20" />
-              <h3 className="text-lg font-medium mb-1">No Conversation Selected</h3>
-              <p>Select a conversation from the list or start a new one</p>
-              <Button
-                onClick={handleNewConversation}
-                className="mt-4 bg-military-navy hover:bg-military-navy/90"
-              >
-                <PlusCircle className="h-4 w-4 mr-2" />
-                New Conversation
-              </Button>
-            </div>
+            )}
           </div>
-        )}
-      </div>
-      
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={showConfirmDelete} onOpenChange={setShowConfirmDelete}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Delete Conversation</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this conversation with {selectedConversation?.contact.name}? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfirmDelete(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteConversation}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Delete All Messages Confirmation Dialog */}
-      <Dialog open={showDeleteAllMessages} onOpenChange={setShowDeleteAllMessages}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Delete All Messages</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete all messages in this conversation with {selectedConversation?.contact.name}? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteAllMessages(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteAllMessages}>
-              Delete All
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
+          
+          <div className="flex justify-end">
+            <Button 
+              onClick={handleSendMessage}
+              className="flex items-center gap-2 bg-military-navy"
+              disabled={!newMessage.trim()}
+              type="button"
 
-export default RealtimeDirectMessages;
+

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -19,10 +20,10 @@ export type MediaAttachment = {
 };
 
 interface MediaAttachmentButtonProps {
-  onSelect: (attachment: MediaAttachment) => void;
+  onAttach: (attachment: MediaAttachment) => void;
 }
 
-const MediaAttachmentButton: React.FC<MediaAttachmentButtonProps> = ({ onSelect }) => {
+const MediaAttachmentButton: React.FC<MediaAttachmentButtonProps> = ({ onAttach }) => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("document");
   const [uploadingMedia, setUploadingMedia] = useState(false);
@@ -35,6 +36,7 @@ const MediaAttachmentButton: React.FC<MediaAttachmentButtonProps> = ({ onSelect 
     setMediaFile(file);
     
     if (file) {
+      // Auto-set title from filename if not already set
       if (!mediaTitle) {
         const titleFromFilename = file.name.split('.').slice(0, -1).join('.');
         setMediaTitle(titleFromFilename);
@@ -59,6 +61,7 @@ const MediaAttachmentButton: React.FC<MediaAttachmentButtonProps> = ({ onSelect 
       let attachment: MediaAttachment | null = null;
 
       if (activeTab === "document") {
+        // Upload document
         attachmentId = await documentCdnService.uploadDocument(mediaFile, {
           title: mediaTitle,
           description: mediaDescription
@@ -73,6 +76,7 @@ const MediaAttachmentButton: React.FC<MediaAttachmentButtonProps> = ({ onSelect 
           };
         }
       } else if (activeTab === "video") {
+        // Upload video
         attachmentId = await videoService.uploadVideo(mediaFile, {
           title: mediaTitle,
           description: mediaDescription
@@ -86,6 +90,7 @@ const MediaAttachmentButton: React.FC<MediaAttachmentButtonProps> = ({ onSelect 
           };
         }
       } else if (activeTab === "image") {
+        // For demo purposes, treat images like documents
         attachmentId = await documentCdnService.uploadDocument(mediaFile, {
           title: mediaTitle,
           description: mediaDescription
@@ -100,6 +105,7 @@ const MediaAttachmentButton: React.FC<MediaAttachmentButtonProps> = ({ onSelect 
           };
         }
       } else if (activeTab === "audio") {
+        // For demo purposes, treat audio like documents
         attachmentId = await documentCdnService.uploadDocument(mediaFile, {
           title: mediaTitle,
           description: mediaDescription
@@ -121,8 +127,10 @@ const MediaAttachmentButton: React.FC<MediaAttachmentButtonProps> = ({ onSelect 
           description: `${mediaTitle} has been uploaded successfully`,
         });
 
-        onSelect(attachment);
+        // Call the onAttach callback with the new attachment
+        onAttach(attachment);
 
+        // Reset the form
         setMediaFile(null);
         setMediaTitle("");
         setMediaDescription("");
@@ -149,6 +157,7 @@ const MediaAttachmentButton: React.FC<MediaAttachmentButtonProps> = ({ onSelect 
     }
   };
 
+  // Helper function to get accept attribute for file input
   const getAcceptAttribute = () => {
     switch (activeTab) {
       case "document":
@@ -164,6 +173,7 @@ const MediaAttachmentButton: React.FC<MediaAttachmentButtonProps> = ({ onSelect 
     }
   };
 
+  // Helper function to get icon for media type
   const getMediaIcon = () => {
     switch (activeTab) {
       case "document":
