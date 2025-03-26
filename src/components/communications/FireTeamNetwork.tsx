@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -303,7 +302,7 @@ const FireTeamNetwork: React.FC<FireTeamNetworkProps> = ({ selectedPostId }) => 
                     
                     <div className="flex justify-between mt-2">
                       <div className="flex gap-2">
-                        <MediaAttachmentButton onAttach={handleAddAttachment} />
+                        <MediaAttachmentButton onAttachmentSelect={handleAddAttachment} />
                       </div>
                       <Button 
                         onClick={handleCreatePost}

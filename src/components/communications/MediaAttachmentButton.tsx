@@ -1,12 +1,21 @@
 
 import React, { useState } from "react";
-import { Paperclip, Image, FileText, File, X } from "lucide-react";
+import { Paperclip, Image, FileText, File } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-// Update the props interface to include onAttachmentSelect
+// Define MediaAttachment type and export it
+export interface MediaAttachment {
+  id: string;
+  name: string;
+  type: 'image' | 'pdf' | 'document' | 'video' | 'audio';
+  url: string;
+  size?: number;
+}
+
+// Props interface with onAttachmentSelect
 export interface MediaAttachmentButtonProps {
-  onAttachmentSelect: (attachment: any) => void;
+  onAttachmentSelect: (attachment: MediaAttachment) => void;
 }
 
 const MediaAttachmentButton: React.FC<MediaAttachmentButtonProps> = ({ onAttachmentSelect }) => {
@@ -14,10 +23,10 @@ const MediaAttachmentButton: React.FC<MediaAttachmentButtonProps> = ({ onAttachm
   
   const handleAttachmentSelect = (type: string) => {
     // Create mock attachment for demo
-    const attachment = {
+    const attachment: MediaAttachment = {
       id: `attachment-${Date.now()}`,
       name: `${type}-file-${Date.now()}.${type === 'image' ? 'jpg' : type === 'pdf' ? 'pdf' : 'doc'}`,
-      type,
+      type: type as 'image' | 'pdf' | 'document',
       url: '#'
     };
     
