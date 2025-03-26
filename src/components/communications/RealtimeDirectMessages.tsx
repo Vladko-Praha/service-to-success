@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { useRealtimeMessages, RealTimeMessage, RealTimeConversation } from "@/hooks/use-realtime-messages";
 import { Avatar } from "@/components/ui/avatar";
@@ -821,6 +822,7 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
               />
             ))}
           </div>
+          <div ref={messagesEndRef} />
         </ScrollArea>
       </div>
     );
@@ -1088,5 +1090,237 @@ const RealtimeDirectMessages: React.FC<RealtimeDirectMessagesProps> = ({ selecte
               className="flex items-center gap-2 bg-military-navy"
               disabled={!newMessage.trim()}
               type="button"
+            >
+              <Send className="h-4 w-4" />
+              Send
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
+  // Compose view for new messages
+  const ComposeView = () => {
+    const [subject, setSubject] = useState("");
+    const [content, setContent] = useState("");
+    const [selectedStudents, setSelectedStudents] = useState<CohortStudent[]>([]);
+    
+    const handleSelectStudent = (student: CohortStudent) => {
+      if (!selectedStudents.some(s => s.id === student.id)) {
+        setSelectedStudents([...selectedStudents, student]);
+        setComposeToStudent(student);
+      }
+    };
+    
+    const handleRemoveStudent = (studentId: string) => {
+      setSelectedStudents(selectedStudents.filter(s => s.id !== studentId));
+      if (composeToStudent?.id === studentId) {
+        setComposeToStudent(null);
+      }
+    };
+    
+    const handleSend = () => {
+      if (!composeToStudent) {
+        toast({
+          title: "Error",
+          description: "Please select a recipient",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (!subject.trim()) {
+        toast({
+          title: "Error",
+          description: "Please enter a subject",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (!content.trim()) {
+        toast({
+          title: "Error",
+          description: "Please enter a message",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      handleSendNewMessage(subject, content);
+    };
+    
+    return (
+      <div className="flex flex-col h-full border rounded-md">
+        <div className="p-3 border-b flex items-center justify-between bg-gray-50">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={handleCancelCompose}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+            <h2 className="text-lg font-medium">New Message</h2>
+          </div>
+        </div>
+        
+        <div className="flex-1 p-4 space-y-4">
+          <div>
+            <div className="flex items-center mb-2">
+              <span className="w-16 text-sm text-gray-500">To:</span>
+              <div className="flex-1 flex flex-wrap gap-2 items-center">
+                {selectedStudents.map(student => (
+                  <Badge key={student.id} className="bg-gray-100 text-gray-800 flex items-center gap-1 pl-2">
+                    {student.name}
+                    <button 
+                      className="ml-1 text-gray-500 hover:text-gray-700" 
+                      onClick={() => handleRemoveStudent(student.id)}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+                <CohortStudentSelector 
+                  onSelectStudent={handleSelectStudent}
+                  placeholder="Type a name..."
+                  selectedStudents={selectedStudents}
+                  className="flex-1 min-w-[200px]"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center mb-4">
+              <span className="w-16 text-sm text-gray-500">Subject:</span>
+              <Input 
+                value={subject}
+                onChange={(e) => {
+                  setSubject(e.target.value);
+                  setComposeSubject(e.target.value);
+                }}
+                placeholder="Enter subject..."
+                className="flex-1"
+              />
+            </div>
+            
+            <Separator className="my-4" />
+            
+            <Textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Write your message..."
+              className="min-h-[200px] p-2 resize-none"
+            />
+          </div>
+        </div>
+        
+        <div className="p-3 border-t flex justify-between bg-gray-50">
+          <Button variant="outline" onClick={handleCancelCompose}>
+            Discard
+          </Button>
+          <Button 
+            onClick={handleSend}
+            className="flex items-center gap-2 bg-military-navy"
+            disabled={!content.trim() || !subject.trim() || !composeToStudent}
+            type="button"
+          >
+            <Send className="h-4 w-4" />
+            Send
+          </Button>
+        </div>
+      </div>
+    );
+  };
 
+  const renderMainContent = () => {
+    if (view === "compose") {
+      return <ComposeView />;
+    }
+    
+    if (view === "thread" && activeConversationId) {
+      return (
+        <div className="flex flex-col h-full">
+          <ThreadView 
+            messages={messages[activeConversationId] || []}
+            activeConversation={conversations.find(c => c.id === activeConversationId)}
+            highlightedMessageId={selectedMessageId}
+            onStarMessage={handleStarMessage}
+            onReplyMessage={handleReplyMessage}
+            onForwardMessage={handleForwardMessage}
+            onGoBack={handleGoBackToList}
+            onArchive={handleArchive}
+            onDelete={handleDelete}
+          />
+          
+          <MessageComposer 
+            newMessage={newMessage}
+            setNewMessage={setNewMessage}
+            handleSendMessage={handleSendMessage}
+            handleKeyDown={handleKeyDown}
+            replyToMessage={replyToMessage}
+          />
+        </div>
+      );
+    }
+    
+    // Default: show inbox list
+    return (
+      <InboxList 
+        conversations={filteredConversations}
+        activeConversationId={activeConversationId || ''}
+        selectedConversations={selectedConversations}
+        onSelectConversation={handleSelectConversation}
+        onCheckboxChange={handleCheckboxChange}
+        onStar={handleStar}
+        onImportant={handleImportant}
+        onSelectAll={handleSelectAll}
+        onRefresh={handleRefresh}
+        isSelectAll={isSelectAll}
+      />
+    );
+  };
+
+  return (
+    <div className="h-[calc(100vh-240px)] min-h-[500px] flex border rounded-md overflow-hidden bg-white">
+      {/* Sidebar */}
+      <div className="w-48 border-r flex flex-col">
+        <div className="p-3">
+          <ComposeButton onClick={handleComposeNew} />
+        </div>
+        
+        <SidebarNav
+          activeView={activeView}
+          setActiveView={setActiveView}
+          counts={{ inbox: unreadCount, drafts: draftCount }}
+        />
+      </div>
+      
+      {/* Main content */}
+      <div className="flex-1 flex flex-col">
+        {!isConnected && (
+          <div className="bg-red-50 p-2 text-red-700 text-sm border-b">
+            Not connected to message server. {connectionError}
+          </div>
+        )}
+        
+        {isConnected && view === "list" && (
+          <div className="p-2 border-b">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search messages..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+        
+        <div className="flex-1 overflow-hidden">
+          {renderMainContent()}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default RealtimeDirectMessages;
